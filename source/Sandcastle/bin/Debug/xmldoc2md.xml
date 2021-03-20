@@ -1,0 +1,342 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Sandcastle</name>
+    </assembly>
+    <members>
+        <member name="T:Sandcastle.Inventory.InventoryUtils">
+            <summary>
+            An inventory helper class
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetInventoryWithCargoSpace(Vessel,AvailablePart)">
+            <summary>
+            Gets an inventory with enough storage space and storage mass for the desired part.
+            </summary>
+            <param name="vessel">The vessel to query.</param>
+            <param name="availablePart">The AvailablePart to check for space.</param>
+            <returns>A ModuleInventoryPart if space can be found or null if not.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.InventoryHasSpace(ModuleInventoryPart,AvailablePart)">
+            <summary>
+            Determines whether or not the supplied inventory has space for the desired part.
+            </summary>
+            <param name="inventory">A ModuleInventoryPart to check for space.</param>
+            <param name="availablePart">An AvailablePart to check to see if it fits.</param>
+            <returns>true if the inventory has space for the part, false if not.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.HasEnoughSpace(Vessel,AvailablePart)">
+            <summary>
+            Determines whether or not the vessel has enough storage space.
+            </summary>
+            <param name="vessel">The vessel to query</param>
+            <param name="availablePart">The AvailablePart to check for space.</param>
+            <returns>true if there is enough space, false if not.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.HasItem(Vessel,System.String)">
+            <summary>
+            Determines whether or not the vessel has the item in question.
+            </summary>
+            <param name="vessel">The vessel to query.</param>
+            <param name="partName">The name of the part to look for</param>
+            <returns>true if the vessel has the part, false if not.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.RemoveItem(Vessel,System.String)">
+            <summary>
+            Removes the item from the vessel if it exists.
+            </summary>
+            <param name="vessel">The vessel to query.</param>
+            <param name="partName">The name of the part to remove.</param>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.AddItem(Vessel,AvailablePart,ModuleInventoryPart)">
+            <summary>
+            Adds the item to the vessel inventory if there is enough room.
+            </summary>
+            <param name="vessel">The vessel to query.</param>
+            <param name="availablePart">The part to add to the inventory</param>
+            <param name="preferredInventory">The preferred inventory to store the part in.</param>
+            <returns>The Part that the item was stored in, or null if no place could be found for the part.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.FindThumbnailPaths">
+            <summary>
+            Searches the game folder for thumbnail images.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetTexture(System.String)">
+            <summary>
+            Retrieves the thumbnail texture that depicts the specified part name.
+            </summary>
+            <param name="partName">A string containing the name of the part.</param>
+            <returns>A Texture2D if the texture exists, or a blank texture if not.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetPrintableParts(System.Single)">
+            <summary>
+            Retrieves a list of parts that can be printed by the specified max print volume.
+            </summary>
+            <param name="maxPrintVolume">A float containing the max possible print volume.</param>
+            <returns>A List of AvailablePart objects that can be printed.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.loadTexture(System.String)">
+            <summary>
+            Retrieves the thumbnail texture that depicts the specified part name.
+            </summary>
+            <param name="partName">A string containing the name of the part.</param>
+            <returns>A Texture2D if the texture exists, or a blank texture if not.</returns>
+        </member>
+        <member name="T:Sandcastle.PrintShop.UpdatePrintStatusDelegate">
+            <summary>
+            Callback to let the controller know about the print state.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.PrintShopUI">
+            <summary>
+            Represents the Print Shop UI
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.titleText">
+            <summary>
+            Title of the selection dialog.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.partsList">
+            <summary>
+            Complete list of printable parts.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.printQueue">
+            <summary>
+            Represents the list of build items to print.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.jobStatus">
+            <summary>
+            Status of the current print job.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.onPrintStatusUpdate">
+            <summary>
+            Callback to let the controller know about the print state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.isPrinting">
+            <summary>
+            Flag indicating that the printer is printing
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.part">
+            <summary>
+            The Part associated with the UI.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.PrintShopUI.SetVisible(System.Boolean)">
+            <summary>
+            Toggles window visibility
+            </summary>
+            <param name="newValue">A flag indicating whether the window shoudld be visible or not.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.PrintShopUI.DrawWindowContents(System.Int32)">
+            <summary>
+            Draws the window
+            </summary>
+            <param name="windowId">An int representing the window ID.</param>
+        </member>
+        <member name="T:Sandcastle.PrintShop.BuildItem">
+            <summary>
+            Represents an item that needs to be built.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.kBuildItemNode">
+            <summary>
+            Build item node identifier
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.partName">
+            <summary>
+            Name of the part being built.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.availablePart">
+            <summary>
+            The Available part representing the build item.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.materials">
+            <summary>
+            List of resource materials required. Rate in this context represents the amount of the resource required in order to complete the part.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.requiredComponents">
+            <summary>
+            List of parts required to complete the build item. The parts must be in the vessel inventory.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.totalUnitsRequired">
+            <summary>
+            Total units required to produce the item, determined from all required resources.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.totalUnitsPrinted">
+            <summary>
+            Total units printed to date, determined from all required resources.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.BuildItem.#ctor(ConfigNode)">
+            <summary>
+            Constructs a new build item from the supplied config node.
+            </summary>
+            <param name="node">A ConfigNode containing data for the build item.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.BuildItem.#ctor(AvailablePart)">
+            <summary>
+            Constructs a build item from the supplied available part.
+            </summary>
+            <param name="availablePart">The AvailablePart to base the build item on.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.BuildItem.Save">
+            <summary>
+            Saves the build item.
+            </summary>
+            <returns>A ConfigNode containing serialized data.</returns>
+        </member>
+        <member name="T:Sandcastle.PrintShop.MaterialsList">
+            <summary>
+            Represents a list of resources needed to build an item of a particular part category.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.kMaterialsListNode">
+            <summary>
+            Node ID for a materials list.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.kTechNodeMaterials">
+            <summary>
+            Node ID for tech node materials. Parts in a specific tech node can require additional materials.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.kDefaultMaterialsListName">
+            <summary>
+            Name of the default materials list.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.kResourceNode">
+            <summary>
+            Represents a resource node.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.name">
+            <summary>
+            Name of the materials list. This should correspond to one of the part categories.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.materials">
+            <summary>
+            List of resource materials required.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.MaterialsList.LoadLists">
+            <summary>
+            Loads the materials lists that specify what materials are required to produce an item from a particular category.
+            </summary>
+            <returns>A Dictionary containing the list names as keys and MaterialList objects as values.</returns>
+        </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.materialsLists">
+            <summary>
+            A map of all materials lists, keyed by part category name.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.MaterialsList.GetListForCategory(System.String)">
+            <summary>
+            Returns the materials list for the requested category, or the default list if the list for the requested category doesn't exist.
+            </summary>
+            <param name="categoryName">A string containing the desired category.</param>
+            <returns>A MaterialsList if one exists for the desired category, or the default list.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.MaterialsList.GetDefaultList">
+            <summary>
+            Creates the default materials list.
+            </summary>
+            <returns>A MaterialsList containing the default materials.</returns>
+        </member>
+        <member name="T:Sandcastle.PrintShop.WBIPrintStates">
+            <summary>
+            Lists the different printer states
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintStates.Idle">
+            <summary>
+            Printer is idle, nothing to print.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintStates.Paused">
+            <summary>
+            Printer has an item to print but is paused.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintStates.Printing">
+            <summary>
+            Printer is printing something.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.WBIPrintShop">
+            <summary>
+            Represents a shop that is capable of printing items and placing them in an available inventory.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.debugMode">
+            <summary>
+            A flag to enable/disable debug mode.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.maxPrintVolume">
+            <summary>
+            The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printSpeedUSec">
+            <summary>
+            The number of resource units per second that the printer can print.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.UseSpecialistBonus">
+            <summary>
+            Flag to indicate whether or not to allow specialists to improve the print speed. Exactly how the specialist(s) does that is a trade secret.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.SpecialistBonus">
+            <summary>
+            Per experience rating, how much to improve the print speed by.
+            The print shop part must have crew capacity.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.ExperienceEffect">
+            <summary>
+            The skill required to improve the print speed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.runningEffect">
+            <summary>
+            Name of the effect to play from the part's EFFECTS node when the printer is running.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printQueue">
+            <summary>
+            Represents the list of build items to print.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printState">
+            <summary>
+            Current state of the printer.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.lastUpdateTime">
+            <summary>
+            Describes when the printer was last updated.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.currentJob">
+            <summary>
+            Current job being printed.
+            </summary>
+        </member>
+    </members>
+</doc>
