@@ -7,6 +7,7 @@ using KSP.Localization;
 
 namespace Sandcastle.PrintShop
 {
+    #region Print states enum
     /// <summary>
     /// Lists the different printer states
     /// </summary>
@@ -25,19 +26,29 @@ namespace Sandcastle.PrintShop
         /// <summary>
         /// Printer is printing something.
         /// </summary>
-        Printing
+        Printing,
+
+        /// <summary>
+        /// The recycler is recycling something.
+        /// </summary>
+        Recycling
     }
+    #endregion
 
     /// <summary>
     /// Represents a shop that is capable of printing items and placing them in an available inventory.
     /// </summary>
-    public class WBIPrintShop: PartModule
+    public class WBIPrintShop: WBIPartModule
     {
         #region Constants
         const double kCatchupTime = 3600;
         const float kMsgDuration = 5;
         const string kPrintState = "printState";
         const string kPrintShopGroup = "PrintShop";
+        const string kPartWhiteListNode = "PARTS_WHITELIST";
+        const string kWhitelistedPart = "whitelistedPart";
+        const string kCategoryWhitelistNode = "CATEGORY_WHITELIST";
+        const string kWhitelistedCategory = "whitelistedCategory";
         #endregion
 
         #region Fields
@@ -114,6 +125,7 @@ namespace Sandcastle.PrintShop
         double printResumeTime = 0;
         bool missingRequirements = false;
         Dictionary<double, Part> unHighlightList = null;
+        List<PartCategories> whitelistedCategories;
         #endregion
 
         #region FixedUpdate
@@ -164,7 +176,7 @@ namespace Sandcastle.PrintShop
             printResumeTime = Planetarium.GetUniversalTime() + 5;
 
             // Update the filtered list of cargo parts
-            filteredParts = InventoryUtils.GetPrintableParts(maxPrintVolume);
+            updateFilteredParts();
 
             // Watch for game events
             GameEvents.onVesselChange.Add(onVesselChange);
@@ -245,6 +257,7 @@ namespace Sandcastle.PrintShop
         public void OpenGUI()
         {
             shopUI.partsList = filteredParts;
+            shopUI.whitelistedCategories = whitelistedCategories;
             shopUI.SetVisible(true);
         }
         #endregion
@@ -441,14 +454,13 @@ namespace Sandcastle.PrintShop
             {
                 // Add the item to an inventory
                 Part inventoryPart = InventoryUtils.AddItem(part.vessel, buildItem.availablePart, part.FindModuleImplementing<ModuleInventoryPart>());
-                ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_storedPart", new string[2] { buildItem.availablePart.title, inventoryPart.partName }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
+                ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_storedPart", new string[2] { buildItem.availablePart.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
                 inventoryPart.Highlight(Color.cyan);
                 unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
 
                 // Remove the item from the print queue
                 printQueue.RemoveAt(0);
             }
-
         }
 
         private void onPrintStatusUpdate(bool isPrinting)
@@ -484,6 +496,68 @@ namespace Sandcastle.PrintShop
             }
 
             return bonus + (highestRank * SpecialistBonus);
+        }
+
+        private void updateFilteredParts()
+        {
+            List<AvailablePart> availableParts = InventoryUtils.GetPrintableParts(maxPrintVolume);
+            ConfigNode node = getPartConfigNode();
+            PartCategories category;
+            whitelistedCategories = new List<PartCategories>();
+            filteredParts = new List<AvailablePart>();
+
+            // Get the whitelisted categories
+            if (node.HasNode(kCategoryWhitelistNode))
+            {
+                ConfigNode categoryNode = node.GetNode(kCategoryWhitelistNode);
+                string[] categories = categoryNode.GetValues(kWhitelistedCategory);
+                if (categories.Length == 0)
+                    categories = Enum.GetNames(typeof(PartCategories));
+                for (int index = 0; index < categories.Length; index++)
+                {
+                    if (Enum.TryParse(categories[index], out category))
+                    {
+                        whitelistedCategories.Add(category);
+                    }
+                }
+            }
+
+            // Add all the categories
+            else
+            {
+                string[] categoryNames = Enum.GetNames(typeof(PartCategories));
+                for (int index = 0; index < categoryNames.Length; index++)
+                {
+                    if (Enum.TryParse(categoryNames[index], out category))
+                    {
+                        whitelistedCategories.Add(category);
+                    }
+                }
+            }
+
+            // Get whitelisted parts
+            if (node.HasNode(kPartWhiteListNode))
+            {
+                ConfigNode partsNode = node.GetNode(kPartWhiteListNode);
+                string[] whitelistedParts = partsNode.GetValues(kWhitelistedPart);
+                if (whitelistedParts.Length == 0)
+                {
+                    filteredParts = availableParts;
+                    return;
+                }
+                int count = availableParts.Count;
+                AvailablePart availablePart;
+                for (int index = 0; index < count; index++)
+                {
+                    availablePart = availableParts[index];
+                    if (whitelistedParts.Contains(availablePart.name) && whitelistedCategories.Contains(availablePart.category))
+                        filteredParts.Add(availablePart);
+                }
+            }
+            else
+            {
+                filteredParts = availableParts;
+            }
         }
         #endregion
     }

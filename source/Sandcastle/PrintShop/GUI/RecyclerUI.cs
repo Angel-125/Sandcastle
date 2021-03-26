@@ -9,30 +9,25 @@ using KSP.Localization;
 namespace Sandcastle.PrintShop
 {
     /// <summary>
-    /// Callback to let the controller know about the print state.
-    /// </summary>
-    public delegate void UpdatePrintStatusDelegate(bool isPrinting);
-
-    /// <summary>
     /// Represents the Print Shop UI
     /// </summary>
-    public class PrintShopUI: Dialog<PrintShopUI>
+    public class RecyclerUI: Dialog<RecyclerUI>
     {
         #region Fields
         /// <summary>
         /// Title of the selection dialog.
         /// </summary>
-        public string titleText = Localizer.Format("#LOC_SANDCASTLE_printShopTitle");
+        public string titleText = Localizer.Format("#LOC_SANDCASTLE_recyclerTitle");
 
         /// <summary>
-        /// Complete list of printable parts.
+        /// Complete list of recyclable parts.
         /// </summary>
         public List<AvailablePart> partsList;
 
         /// <summary>
         /// Represents the list of build items to print.
         /// </summary>
-        public List<BuildItem> printQueue;
+        public List<BuildItem> recycleQueue;
 
         /// <summary>
         /// Status of the current print job.
@@ -42,12 +37,12 @@ namespace Sandcastle.PrintShop
         /// <summary>
         /// Callback to let the controller know about the print state.
         /// </summary>
-        public UpdatePrintStatusDelegate onPrintStatusUpdate;
+        public UpdatePrintStatusDelegate onRecycleStatus;
 
         /// <summary>
         /// Flag indicating that the printer is printing
         /// </summary>
-        public bool isPrinting;
+        public bool isRecycling;
 
         /// <summary>
         /// The Part associated with the UI.
@@ -55,14 +50,12 @@ namespace Sandcastle.PrintShop
         public Part part;
 
         /// <summary>
-        /// Whitelisted categories that the printer can print from.
+        /// How much of the part's resources are recycled.
         /// </summary>
-        public List<PartCategories> whitelistedCategories;
-
+        public double recyclePercentage = 1.0f;
         #endregion
 
         #region Housekeeping
-        List<AvailablePart> filteredParts;
         Dictionary<string, BuildItem> itemCache;
         AvailablePart previewPart;
         Texture2D previewPartImage;
@@ -70,13 +63,10 @@ namespace Sandcastle.PrintShop
         string previewPartDescription = string.Empty;
         string previewPartMassVolume = string.Empty;
         Dictionary<string, Texture2D> iconSet;
-        Vector2 categoryScrollPos;
         Vector2 partsScrollPos;
         Vector2 partInfoScrollPos;
         Vector2 partQueueScrollPos;
         Vector2 partDescriptionScrollPos;
-        GUILayoutOption[] categoryPanelWidth = new GUILayoutOption[] { GUILayout.Width(75) };
-        GUILayoutOption[] categoryButtonDimensions = new GUILayoutOption[] { GUILayout.Width(32), GUILayout.Height(32) };
         GUILayoutOption[] buttonDimensions = new GUILayoutOption[] { GUILayout.Width(32), GUILayout.Height(32) };
         GUILayoutOption[] selectorPanelWidth = new GUILayoutOption[] { GUILayout.Width(235) };
         GUILayoutOption[] selectorButtonDimensions = new GUILayoutOption[] { GUILayout.MinWidth(64), GUILayout.MinHeight(64), GUILayout.MaxWidth(64), GUILayout.MaxHeight(64) };
@@ -84,10 +74,8 @@ namespace Sandcastle.PrintShop
         GUILayoutOption[] previewImagePaneDimensions = new GUILayoutOption[] { GUILayout.Height(200), GUILayout.Width(115) };
         GUILayoutOption[] partRequirementsHeight = new GUILayoutOption[] { GUILayout.Height(200) };
         GUILayoutOption[] previewDescriptionHeight = new GUILayoutOption[] { GUILayout.Height(100) };
-        GUILayoutOption[] printQueueHeight = new GUILayoutOption[] { GUILayout.Height(165) };
-        GUILayoutOption[] partInfoWidth = new GUILayoutOption[] { GUILayout.Width(325) };
-        PartCategories currentCategory = PartCategories.Pods;
-        PartCategories selectedCategory = PartCategories.Pods;
+        GUILayoutOption[] recycleQueueHeight = new GUILayoutOption[] { GUILayout.Height(165) };
+        GUILayoutOption[] partInfoWidth = new GUILayoutOption[] { GUILayout.Width(335) };
         Texture2D[] partImages;
         int selectedIndex;
         int currentIndex;
@@ -99,8 +87,8 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Constructors
-        public PrintShopUI() :
-        base("Print Shop", 635, 620)
+        public RecyclerUI() :
+        base("Cargo Recycler", 590, 600)
         {
             WindowTitle = titleText;
             Resizable = false;
@@ -119,7 +107,7 @@ namespace Sandcastle.PrintShop
         public override void SetVisible(bool newValue)
         {
             base.SetVisible(newValue);
-            updateCategoryParts();
+            updateThumbnails();
 
             if (newValue)
             {
@@ -137,14 +125,7 @@ namespace Sandcastle.PrintShop
         {
             backgroundColor = GUI.backgroundColor;
 
-            GUILayout.BeginVertical();
-
-            GUILayout.Label("<color=white><b>" + categoryName + "</b></color>");
-
             GUILayout.BeginHorizontal();
-
-            // Draw category selector
-            drawCategorySelector();
 
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
@@ -158,8 +139,6 @@ namespace Sandcastle.PrintShop
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
-
-            GUILayout.EndVertical();
         }
 
         private void drawPartsList()
@@ -174,7 +153,7 @@ namespace Sandcastle.PrintShop
             drawPreviewPartInfo();
 
             // Print queue
-            drawPrintQueue();
+            drawRecycleQueue();
 
             GUILayout.EndScrollView();
         }
@@ -183,23 +162,23 @@ namespace Sandcastle.PrintShop
         {
             GUILayout.BeginHorizontal();
             // Pause/print button
-            Texture2D buttonTexture = isPrinting ? iconSet["Pause"] : iconSet["Play"];
+            Texture2D buttonTexture = isRecycling ? iconSet["Pause"] : iconSet["Play"];
             if (GUILayout.Button(buttonTexture, buttonDimensions))
             {
-                isPrinting = !isPrinting;
-                onPrintStatusUpdate(isPrinting);
+                isRecycling = !isRecycling;
+                onRecycleStatus(isRecycling);
             }
 
             // Cancel print job button
             if (GUILayout.Button(iconSet["Trash"], buttonDimensions))
             {
                 // We always work from the first item in the queue.
-                printQueue.RemoveAt(0);
+                recycleQueue.RemoveAt(0);
             }
 
             GUILayout.BeginVertical();
             // Current print job
-            string jobTitle = printQueue.Count > 0 ? printQueue[0].availablePart.title : "None";
+            string jobTitle = recycleQueue.Count > 0 ? recycleQueue[0].availablePart.title : "None";
             GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_currentJob", new string[1] { jobTitle } ));
 
             // Job status
@@ -209,21 +188,21 @@ namespace Sandcastle.PrintShop
             GUILayout.EndHorizontal();
         }
 
-        private void drawPrintQueue()
+        private void drawRecycleQueue()
         {
-            GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_printQueue"));
+            GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_recycleQueue"));
 
             List<BuildItem> doomed = new List<BuildItem>();
-            partQueueScrollPos = GUILayout.BeginScrollView(partQueueScrollPos, printQueueHeight);
-            int count = printQueue.Count;
+            partQueueScrollPos = GUILayout.BeginScrollView(partQueueScrollPos, recycleQueueHeight);
+            int count = recycleQueue.Count;
             for (int index = 0; index < count; index++)
             {
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button(iconSet["Trash"], buttonDimensions))
                 {
-                    doomed.Add(printQueue[index]);
+                    doomed.Add(recycleQueue[index]);
                 }
-                GUILayout.Label("<color=white>" + printQueue[index].availablePart.title + "</color>");
+                GUILayout.Label("<color=white>" + recycleQueue[index].availablePart.title + "</color>");
                 GUILayout.EndHorizontal();
             }
             GUILayout.EndScrollView();
@@ -232,7 +211,7 @@ namespace Sandcastle.PrintShop
             count = doomed.Count;
             for (int index = 0; index < count; index++)
             {
-                printQueue.Remove(doomed[index]);
+                recycleQueue.Remove(doomed[index]);
             }
         }
 
@@ -279,7 +258,7 @@ namespace Sandcastle.PrintShop
                 {
                     updatePartPreview(index);
                     BuildItem buildItem = new BuildItem(itemCache[previewPart.name]);
-                    printQueue.Add(buildItem);
+                    recycleQueue.Add(buildItem);
                 }
 
                 // Update part preview
@@ -302,86 +281,16 @@ namespace Sandcastle.PrintShop
             GUILayout.EndScrollView();
         }
 
-        private void drawCategorySelector()
-        {
-            GUILayout.BeginVertical();
-
-            selectedCategory = currentCategory;
-
-            categoryScrollPos = GUILayout.BeginScrollView(categoryScrollPos, categoryPanelWidth);
-
-            if (whitelistedCategories.Contains(PartCategories.Pods))
-                drawCategoryButton(PartCategories.Pods);
-            if (whitelistedCategories.Contains(PartCategories.FuelTank))
-                drawCategoryButton(PartCategories.FuelTank);
-            if (whitelistedCategories.Contains(PartCategories.Engine))
-                drawCategoryButton(PartCategories.Engine);
-            if (whitelistedCategories.Contains(PartCategories.Control))
-                drawCategoryButton(PartCategories.Control);
-            if (whitelistedCategories.Contains(PartCategories.Structural))
-                drawCategoryButton(PartCategories.Structural);
-            if (whitelistedCategories.Contains(PartCategories.Robotics))
-                drawCategoryButton(PartCategories.Robotics);
-            if (whitelistedCategories.Contains(PartCategories.Coupling))
-                drawCategoryButton(PartCategories.Coupling);
-            if (whitelistedCategories.Contains(PartCategories.Payload))
-                drawCategoryButton(PartCategories.Payload);
-            if (whitelistedCategories.Contains(PartCategories.Ground))
-                drawCategoryButton(PartCategories.Ground);
-            if (whitelistedCategories.Contains(PartCategories.Thermal))
-                drawCategoryButton(PartCategories.Thermal);
-            if (whitelistedCategories.Contains(PartCategories.Electrical))
-                drawCategoryButton(PartCategories.Electrical);
-            if (whitelistedCategories.Contains(PartCategories.Communication))
-                drawCategoryButton(PartCategories.Communication);
-            if (whitelistedCategories.Contains(PartCategories.Science))
-                drawCategoryButton(PartCategories.Science);
-            if (whitelistedCategories.Contains(PartCategories.Cargo))
-                drawCategoryButton(PartCategories.Cargo);
-            if (whitelistedCategories.Contains(PartCategories.Utility))
-                drawCategoryButton(PartCategories.Utility);
-
-            GUILayout.EndScrollView();
-
-            GUILayout.EndVertical();
-
-            // Reset background color
-            GUI.backgroundColor = backgroundColor;
-
-            // Change categories
-            if (selectedCategory != currentCategory)
-            {
-                currentCategory = selectedCategory;
-                categoryName = currentCategory.ToString();
-                updateCategoryParts();
-            }
-
-            // Reset category
-            if (categoryMousedOver && Planetarium.GetUniversalTime() > categoryUpdateTime)
-            {
-                categoryMousedOver = false;
-                categoryName = currentCategory.ToString();
-            }
-        }
-        
-        private void drawCategoryButton(PartCategories category)
-        {
-            GUI.backgroundColor = currentCategory == category ? selectedColor : backgroundColor;
-            if (GUILayout.Button(iconSet[category.ToString()], categoryButtonDimensions))
-                selectedCategory = category;
-            if (isMouseOver())
-            {
-                categoryName = category.ToString();
-                categoryMousedOver = true;
-                categoryUpdateTime = Planetarium.GetUniversalTime() + 0.25;
-            }
-        }
         #endregion
 
         #region Helpers
-        private void updatePartPreview(int partIndex)
+        /// <summary>
+        /// Updates the part preview
+        /// </summary>
+        /// <param name="partIndex">An Int containing the index of the part to preview</param>
+        public void updatePartPreview(int partIndex)
         {
-            previewPart = filteredParts[partIndex];
+            previewPart = partsList[partIndex];
 
             // Get the build item
             BuildItem item;
@@ -407,7 +316,7 @@ namespace Sandcastle.PrintShop
             StringBuilder requirements = new StringBuilder();
             requirements.AppendLine("<b>" + previewPart.title + "</b>");
 
-            // Required resources
+            // Recycled resources
             PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
             PartResourceDefinition resourceDef;
             int count = item.materials.Count;
@@ -416,35 +325,29 @@ namespace Sandcastle.PrintShop
             if (count > 0)
             {
                 requirements.AppendLine(" ");
-                requirements.AppendLine(Localizer.Format("#LOC_SANDCASTLE_requiredResources"));
+                requirements.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recycledResources"));
                 for (int index = 0; index < count; index++)
                 {
                     if (definitions.Contains(item.materials[index].name))
                     {
                         resourceDef = definitions[item.materials[index].name];
                         part.GetConnectedResourceTotals(resourceDef.id, out amount, out maxAmount);
-                        if (amount < item.materials[index].amount)
-                            requirements.AppendLine(string.Format("<color=red>{0:s}: {1:n3}u</color>", resourceDef.displayName, item.materials[index].amount));
-                        else
-                            requirements.AppendLine(string.Format("{0:s}: {1:n3}u", resourceDef.displayName, item.materials[index].amount));
+                        requirements.AppendLine(string.Format("<color=white>{0:s}: {1:n3}u</color>", resourceDef.displayName, item.materials[index].amount * recyclePercentage));
                     }
                 }
             }
 
-            // Required parts
+            // Recycled parts
             count = item.requiredComponents.Count;
             if (count > 0)
             {
                 requirements.AppendLine(" ");
-                requirements.AppendLine(Localizer.Format("#LOC_SANDCASTLE_requiredParts"));
+                requirements.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recycledParts"));
                 AvailablePart requiredPart;
                 for (int index = 0; index < count; index++)
                 {
                     requiredPart = PartLoader.getPartInfoByName(item.requiredComponents[index]);
-                    if (InventoryUtils.HasItem(part.vessel, requiredPart.name))
-                        requirements.AppendLine(requiredPart.title);
-                    else
-                        requirements.AppendLine("<color=red>" + requiredPart.title + "</color>");
+                    requirements.AppendLine(requiredPart.title);
                 }
             }
 
@@ -456,21 +359,19 @@ namespace Sandcastle.PrintShop
             partInfoScrollPos = Vector2.zero;
         }
 
-        private void updateCategoryParts()
+        /// <summary>
+        /// Updates the part thumbnails
+        /// </summary>
+        public void updateThumbnails()
         {
             // Filter parts for the current category.
-            filteredParts = new List<AvailablePart>();
             int count = partsList.Count;
             List<Texture2D> thumbnails = new List<Texture2D>();
             AvailablePart availablePart;
             for (int index = 0; index < count; index++)
             {
-                if (partsList[index].category == currentCategory)
-                {
-                    availablePart = partsList[index];
-                    filteredParts.Add(availablePart);
-                    thumbnails.Add(InventoryUtils.GetTexture(availablePart.name));
-                }
+                availablePart = partsList[index];
+                thumbnails.Add(InventoryUtils.GetTexture(availablePart.name));
             }
 
             partImages = thumbnails.ToArray();
@@ -482,23 +383,6 @@ namespace Sandcastle.PrintShop
         private void loadIcons()
         {
             iconSet = new Dictionary<string, Texture2D>();
-
-            iconSet.Add(PartCategories.Aero.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advaerodynamics"));
-            iconSet.Add(PartCategories.Cargo.ToString(), loadTexture("Squad/PartList/SimpleIcons/deployed_science_part"));
-            iconSet.Add(PartCategories.Communication.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advunmanned"));
-            iconSet.Add(PartCategories.Control.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_largecontrol"));
-            iconSet.Add(PartCategories.Coupling.ToString(), loadTexture("Squad/PartList/SimpleIcons/cs_size3"));
-            iconSet.Add(PartCategories.Electrical.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_electrics"));
-            iconSet.Add(PartCategories.Engine.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_propulsionSystems"));
-            iconSet.Add(PartCategories.FuelTank.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_fuelSystems-advanced"));
-            iconSet.Add(PartCategories.Ground.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advancedmotors"));
-            iconSet.Add(PartCategories.Payload.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_composites"));
-            iconSet.Add(PartCategories.Pods.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_commandmodules"));
-            iconSet.Add(PartCategories.Robotics.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_robotics"));
-            iconSet.Add(PartCategories.Science.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advsciencetech"));
-            iconSet.Add(PartCategories.Structural.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generalconstruction"));
-            iconSet.Add(PartCategories.Thermal.ToString(), loadTexture("Squad/PartList/SimpleIcons/fuels_monopropellant"));
-            iconSet.Add(PartCategories.Utility.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generic"));
 
             iconSet.Add("Play", loadTexture("WildBlueIndustries/Sandcastle/Icons/Play"));
             iconSet.Add("Pause", loadTexture("WildBlueIndustries/Sandcastle/Icons/Pause"));

@@ -17,6 +17,13 @@
             <param name="availablePart">The AvailablePart to check for space.</param>
             <returns>A ModuleInventoryPart if space can be found or null if not.</returns>
         </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetPartsToRecycle(Vessel)">
+            <summary>
+            Returns a list of inventory parts that can be recycled.
+            </summary>
+            <param name="vessel">The Vessel to search for parts to recycle.</param>
+            <returns>A List of AvailablePart objects.</returns>
+        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.InventoryHasSpace(ModuleInventoryPart,AvailablePart)">
             <summary>
             Determines whether or not the supplied inventory has space for the desired part.
@@ -41,6 +48,14 @@
             <param name="partName">The name of the part to look for</param>
             <returns>true if the vessel has the part, false if not.</returns>
         </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetInventoryWithPart(Vessel,System.String)">
+            <summary>
+            Determines whether or not the vessel has the item in question.
+            </summary>
+            <param name="vessel">The vessel to query.</param>
+            <param name="partName">The name of the part to look for</param>
+            <returns>the ModuleInventoryPart if the vessel has the part, null if not.</returns>
+        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.RemoveItem(Vessel,System.String)">
             <summary>
             Removes the item from the vessel if it exists.
@@ -48,13 +63,14 @@
             <param name="vessel">The vessel to query.</param>
             <param name="partName">The name of the part to remove.</param>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.AddItem(Vessel,AvailablePart,ModuleInventoryPart)">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.AddItem(Vessel,AvailablePart,ModuleInventoryPart,System.Boolean)">
             <summary>
             Adds the item to the vessel inventory if there is enough room.
             </summary>
             <param name="vessel">The vessel to query.</param>
             <param name="availablePart">The part to add to the inventory</param>
             <param name="preferredInventory">The preferred inventory to store the part in.</param>
+            <param name="removeResources">A bool indicating whether or not to remove resources when storing the part. Default is true.</param>
             <returns>The Part that the item was stored in, or null if no place could be found for the part.</returns>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.FindThumbnailPaths">
@@ -82,6 +98,74 @@
             </summary>
             <param name="partName">A string containing the name of the part.</param>
             <returns>A Texture2D if the texture exists, or a blank texture if not.</returns>
+        </member>
+        <member name="T:Sandcastle.PrintShop.RecyclerUI">
+            <summary>
+            Represents the Print Shop UI
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.titleText">
+            <summary>
+            Title of the selection dialog.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.partsList">
+            <summary>
+            Complete list of recyclable parts.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.recycleQueue">
+            <summary>
+            Represents the list of build items to print.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.jobStatus">
+            <summary>
+            Status of the current print job.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.onRecycleStatus">
+            <summary>
+            Callback to let the controller know about the print state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.isRecycling">
+            <summary>
+            Flag indicating that the printer is printing
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.part">
+            <summary>
+            The Part associated with the UI.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.RecyclerUI.recyclePercentage">
+            <summary>
+            How much of the part's resources are recycled.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.RecyclerUI.SetVisible(System.Boolean)">
+            <summary>
+            Toggles window visibility
+            </summary>
+            <param name="newValue">A flag indicating whether the window shoudld be visible or not.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.RecyclerUI.DrawWindowContents(System.Int32)">
+            <summary>
+            Draws the window
+            </summary>
+            <param name="windowId">An int representing the window ID.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.RecyclerUI.updatePartPreview(System.Int32)">
+            <summary>
+            Updates the part preview
+            </summary>
+            <param name="partIndex">An Int containing the index of the part to preview</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.RecyclerUI.updateThumbnails">
+            <summary>
+            Updates the part thumbnails
+            </summary>
         </member>
         <member name="T:Sandcastle.PrintShop.UpdatePrintStatusDelegate">
             <summary>
@@ -128,6 +212,11 @@
             The Part associated with the UI.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.whitelistedCategories">
+            <summary>
+            Whitelisted categories that the printer can print from.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.PrintShopUI.SetVisible(System.Boolean)">
             <summary>
             Toggles window visibility
@@ -139,6 +228,67 @@
             Draws the window
             </summary>
             <param name="windowId">An int representing the window ID.</param>
+        </member>
+        <member name="T:Sandcastle.PrintShop.WBICargoRecycler">
+            <summary>
+            Represents a shop that is capable of printing items and placing them in an available inventory.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.debugMode">
+            <summary>
+            A flag to enable/disable debug mode.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.recycleSpeedUSec">
+            <summary>
+            The number of resource units per second that the recycler can recycle.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.UseSpecialistBonus">
+            <summary>
+            Flag to indicate whether or not to allow specialists to improve the recycle speed. Exactly how the specialist(s) does that is a trade secret.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.SpecialistBonus">
+            <summary>
+            Per experience rating, how much to improve the recycle speed by.
+            The print shop part must have crew capacity.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.ExperienceEffect">
+            <summary>
+            The skill required to improve the recycle speed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.runningEffect">
+            <summary>
+            Name of the effect to play from the part's EFFECTS node when the printer is running.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.recyclePercentage">
+            <summary>
+            What percentage of resources will be recycled.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.recycleQueue">
+            <summary>
+            Represents the list of build items to recycle.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.recycleState">
+            <summary>
+            Current state of the recycler.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.lastUpdateTime">
+            <summary>
+            Describes when the recycler was last updated.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.currentJob">
+            <summary>
+            Current job being recycled.
+            </summary>
         </member>
         <member name="T:Sandcastle.PrintShop.BuildItem">
             <summary>
@@ -178,6 +328,11 @@
         <member name="F:Sandcastle.PrintShop.BuildItem.totalUnitsPrinted">
             <summary>
             Total units printed to date, determined from all required resources.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.isBeingRecycled">
+            <summary>
+            Flag indicating whether or not the part is being recycled.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.BuildItem.#ctor(ConfigNode)">
@@ -277,6 +432,11 @@
             Printer is printing something.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintStates.Recycling">
+            <summary>
+            The recycler is recycling something.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PrintShop.WBIPrintShop">
             <summary>
             Represents a shop that is capable of printing items and placing them in an available inventory.
@@ -337,6 +497,25 @@
             <summary>
             Current job being printed.
             </summary>
+        </member>
+        <member name="T:Sandcastle.WBIPartModule">
+            <summary>
+            Just a simple base class to handle common functionality
+            </summary>
+        </member>
+        <member name="M:Sandcastle.WBIPartModule.getPartConfigNode">
+            <summary>
+            Retrieves the module's config node from the part config.
+            </summary>
+            <returns>A ConfigNode for the part module.</returns>
+        </member>
+        <member name="M:Sandcastle.WBIPartModule.loadCurve(FloatCurve,System.String,ConfigNode)">
+            <summary>
+            Loads the desired FloatCurve from the desired config node.
+            </summary>
+            <param name="curve">The FloatCurve to load</param>
+            <param name="curveNodeName">The name of the curve to load</param>
+            <param name="defaultCurve">An optional default curve to use in case the curve's node doesn't exist in the part module's config.</param>
         </member>
     </members>
 </doc>

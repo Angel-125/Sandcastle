@@ -18,6 +18,7 @@ namespace Sandcastle.PrintShop
         const string kTotalUnitsRequired = "totalUnitsRequired";
         const string kTotalUnitsPrinted = "totalUnitsPrinted";
         const string kRequiredComponent = "requiredComponent";
+        const string kIsBeingRecycled = "isBeingRecycled";
         const string kPrintResource = "PRINT_RESOURCE";
         #endregion
 
@@ -51,6 +52,11 @@ namespace Sandcastle.PrintShop
         /// Total units printed to date, determined from all required resources.
         /// </summary>
         public double totalUnitsPrinted;
+
+        /// <summary>
+        /// Flag indicating whether or not the part is being recycled.
+        /// </summary>
+        public bool isBeingRecycled;
         #endregion
 
         #region Constructors
@@ -68,6 +74,9 @@ namespace Sandcastle.PrintShop
 
             if (node.HasValue(kTotalUnitsPrinted))
                 double.TryParse(node.GetValue(kTotalUnitsPrinted), out totalUnitsPrinted);
+
+            if (node.HasValue(kIsBeingRecycled))
+                bool.TryParse(node.GetValue(kIsBeingRecycled), out isBeingRecycled);
 
             materials = new List<ModuleResource>();
             if (node.HasNode(MaterialsList.kResourceNode))
@@ -173,6 +182,7 @@ namespace Sandcastle.PrintShop
             availablePart = copyFrom.availablePart;
             totalUnitsPrinted = copyFrom.totalUnitsPrinted;
             totalUnitsRequired = copyFrom.totalUnitsRequired;
+            isBeingRecycled = copyFrom.isBeingRecycled;
 
             int count = copyFrom.requiredComponents.Count;
             for (int index = 0; index < count; index++)

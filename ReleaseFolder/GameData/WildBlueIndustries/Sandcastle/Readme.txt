@@ -10,9 +10,10 @@ GameData
 
 Changes
 
-Implemented WBIPrintShop. It allows you to 3D print cargo parts from Ore. If desired you can specify different resource requirements, and optionally require other parts in order to complete assembly. Simply check out the MaterialsList.cfg for details. Yes, I plan to add a recycler.
+- Implemented WBICargoRecycler. It lets you recycle parts from your inventory back into resources and (if enabled) other components that were required during construction. You don't get the full amount of resources back during recycling.
+- You can now whitelist a 3D printer's part categories and individual parts if desired. Simply specify a CATEGORY_WHITELIST and/or PARTS_WHITELIST node, respectively. Check out the Patches/StockParts.cfg for details.
 
-Added the WBIPrintShop to the Mobile Processing Lab.
+Added the WBICargoRecycler to the Mobile Processing Lab.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.

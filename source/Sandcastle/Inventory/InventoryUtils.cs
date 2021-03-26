@@ -92,6 +92,40 @@ namespace Sandcastle.Inventory
         }
 
         /// <summary>
+        /// Returns a list of inventory parts that can be recycled.
+        /// </summary>
+        /// <param name="vessel">The Vessel to search for parts to recycle.</param>
+        /// <returns>A List of AvailablePart objects.</returns>
+        public static List<AvailablePart> GetPartsToRecycle(Vessel vessel)
+        {
+            List<AvailablePart> partsToRecycle = new List<AvailablePart>();
+            List<ModuleInventoryPart> inventories = vessel.FindPartModulesImplementing<ModuleInventoryPart>();
+            ModuleInventoryPart inventory;
+            int count = inventories.Count;
+            StoredPart storedPart;
+            int storedPartCount;
+
+            for (int index = 0; index < count; index++)
+            {
+                inventory = inventories[index];
+                if (inventory.InventoryIsEmpty)
+                    continue;
+
+                storedPartCount = inventory.storedParts.Keys.Count;
+                for (int storedPartIndex = 0; storedPartIndex < storedPartCount; storedPartIndex++)
+                {
+                    storedPart = inventory.storedParts[storedPartIndex];
+                    for (int stackIndex = 0; stackIndex < storedPart.quantity; stackIndex++)
+                    {
+                        partsToRecycle.Add(PartLoader.getPartInfoByName(storedPart.partName));
+                    }
+                }
+            }
+
+            return partsToRecycle;
+        }
+
+        /// <summary>
         /// Determines whether or not the supplied inventory has space for the desired part.
         /// </summary>
         /// <param name="inventory">A ModuleInventoryPart to check for space.</param>
@@ -177,6 +211,26 @@ namespace Sandcastle.Inventory
         }
 
         /// <summary>
+        /// Determines whether or not the vessel has the item in question.
+        /// </summary>
+        /// <param name="vessel">The vessel to query.</param>
+        /// <param name="partName">The name of the part to look for</param>
+        /// <returns>the ModuleInventoryPart if the vessel has the part, null if not.</returns>
+        public static ModuleInventoryPart GetInventoryWithPart(Vessel vessel, string partName)
+        {
+            List<ModuleInventoryPart> inventories = vessel.FindPartModulesImplementing<ModuleInventoryPart>();
+            int count = inventories.Count;
+
+            for (int index = 0; index < count; index++)
+            {
+                if (inventories[index].ContainsPart(partName))
+                    return inventories[index];
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Removes the item from the vessel if it exists.
         /// </summary>
         /// <param name="vessel">The vessel to query.</param>
@@ -208,8 +262,9 @@ namespace Sandcastle.Inventory
         /// <param name="vessel">The vessel to query.</param>
         /// <param name="availablePart">The part to add to the inventory</param>
         /// <param name="preferredInventory">The preferred inventory to store the part in.</param>
+        /// <param name="removeResources">A bool indicating whether or not to remove resources when storing the part. Default is true.</param>
         /// <returns>The Part that the item was stored in, or null if no place could be found for the part.</returns>
-        public static Part AddItem(Vessel vessel, AvailablePart availablePart, ModuleInventoryPart preferredInventory = null)
+        public static Part AddItem(Vessel vessel, AvailablePart availablePart, ModuleInventoryPart preferredInventory = null, bool removeResources = true)
         {
             ModuleInventoryPart inventory = null;
             if (InventoryHasSpace(preferredInventory, availablePart))
@@ -224,6 +279,13 @@ namespace Sandcastle.Inventory
                 if (inventory.IsSlotEmpty(index))
                 {
                     inventory.StoreCargoPartAtSlot(availablePart.partPrefab, index);
+                    if (removeResources)
+                    {
+                        StoredPart storedPart = inventory.storedParts[index];
+                        int count = storedPart.snapshot.resources.Count;
+                        for (int resourceIndex = 0; resourceIndex < count; resourceIndex++)
+                            storedPart.snapshot.resources[resourceIndex].amount = 0;
+                    }
                     return inventory.part;
                 }
             }
