@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Sandcastle.Inventory;
 using UnityEngine;
 using KSP.Localization;
@@ -10,6 +11,7 @@ namespace Sandcastle.PrintShop
     /// <summary>
     /// Represents a shop that is capable of printing items and placing them in an available inventory.
     /// </summary>
+    [KSPModule("#LOC_SANDCASTLE_recyclerTitle")]
     public class WBICargoRecycler: PartModule
     {
         #region Constants
@@ -230,6 +232,15 @@ namespace Sandcastle.PrintShop
                 buildItemNode = recycleQueue[index].Save();
                 node.AddNode(buildItemNode);
             }
+        }
+
+        public override string GetInfo()
+        {
+            StringBuilder info = new StringBuilder();
+            info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recyclerDesc"));
+            info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recycleSpeed", new string[1] { string.Format("{0:n1}", recycleSpeedUSec) }));
+            info.Append(base.GetInfo());
+            return info.ToString();
         }
         #endregion
 

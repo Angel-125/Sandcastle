@@ -29,7 +29,22 @@ namespace Sandcastle
             {
                 MaterialsList.LoadLists();
                 InventoryUtils.FindThumbnailPaths();
+                GameEvents.onAttemptEva.Add(onAttemptEVA);
             }
+        }
+
+        public void OnDestroy()
+        {
+            if (HighLogic.LoadedSceneIsFlight)
+                GameEvents.onAttemptEva.Remove(onAttemptEVA);
+        }
+        #endregion
+
+        #region Helpers
+        void onAttemptEVA(ProtoCrewMember crewMemeber, Part evaPart, Transform transform)
+        {
+            // Let tourists outside!
+            FlightEVA.fetch.overrideEVA = crewMemeber.trait.Equals(KerbalRoster.touristTrait);
         }
         #endregion
     }
