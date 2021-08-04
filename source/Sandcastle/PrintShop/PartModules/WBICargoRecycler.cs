@@ -239,6 +239,7 @@ namespace Sandcastle.PrintShop
             StringBuilder info = new StringBuilder();
             info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recyclerDesc"));
             info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recycleSpeed", new string[1] { string.Format("{0:n1}", recycleSpeedUSec) }));
+            info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recyclePercent", new string[1] { string.Format("{0:n1}", recyclePercentage * 100f) }));
             info.Append(base.GetInfo());
             return info.ToString();
         }

@@ -75,3 +75,4 @@ C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\KSPAss
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.CopyComplete
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.dll
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.pdb
+C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\UnityEngine.SubsystemsModule.dll

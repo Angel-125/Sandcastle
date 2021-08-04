@@ -10,10 +10,7 @@ GameData
 
 Changes
 
-- Implemented WBICargoRecycler. It lets you recycle parts from your inventory back into resources and (if enabled) other components that were required during construction. You don't get the full amount of resources back during recycling.
-- You can now whitelist a 3D printer's part categories and individual parts if desired. Simply specify a CATEGORY_WHITELIST and/or PARTS_WHITELIST node, respectively. Check out the Patches/StockParts.cfg for details.
-
-Added the WBICargoRecycler to the Mobile Processing Lab.
+- Recompiled for KSP 1.12.2.
 
 ---LICENSE---
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.
