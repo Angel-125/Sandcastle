@@ -40,7 +40,7 @@ namespace Sandcastle.PrintShop
     /// Represents a shop that is capable of printing items and placing them in an available inventory.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_printShopTitle")]
-    public class WBIPrintShop: WBIPartModule
+    public class WBIPrintShop : WBIPartModule
     {
         #region Constants
         const double kCatchupTime = 3600;
@@ -49,6 +49,8 @@ namespace Sandcastle.PrintShop
         const string kPrintShopGroup = "PrintShop";
         const string kPartWhiteListNode = "PARTS_WHITELIST";
         const string kWhitelistedPart = "whitelistedPart";
+        const string kPartBlackListNode = "PARTS_BLACKLIST";
+        const string kBlacklistedPart = "blacklistedPart";
         const string kCategoryWhitelistNode = "CATEGORY_WHITELIST";
         const string kWhitelistedCategory = "whitelistedCategory";
         #endregion
@@ -193,6 +195,8 @@ namespace Sandcastle.PrintShop
             shopUI.part = part;
             shopUI.printQueue = printQueue;
             shopUI.onPrintStatusUpdate = onPrintStatusUpdate;
+            shopUI.gravityRequirementsMet = gravityRequirementMet;
+            shopUI.pressureRequrementsMet = pressureRequrementsMet;
         }
 
         public override void OnInactive()
@@ -365,6 +369,57 @@ namespace Sandcastle.PrintShop
                 unHighlightList.Remove(doomed[index]);
         }
 
+        private bool pressureRequrementsMet(float minimumPressure)
+        {
+            if (minimumPressure < 0)
+                return true;
+
+            if (minimumPressure < 0.001)
+                return part.vessel.staticPressurekPa < 0.001;
+            else
+                return part.vessel.staticPressurekPa < minimumPressure;
+        }
+
+        private bool gravityRequirementMet(float minimumGravity)
+        {
+            // If we have no requirements then we're good
+            if (minimumGravity < 0)
+                return true;
+
+            // Check for microgravity requirements
+            if (minimumGravity < 0.00001)
+            {
+                // Vessel must be orbiting, sub-orbital, or escaping.
+                if (part.vessel.situation != Vessel.Situations.ORBITING && part.vessel.situation != Vessel.Situations.SUB_ORBITAL && part.vessel.situation != Vessel.Situations.ESCAPING)
+                    return false;
+
+                // Vessel must not be under acceleration
+                if (part.vessel.geeForce > 0.001)
+                    return false;
+            }
+
+            // Check for heavy gravity requirements
+            else
+            {
+                if (part.vessel.LandedOrSplashed || part.vessel.situation == Vessel.Situations.FLYING)
+                {
+                    // Vessel's gravity at current altitude must meet or exceed the minimum requirement.
+                    if (part.vessel.graviticAcceleration.magnitude < minimumGravity)
+                        return false;
+                }
+
+                // Check vessel acceleration
+                else
+                {
+                    if (part.vessel.geeForce < minimumGravity)
+                        return false;
+                }
+            }
+
+            // All good
+            return true;
+        }
+
         private void handlePrintJob(double elapsedTime)
         {
             // Update states
@@ -374,6 +429,30 @@ namespace Sandcastle.PrintShop
             // Get the build item
             BuildItem buildItem = printQueue[0];
             ModuleCargoPart cargoPart = buildItem.availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
+
+            // If we have a gravity requirement, make sure that the requiement is met.
+            if (!gravityRequirementMet(buildItem.minimumGravity))
+            {
+                if (buildItem.minimumGravity > 0)
+                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsGravity", new string[1] { string.Format("{0:n3}", buildItem.minimumGravity) });
+                else
+                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsZeroGravity");
+                missingRequirements = true;
+                lastUpdateTime = Planetarium.GetUniversalTime();
+                return;
+            }
+
+            // If we have pressure requirements, make sure that the requirement is met.
+            if (!pressureRequrementsMet(buildItem.minimumPressure))
+            {
+                if (buildItem.minimumGravity > 0)
+                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsPressure", new string[1] { string.Format("{0:n3}", buildItem.minimumGravity) });
+                else
+                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsZeroPressure");
+                missingRequirements = true;
+                lastUpdateTime = Planetarium.GetUniversalTime();
+                return;
+            }
 
             // Make sure that the vessel has enough inventory space
             if (!InventoryUtils.HasEnoughSpace(part.vessel, buildItem.availablePart))
@@ -436,20 +515,21 @@ namespace Sandcastle.PrintShop
 
             // Consume required components
             count = buildItem.requiredComponents.Count;
-            string requiredPart;
-            List<string> doomed = new List<string>();
+            PartRequiredComponent requiredPart;
+            List<PartRequiredComponent> doomed = new List<PartRequiredComponent>();
+            int partsFound = 0;
             for (int index = 0; index < count; index++)
             {
                 requiredPart = buildItem.requiredComponents[index];
-
-                if (InventoryUtils.HasItem(part.vessel, requiredPart))
+                partsFound = InventoryUtils.GetInventoryItemCount(part.vessel, requiredPart.name);
+                if (partsFound >= requiredPart.amount)
                 {
-                    InventoryUtils.RemoveItem(part.vessel, requiredPart);
+                    InventoryUtils.RemoveItem(part.vessel, requiredPart.name, requiredPart.amount);
                     doomed.Add(requiredPart);
                 }
                 else
                 {
-                    AvailablePart availablePart = PartLoader.getPartInfoByName(requiredPart);
+                    AvailablePart availablePart = PartLoader.getPartInfoByName(requiredPart.name);
                     shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsPart", new string[1] { availablePart.title });
                     lastUpdateTime = Planetarium.GetUniversalTime();
                     missingRequirements = true;
@@ -547,7 +627,8 @@ namespace Sandcastle.PrintShop
                 }
             }
 
-            // Get whitelisted parts
+            // Get whitelisted parts. They can be printed regardless of whether or not the part is on the blacklist.
+            string[] blacklistedParts = blacklistedParts = getBlacklistedParts(node);
             if (node.HasNode(kPartWhiteListNode))
             {
                 ConfigNode partsNode = node.GetNode(kPartWhiteListNode);
@@ -562,14 +643,67 @@ namespace Sandcastle.PrintShop
                 for (int index = 0; index < count; index++)
                 {
                     availablePart = availableParts[index];
+
+                    // If the part is on our whitelist then we can print it regardless of black lists.
                     if (whitelistedParts.Contains(availablePart.name) && whitelistedCategories.Contains(availablePart.category))
                         filteredParts.Add(availablePart);
                 }
             }
+
+            // We don't have a whitelist so add parts that aren't on our blacklist.
             else
             {
-                filteredParts = availableParts;
+                int count = availableParts.Count;
+                AvailablePart availablePart;
+                for (int index = 0; index < count; index++)
+                {
+                    availablePart = availableParts[index];
+
+                    if (!blacklistedParts.Contains(availablePart.name))
+                        filteredParts.Add(availablePart);
+                }
             }
+        }
+
+        private string[] getBlacklistedParts(ConfigNode node)
+        {
+            List<string> blacklistedParts = new List<string>();
+            ConfigNode[] nodes = null;
+            ConfigNode blacklistNode;
+            string[] values = null;
+
+            // Handle local blacklist
+            if (node.HasNode(kPartBlackListNode))
+            {
+                blacklistNode = node.GetNode(kPartBlackListNode);
+                if (blacklistNode.HasValue(kBlacklistedPart))
+                {
+                    values = blacklistNode.GetValues(kBlacklistedPart);
+                    for (int index = 0; index < values.Length; index++)
+                    {
+                        if (!blacklistedParts.Contains(values[index]))
+                            blacklistedParts.Add(values[index]);
+                    }
+                }
+            }
+
+            // Handle global blacklist
+            nodes = GameDatabase.Instance.GetConfigNodes(kPartBlackListNode);
+            for (int index = 0; index < nodes.Length; index++)
+            {
+                blacklistNode = nodes[index];
+                if (!blacklistNode.HasValue(kBlacklistedPart))
+                    continue;
+
+                values = blacklistNode.GetValues(kBlacklistedPart);
+                for (int listIndex = 0; listIndex < values.Length; listIndex++)
+                {
+                    if (!blacklistedParts.Contains(values[listIndex]))
+                        blacklistedParts.Add(values[listIndex]);
+                }
+            }
+
+            return blacklistedParts.ToArray();
         }
         #endregion
     }

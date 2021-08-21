@@ -32,12 +32,13 @@
             <param name="availablePart">An AvailablePart to check to see if it fits.</param>
             <returns>true if the inventory has space for the part, false if not.</returns>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.HasEnoughSpace(Vessel,AvailablePart)">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.HasEnoughSpace(Vessel,AvailablePart,System.Int32)">
             <summary>
             Determines whether or not the vessel has enough storage space.
             </summary>
             <param name="vessel">The vessel to query</param>
             <param name="availablePart">The AvailablePart to check for space.</param>
+            <param name="amount">The number of parts that need space. Default is 1.</param>
             <returns>true if there is enough space, false if not.</returns>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.HasItem(Vessel,System.String)">
@@ -48,6 +49,14 @@
             <param name="partName">The name of the part to look for</param>
             <returns>true if the vessel has the part, false if not.</returns>
         </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetInventoryItemCount(Vessel,System.String)">
+            <summary>
+            Returns the number of parts in the vessel's inventory, if it has the part.
+            </summary>
+            <param name="vessel">The vessel to query.</param>
+            <param name="partName">The name of the part to look for.</param>
+            <returns>An Int containing the number of parts in the vessel's inventory.</returns>
+        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.GetInventoryWithPart(Vessel,System.String)">
             <summary>
             Determines whether or not the vessel has the item in question.
@@ -56,12 +65,13 @@
             <param name="partName">The name of the part to look for</param>
             <returns>the ModuleInventoryPart if the vessel has the part, null if not.</returns>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.RemoveItem(Vessel,System.String)">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.RemoveItem(Vessel,System.String,System.Int32)">
             <summary>
             Removes the item from the vessel if it exists.
             </summary>
             <param name="vessel">The vessel to query.</param>
             <param name="partName">The name of the part to remove.</param>
+            <param name="partCount">The number parts to remove. Default is 1.</param>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.AddItem(Vessel,AvailablePart,ModuleInventoryPart,System.Boolean)">
             <summary>
@@ -172,6 +182,20 @@
             Callback to let the controller know about the print state.
             </summary>
         </member>
+        <member name="T:Sandcastle.PrintShop.GravityRequirementsMetDelegate">
+            <summary>
+            Asks the delegate if the minimum gravity requirements are met.
+            </summary>
+            <param name="minimumGravity">A float containing the minimum required gravity.</param>
+            <returns>true if the requirement can be met, false if not.</returns>
+        </member>
+        <member name="T:Sandcastle.PrintShop.PressureRequirementMetDelegate">
+            <summary>
+            Asks the delegate if the minimum pressure requirements are met.
+            </summary>
+            <param name="minimumPressure">A float containing the minimum required pressure.</param>
+            <returns>true if the requirement can be met, false if not.</returns>
+        </member>
         <member name="T:Sandcastle.PrintShop.PrintShopUI">
             <summary>
             Represents the Print Shop UI
@@ -200,6 +224,16 @@
         <member name="F:Sandcastle.PrintShop.PrintShopUI.onPrintStatusUpdate">
             <summary>
             Callback to let the controller know about the print state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.gravityRequirementsMet">
+            <summary>
+            Callback to see if the part's gravity requirements are met.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.pressureRequrementsMet">
+            <summary>
+            Callback to see if the part's pressure requirements are met.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.PrintShopUI.isPrinting">
@@ -333,6 +367,20 @@
         <member name="F:Sandcastle.PrintShop.BuildItem.isBeingRecycled">
             <summary>
             Flag indicating whether or not the part is being recycled.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.minimumGravity">
+            <summary>
+            The mininum gravity, in m/sec^2, that the part requires in order for the printer to print it.
+            If set to 0, then the printer's vessel must be orbiting, sub-orbital, or on an escape trajectory, and not under acceleration.
+            The default is -1, which ignores this requirement.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.minimumPressure">
+            <summary>
+            The minimum pressure, in kPA, that the part required in order for the printer to print it.
+            If set to > 1, then the printer's vessel must be in an atmosphere or submerged.
+            If set to 0, then the printer's vessel must be in a vacuum.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.BuildItem.#ctor(ConfigNode)">
@@ -496,6 +544,21 @@
         <member name="F:Sandcastle.PrintShop.WBIPrintShop.currentJob">
             <summary>
             Current job being printed.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.WBIPrinterRequirements">
+            <summary>
+            Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper.
+            We have to do this because GetInfo is called during game start, we rely on PartLoader to get information about other parts that are needed to 3D print this part,
+            and not all of the parts will be loaded when GetInfo is called.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.Utilities.PrinterInfoHelper">
+            <summary>
+            This helper fills out the info text for the WBIPrinterRequirements part module. During the game startup, it asks part modules to GetInfo. WBIPrinterRequirements is no exception.
+            However, because it relies on the PartLoader to obtain information about prerequisite components, WBIPrinterRequirements can't completely fill out its info.
+            We get around the problem by waiting until we load into the editor, and manually changing the ModuleInfo associated with WBIPrinterRequirements.
+            It's crude but effective.
             </summary>
         </member>
         <member name="T:Sandcastle.WBIPartModule">

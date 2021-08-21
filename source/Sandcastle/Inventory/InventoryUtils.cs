@@ -78,7 +78,7 @@ namespace Sandcastle.Inventory
                     volRequirementMet = true;
                 }
 
-                // If we've met both requirements then we found an inventory that has enough space.
+                // If we've met all requirements then we found an inventory that has enough space.
                 if (massRequirementMet && volRequirementMet)
                     return inventory;
 
@@ -184,10 +184,81 @@ namespace Sandcastle.Inventory
         /// </summary>
         /// <param name="vessel">The vessel to query</param>
         /// <param name="availablePart">The AvailablePart to check for space.</param>
+        /// <param name="amount">The number of parts that need space. Default is 1.</param>
         /// <returns>true if there is enough space, false if not.</returns>
-        public static bool HasEnoughSpace(Vessel vessel, AvailablePart availablePart)
+        public static bool HasEnoughSpace(Vessel vessel, AvailablePart availablePart, int amount = 1)
         {
-            return GetInventoryWithCargoSpace(vessel, availablePart) != null;
+            ModuleCargoPart cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
+            if (cargoPart == null)
+                return false;
+
+            List<ModuleInventoryPart> inventories = vessel.FindPartModulesImplementing<ModuleInventoryPart>();
+            ModuleInventoryPart inventory;
+            int count = inventories.Count;
+            bool massRequirementMet = false;
+            bool volRequirementMet = false;
+            double partMass = availablePart.partPrefab.mass + availablePart.partPrefab.resourceMass;
+            double totalMassNeeded = partMass * amount;
+            float totalVolumeNeeded = cargoPart.packedVolume * amount;
+
+            for (int index = 0; index < count; index++)
+            {
+                inventory = inventories[index];
+
+                if (inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
+                    continue;
+
+                // Check mass
+                if (inventory.HasMassLimit)
+                {
+                    float massAvailable = inventory.massLimit - inventory.massCapacity;
+                    if (massAvailable < partMass)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        totalMassNeeded -= partMass;
+                        if (totalMassNeeded <= 0.00001)
+                            massRequirementMet = true;
+                    }
+                }
+                else
+                {
+                    massRequirementMet = true;
+                }
+
+                // Check volume
+                if (inventory.HasPackedVolumeLimit)
+                {
+                    float volumeAvailable = inventory.packedVolumeLimit - inventory.volumeCapacity;
+                    if (volumeAvailable < cargoPart.packedVolume)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        totalVolumeNeeded -= cargoPart.packedVolume;
+                        if (totalVolumeNeeded <= 0.00001)
+                            volRequirementMet = true;
+                    }
+                }
+                else
+                {
+                    volRequirementMet = true;
+                }
+
+                // If we've met all requirements then we found an inventory that has enough space.
+                if (massRequirementMet && volRequirementMet)
+                    return true;
+
+                // Reset for next inventory
+                volRequirementMet = false;
+                massRequirementMet = false;
+            }
+
+            // No space available.
+            return false;
         }
 
         /// <summary>
@@ -208,6 +279,29 @@ namespace Sandcastle.Inventory
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Returns the number of parts in the vessel's inventory, if it has the part.
+        /// </summary>
+        /// <param name="vessel">The vessel to query.</param>
+        /// <param name="partName">The name of the part to look for.</param>
+        /// <returns>An Int containing the number of parts in the vessel's inventory.</returns>
+        public static int GetInventoryItemCount(Vessel vessel, string partName)
+        {
+            List<ModuleInventoryPart> inventories = vessel.FindPartModulesImplementing<ModuleInventoryPart>();
+            int count = inventories.Count;
+            int foundParts = 0;
+            int storedParts = 0;
+
+            for (int index = 0; index < count; index++)
+            {
+                storedParts = inventories[index].TotalAmountOfPartStored(partName);
+                if (storedParts > 0)
+                    foundParts += storedParts;
+            }
+
+            return foundParts;
         }
 
         /// <summary>
@@ -235,25 +329,35 @@ namespace Sandcastle.Inventory
         /// </summary>
         /// <param name="vessel">The vessel to query.</param>
         /// <param name="partName">The name of the part to remove.</param>
-        public static void RemoveItem(Vessel vessel, string partName)
+        /// <param name="partCount">The number parts to remove. Default is 1.</param>
+        public static void RemoveItem(Vessel vessel, string partName, int partCount = 1)
         {
             List<ModuleInventoryPart> inventories = vessel.FindPartModulesImplementing<ModuleInventoryPart>();
             ModuleInventoryPart inventory = null;
             int count = inventories.Count;
+            int storedPartsAmount = 0;
+            int currentPartCount = partCount;
+            int partsToRemove = 0;
 
-            // Find an inventory with the desired part
             for (int index = 0; index < count; index++)
             {
                 inventory = inventories[index];
-                if (inventory.ContainsPart(partName))
-                    break;
-                else
-                    inventory = null;
+                storedPartsAmount = inventory.TotalAmountOfPartStored(partName);
+                if (storedPartsAmount > 0 && currentPartCount > 0)
+                {
+                    if (storedPartsAmount >= currentPartCount)
+                    {
+                        inventory.RemoveNPartsFromInventory(partName, currentPartCount);
+                        return;
+                    }
+                    else
+                    {
+                        partsToRemove = storedPartsAmount;
+                        currentPartCount -= storedPartsAmount;
+                        inventory.RemoveNPartsFromInventory(partName, partsToRemove);
+                    }
+                }
             }
-            if (inventory == null)
-                return;
-
-            inventory.RemoveNPartsFromInventory(partName, 1);
         }
 
         /// <summary>
@@ -347,8 +451,12 @@ namespace Sandcastle.Inventory
                 for (int index = 0; index < count; index++)
                 {
                     cargoPart = cargoParts[index].partPrefab.FindModuleImplementing<ModuleCargoPart>();
-                    if (cargoPart.packedVolume > 0 && cargoPart.packedVolume <= maxPrintableVolume && cargoParts[index].TechHidden == false)
-                        filteredParts.Add(cargoParts[index]);
+
+                    if (cargoPart.packedVolume > 0 && cargoPart.packedVolume <= maxPrintableVolume)
+                    {
+                        if (cargoParts[index].TechHidden == false || canPrintHiddenPart(cargoParts[index]))
+                            filteredParts.Add(cargoParts[index]);
+                    }
                 }
             }
 
@@ -357,6 +465,20 @@ namespace Sandcastle.Inventory
         #endregion
 
         #region Helpers
+        private static bool canPrintHiddenPart(AvailablePart availablePart)
+        {
+            if (availablePart.TechHidden && availablePart.category == PartCategories.none && availablePart.partConfig.HasValue("canPrintHiddenPart"))
+            {
+                // Check the part config
+                bool canPrintHiddenPart = false;
+                bool.TryParse(availablePart.partConfig.GetValue("canPrintHiddenPart"), out canPrintHiddenPart);
+
+                return canPrintHiddenPart;
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Retrieves the thumbnail texture that depicts the specified part name.
         /// </summary>

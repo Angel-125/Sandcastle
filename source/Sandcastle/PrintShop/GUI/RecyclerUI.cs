@@ -344,10 +344,15 @@ namespace Sandcastle.PrintShop
                 requirements.AppendLine(" ");
                 requirements.AppendLine(Localizer.Format("#LOC_SANDCASTLE_recycledParts"));
                 AvailablePart requiredPart;
+                int recycledPartCount = 0;
                 for (int index = 0; index < count; index++)
                 {
-                    requiredPart = PartLoader.getPartInfoByName(item.requiredComponents[index]);
-                    requirements.AppendLine(requiredPart.title);
+                    requiredPart = PartLoader.getPartInfoByName(item.requiredComponents[index].name);
+                    recycledPartCount = item.requiredComponents[index].amount;
+                    if (recycledPartCount <= 1)
+                        requirements.AppendLine(requiredPart.title);
+                    else
+                        requirements.AppendLine(requiredPart.title + ": " + recycledPartCount.ToString());
                 }
             }
 

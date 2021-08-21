@@ -436,16 +436,20 @@ namespace Sandcastle.PrintShop
             // Recycle components
             count = buildItem.requiredComponents.Count;
             string componentName;
+            int recycledComponentCount = 0;
             AvailablePart recycledComponent;
-            List<string> doomed = new List<string>();
+            List<PartRequiredComponent> doomed = new List<PartRequiredComponent>();
+            PartRequiredComponent component;
             for (int index = 0; index < count; index++)
             {
-                componentName = buildItem.requiredComponents[index];
+                component = buildItem.requiredComponents[index];
+                componentName = component.name;
+                recycledComponentCount = component.amount;
                 recycledComponent = PartLoader.getPartInfoByName(componentName);
                 cargoPart = buildItem.availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
 
                 // Make sure that the vessel has enough inventory space
-                if (!InventoryUtils.HasEnoughSpace(part.vessel, recycledComponent))
+                if (!InventoryUtils.HasEnoughSpace(part.vessel, recycledComponent, recycledComponentCount))
                 {
                     recyclerUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsSpace", new string[1] { string.Format("{0:n3}", cargoPart.packedVolume) });
                     missingRequirements = true;
@@ -453,12 +457,15 @@ namespace Sandcastle.PrintShop
                     return;
                 }
 
-                // Add the component to an inventory
-                doomed.Add(componentName);
-                Part inventoryPart = InventoryUtils.AddItem(part.vessel, recycledComponent, part.FindModuleImplementing<ModuleInventoryPart>());
-                ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_recyclerStoredPart", new string[2] { recycledComponent.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
-                inventoryPart.Highlight(Color.cyan);
-                unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
+                // Add the components to an inventory
+                doomed.Add(buildItem.requiredComponents[index]);
+                for (int recycledIndex = 0; recycledIndex < recycledComponentCount; recycledIndex++)
+                {
+                    Part inventoryPart = InventoryUtils.AddItem(part.vessel, recycledComponent, part.FindModuleImplementing<ModuleInventoryPart>());
+                    ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_recyclerStoredPart", new string[2] { recycledComponent.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
+                    inventoryPart.Highlight(Color.cyan);
+                    unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
+                }
             }
             count = doomed.Count;
             for (int index = 0; index < count; index++)

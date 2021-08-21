@@ -14,6 +14,20 @@ namespace Sandcastle.PrintShop
     public delegate void UpdatePrintStatusDelegate(bool isPrinting);
 
     /// <summary>
+    /// Asks the delegate if the minimum gravity requirements are met.
+    /// </summary>
+    /// <param name="minimumGravity">A float containing the minimum required gravity.</param>
+    /// <returns>true if the requirement can be met, false if not.</returns>
+    public delegate bool GravityRequirementsMetDelegate(float minimumGravity);
+
+    /// <summary>
+    /// Asks the delegate if the minimum pressure requirements are met.
+    /// </summary>
+    /// <param name="minimumPressure">A float containing the minimum required pressure.</param>
+    /// <returns>true if the requirement can be met, false if not.</returns>
+    public delegate bool PressureRequirementMetDelegate(float minimumPressure);
+
+    /// <summary>
     /// Represents the Print Shop UI
     /// </summary>
     public class PrintShopUI: Dialog<PrintShopUI>
@@ -43,6 +57,16 @@ namespace Sandcastle.PrintShop
         /// Callback to let the controller know about the print state.
         /// </summary>
         public UpdatePrintStatusDelegate onPrintStatusUpdate;
+
+        /// <summary>
+        /// Callback to see if the part's gravity requirements are met.
+        /// </summary>
+        public GravityRequirementsMetDelegate gravityRequirementsMet;
+
+        /// <summary>
+        /// Callback to see if the part's pressure requirements are met.
+        /// </summary>
+        public PressureRequirementMetDelegate pressureRequrementsMet;
 
         /// <summary>
         /// Flag indicating that the printer is printing
@@ -84,7 +108,7 @@ namespace Sandcastle.PrintShop
         GUILayoutOption[] previewImagePaneDimensions = new GUILayoutOption[] { GUILayout.Height(200), GUILayout.Width(115) };
         GUILayoutOption[] partRequirementsHeight = new GUILayoutOption[] { GUILayout.Height(200) };
         GUILayoutOption[] previewDescriptionHeight = new GUILayoutOption[] { GUILayout.Height(100) };
-        GUILayoutOption[] printQueueHeight = new GUILayoutOption[] { GUILayout.Height(165) };
+        GUILayoutOption[] printQueueHeight = new GUILayoutOption[] { GUILayout.Height(190) };
         GUILayoutOption[] partInfoWidth = new GUILayoutOption[] { GUILayout.Width(325) };
         PartCategories currentCategory = PartCategories.Pods;
         PartCategories selectedCategory = PartCategories.Pods;
@@ -100,7 +124,7 @@ namespace Sandcastle.PrintShop
 
         #region Constructors
         public PrintShopUI() :
-        base("Print Shop", 635, 620)
+        base("Print Shop", 635, 650)
         {
             WindowTitle = titleText;
             Resizable = false;
@@ -340,6 +364,8 @@ namespace Sandcastle.PrintShop
                 drawCategoryButton(PartCategories.Cargo);
             if (whitelistedCategories.Contains(PartCategories.Utility))
                 drawCategoryButton(PartCategories.Utility);
+            if (whitelistedCategories.Contains(PartCategories.none))
+                drawCategoryButton(PartCategories.none);
 
             GUILayout.EndScrollView();
 
@@ -352,7 +378,7 @@ namespace Sandcastle.PrintShop
             if (selectedCategory != currentCategory)
             {
                 currentCategory = selectedCategory;
-                categoryName = currentCategory.ToString();
+                categoryName = getCategoryName(currentCategory);
                 updateCategoryParts();
             }
 
@@ -360,8 +386,13 @@ namespace Sandcastle.PrintShop
             if (categoryMousedOver && Planetarium.GetUniversalTime() > categoryUpdateTime)
             {
                 categoryMousedOver = false;
-                categoryName = currentCategory.ToString();
+                categoryName = getCategoryName(currentCategory);
             }
+        }
+
+        private string getCategoryName(PartCategories category)
+        {
+            return category != PartCategories.none ? category.ToString() : Localizer.Format("#LOC_SANDCASTLE_specialCategory");
         }
         
         private void drawCategoryButton(PartCategories category)
@@ -371,7 +402,7 @@ namespace Sandcastle.PrintShop
                 selectedCategory = category;
             if (isMouseOver())
             {
-                categoryName = category.ToString();
+                categoryName = getCategoryName(category);
                 categoryMousedOver = true;
                 categoryUpdateTime = Planetarium.GetUniversalTime() + 0.25;
             }
@@ -438,14 +469,61 @@ namespace Sandcastle.PrintShop
                 requirements.AppendLine(" ");
                 requirements.AppendLine(Localizer.Format("#LOC_SANDCASTLE_requiredParts"));
                 AvailablePart requiredPart;
+                int requiredPartCount = 0;
                 for (int index = 0; index < count; index++)
                 {
-                    requiredPart = PartLoader.getPartInfoByName(item.requiredComponents[index]);
-                    if (InventoryUtils.HasItem(part.vessel, requiredPart.name))
-                        requirements.AppendLine(requiredPart.title);
+                    requiredPart = PartLoader.getPartInfoByName(item.requiredComponents[index].name);
+                    requiredPartCount = item.requiredComponents[index].amount;
+                    if (requiredPartCount == 1)
+                    {
+                        if (InventoryUtils.HasItem(part.vessel, requiredPart.name))
+                            requirements.AppendLine(requiredPart.title);
+                        else
+                            requirements.AppendLine("<color=red>" + requiredPart.title + "</color>");
+                    }
                     else
-                        requirements.AppendLine("<color=red>" + requiredPart.title + "</color>");
+                    {
+                        int inventoryPartCount = InventoryUtils.GetInventoryItemCount(part.vessel, requiredPart.name);
+                        if (inventoryPartCount >= requiredPartCount)
+                            requirements.AppendLine(requiredPart.title + ": " + requiredPartCount.ToString());
+                        else
+                            requirements.AppendLine("<color=red>" + requiredPart.title + ": " + requiredPartCount.ToString() + "</color>");
+                    }
                 }
+            }
+
+            // Minimum gravity
+            if (item.minimumGravity > -1)
+            {
+                bool meetsMinGravity = gravityRequirementsMet(item.minimumGravity);
+                string gravityRequirement = string.Empty;
+
+                if (item.minimumGravity < 0.00001)
+                    gravityRequirement = Localizer.Format("#LOC_SANDCASTLE_requiredMicrogravity");
+                else
+                    gravityRequirement = Localizer.Format("#LOC_SANDCASTLE_requiredGravity", new string[1] { string.Format("{0:n2}", item.minimumGravity)});
+
+                if (meetsMinGravity)
+                    requirements.AppendLine("<color=white>" + gravityRequirement + "</color>");
+                else
+                    requirements.AppendLine("<color=red>" + gravityRequirement + "</color>");
+            }
+
+            // Minimum pressure
+            if (item.minimumPressure > -1)
+            {
+                bool meetsMinPressure = pressureRequrementsMet(item.minimumPressure);
+                string pressureRequirement = string.Empty;
+
+                if (item.minimumPressure < 0.001)
+                    pressureRequirement = Localizer.Format("#LOC_SANDCASTLE_requiredVacuum");
+                else
+                    pressureRequirement = Localizer.Format("#LOC_SANDCASTLE_requiredPressure", new string[1] { string.Format("{0:n2}", item.minimumPressure) });
+
+                if (meetsMinPressure)
+                    requirements.AppendLine("<color=white>" + pressureRequirement + "</color>");
+                else
+                    requirements.AppendLine("<color=red>" + pressureRequirement + "</color>");
             }
 
             // Write out the part info
@@ -499,6 +577,7 @@ namespace Sandcastle.PrintShop
             iconSet.Add(PartCategories.Structural.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generalconstruction"));
             iconSet.Add(PartCategories.Thermal.ToString(), loadTexture("Squad/PartList/SimpleIcons/fuels_monopropellant"));
             iconSet.Add(PartCategories.Utility.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generic"));
+            iconSet.Add(PartCategories.none.ToString(), loadTexture("Squad/PartList/SimpleIcons/deployable_part"));
 
             iconSet.Add("Play", loadTexture("WildBlueIndustries/Sandcastle/Icons/Play"));
             iconSet.Add("Pause", loadTexture("WildBlueIndustries/Sandcastle/Icons/Pause"));

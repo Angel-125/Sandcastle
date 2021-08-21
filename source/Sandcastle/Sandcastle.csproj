@@ -96,11 +96,13 @@
     <Compile Include="PrintShop\SupportClasses\BuildItem.cs" />
     <Compile Include="PrintShop\SupportClasses\MaterialsList.cs" />
     <Compile Include="PrintShop\PartModules\WBIPrintShop.cs" />
+    <Compile Include="PrintShop\PartModules\WBIPrinterRequirements.cs" />
     <Compile Include="Scenario\SandcastleScenario.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utilities\Dialog.cs" />
     <Compile Include="Utilities\DialogManager.cs" />
     <Compile Include="Utilities\DialogUils.cs" />
+    <Compile Include="Utilities\PrinterInfoHelper.cs" />
     <Compile Include="Utilities\WBIPartModule.cs" />
   </ItemGroup>
   <ItemGroup>
