@@ -553,6 +553,63 @@
             and not all of the parts will be loaded when GetInfo is called.
             </summary>
         </member>
+        <member name="T:Sandcastle.ModulePartGridVariants">
+            <summary>
+            This is a specialized class that creates a two-dimensional grid of meshes from a collection of meshes provided by the model.
+            While it is possible to duplicate multiple copies of a single transform, research shows that the part's radial attachment
+            system gets messed up when you do that. So for now, we have a grid that is limited by the total number of meshes in the model.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.elementTransformName">
+            <summary>
+            Base name of the meshes found in the part's model object.
+            All model transforms start with this prefix. Individual elements in the mesh should have " (n)" appended to them.
+            NOTE: Be sure to have a total number of elements equal to totalRows * totalColumns and be sure to label them from (0) to (totalElements - 1)
+            Example: yardFrameFlat37 (0), yardFrameFlat37 (1) ... yardFrameFlat37 (35)
+            Note that there is a space between the prefix and the element id.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.elementLength">
+            <summary>
+            Length of a single element, in meters.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.elementWidth">
+            <summary>
+            Width of a single element, in meters.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.elementHeight">
+            <summary>
+            Height of a single element, in meters.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.totalRows">
+            <summary>
+            Total number of rows that are possible in the grid.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.totalColumns">
+            <summary>
+            Total number of columns that are possible in the grid.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.rowIndex">
+            <summary>
+            Current selected row variant.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.ModulePartGridVariants.columnIndex">
+            <summary>
+            Current selected column variant.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.ModulePartGridVariants.copyOriginalNodes(System.Collections.Generic.List{AttachNode})">
+            <summary>
+            Called when the part was copied in the editor.
+            </summary>
+            <param name="copyNodes">The list of AttachNode objects to copy into our originalNodes field.</param>
+        </member>
         <member name="T:Sandcastle.Utilities.PrinterInfoHelper">
             <summary>
             This helper fills out the info text for the WBIPrinterRequirements part module. During the game startup, it asks part modules to GetInfo. WBIPrinterRequirements is no exception.

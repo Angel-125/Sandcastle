@@ -43,16 +43,16 @@ namespace Sandcastle.PrintShop
     public class WBIPrintShop : WBIPartModule
     {
         #region Constants
-        const double kCatchupTime = 3600;
-        const float kMsgDuration = 5;
-        const string kPrintState = "printState";
-        const string kPrintShopGroup = "PrintShop";
-        const string kPartWhiteListNode = "PARTS_WHITELIST";
-        const string kWhitelistedPart = "whitelistedPart";
-        const string kPartBlackListNode = "PARTS_BLACKLIST";
-        const string kBlacklistedPart = "blacklistedPart";
-        const string kCategoryWhitelistNode = "CATEGORY_WHITELIST";
-        const string kWhitelistedCategory = "whitelistedCategory";
+        public const double kCatchupTime = 3600;
+        public const float kMsgDuration = 5;
+        public const string kPrintState = "printState";
+        public const string kPrintShopGroup = "PrintShop";
+        public const string kPartWhiteListNode = "PARTS_WHITELIST";
+        public const string kWhitelistedPart = "whitelistedPart";
+        public const string kPartBlackListNode = "PARTS_BLACKLIST";
+        public const string kBlacklistedPart = "blacklistedPart";
+        public const string kCategoryWhitelistNode = "CATEGORY_WHITELIST";
+        public const string kWhitelistedCategory = "whitelistedCategory";
         #endregion
 
         #region Fields

@@ -73,6 +73,27 @@ namespace Sandcastle.Utilities
         private string getInfo(AvailablePart availablePart)
         {
             StringBuilder requirements = new StringBuilder();
+
+            // If the part is on the blacklist then we're done.
+            ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes(WBIPrintShop.kPartBlackListNode);
+            string[] values = null;
+            if (nodes != null && nodes.Length > 0)
+            {
+                for (int index = 0; index < nodes.Length; index++)
+                {
+                    values = nodes[index].GetValues(WBIPrintShop.kBlacklistedPart);
+                    if (values.Contains(availablePart.name))
+                    {
+                        return Localizer.Format("#LOC_SANDCASTLE_printRequirementsBanned");
+                    }
+                }
+            }
+
+            // Check to see if the cargo part can't be placed in an inventory.
+            ModuleCargoPart cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
+            if (cargoPart != null && cargoPart.packedVolume < 0)
+                return Localizer.Format("#LOC_SANDCASTLE_printRequirementsBanned");
+
             BuildItem item = new BuildItem(availablePart.partPrefab.partInfo);
 
             // Required resources
@@ -119,7 +140,7 @@ namespace Sandcastle.Utilities
                 string gravityRequirement = string.Empty;
 
                 if (item.minimumGravity < 0.00001)
-                    gravityRequirement = Localizer.Format("#LOC_SANDCASTLE_requiredMicrogravity");
+                   gravityRequirement = Localizer.Format("#LOC_SANDCASTLE_requiredMicrogravity");
                 else
                     gravityRequirement = Localizer.Format("#LOC_SANDCASTLE_requiredGravity", new string[1] { string.Format("{0:n2}", item.minimumGravity) });
 

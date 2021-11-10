@@ -102,6 +102,7 @@
     <Compile Include="Utilities\Dialog.cs" />
     <Compile Include="Utilities\DialogManager.cs" />
     <Compile Include="Utilities\DialogUils.cs" />
+    <Compile Include="Utilities\ModulePartGridVariants.cs" />
     <Compile Include="Utilities\PrinterInfoHelper.cs" />
     <Compile Include="Utilities\WBIPartModule.cs" />
   </ItemGroup>
