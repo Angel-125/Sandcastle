@@ -65,6 +65,12 @@ namespace Sandcastle.PrintShop
         /// </summary>
         [KSPField]
         public double recyclePercentage = 0.45;
+
+        /// <summary>
+        /// Name of the animation to play during printing.
+        /// </summary>
+        [KSPField]
+        public string animationName = string.Empty;
         #endregion
 
         #region Housekeeping
@@ -96,6 +102,8 @@ namespace Sandcastle.PrintShop
         bool missingRequirements = false;
         Dictionary<double, Part> unHighlightList = null;
         List<AvailablePart> partsToRecycle = null;
+        public Animation animation = null;
+        protected AnimationState animationState;
         #endregion
 
         #region FixedUpdate
@@ -113,6 +121,11 @@ namespace Sandcastle.PrintShop
                 lastUpdateTime = Planetarium.GetUniversalTime();
                 recyclerUI.jobStatus = recycleState.ToString();
                 part.Effect(runningEffect, 0);
+                if (animation != null)
+                {
+                    animation[animationName].speed = 0f;
+                    animation.Stop();
+                }
                 return;
             }
 
@@ -123,6 +136,11 @@ namespace Sandcastle.PrintShop
                 recycleState = WBIPrintStates.Idle;
                 recyclerUI.jobStatus = recycleState.ToString();
                 part.Effect(runningEffect, 0);
+                if (animation != null)
+                {
+                    animation[animationName].speed = 0f;
+                    animation.Stop();
+                }
 
                 if (lastUpdateTime > inventoryRefreshTime)
                 {
@@ -141,6 +159,12 @@ namespace Sandcastle.PrintShop
 
             // Play effects
             part.Effect(runningEffect, 1);
+            if (animation != null && animation[animationName].time <= 0)
+            {
+                animation.Play(animationName);
+                animation[animationName].time = 0f;
+                animation[animationName].speed = 1.0f;
+            }
 
             // Handle catchup
             handleCatchup();
@@ -162,6 +186,8 @@ namespace Sandcastle.PrintShop
 
             // Watch for game events
             GameEvents.onVesselChange.Add(onVesselChange);
+
+            setupAnimation();
         }
 
         public override void OnAwake()
@@ -358,16 +384,17 @@ namespace Sandcastle.PrintShop
             // Remove item from inventory
             int count = 0;
             ModuleInventoryPart inventory = InventoryUtils.GetInventoryWithPart(part.vessel, buildItem.partName);
+            int[] keys = null;
             if (inventory != null && !buildItem.isBeingRecycled)
             {
                 // Empty the part of any resources
                 StoredPart storedPart = null;
-                count = inventory.storedParts.Keys.Count;
-                for (int index = 0; index < count; index++)
+                keys = inventory.storedParts.Keys.ToArray();
+                for (int index = 0; index < keys.Length; index++)
                 {
-                    if (inventory.storedParts[index].partName == buildItem.partName)
+                    if (inventory.storedParts[keys[index]].partName == buildItem.partName)
                     {
-                        storedPart = inventory.storedParts[index];
+                        storedPart = inventory.storedParts[keys[index]];
                         break;
                     }
                 }
@@ -461,7 +488,7 @@ namespace Sandcastle.PrintShop
                 doomed.Add(buildItem.requiredComponents[index]);
                 for (int recycledIndex = 0; recycledIndex < recycledComponentCount; recycledIndex++)
                 {
-                    Part inventoryPart = InventoryUtils.AddItem(part.vessel, recycledComponent, part.FindModuleImplementing<ModuleInventoryPart>());
+                    Part inventoryPart = InventoryUtils.AddItem(part.vessel, recycledComponent, 0, part.FindModuleImplementing<ModuleInventoryPart>());
                     ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_recyclerStoredPart", new string[2] { recycledComponent.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
                     inventoryPart.Highlight(Color.cyan);
                     unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
@@ -517,6 +544,21 @@ namespace Sandcastle.PrintShop
             }
 
             return bonus + (highestRank * SpecialistBonus);
+        }
+
+        private void setupAnimation()
+        {
+            Animation[] animations = this.part.FindModelAnimators(animationName);
+            if (animations == null || animations.Length == 0)
+                return;
+
+            animation = animations[0];
+            if (animation == null)
+                return;
+
+            animationState = animation[animationName];
+            animationState.wrapMode = WrapMode.Loop;
+            animation.Stop();
         }
         #endregion
     }

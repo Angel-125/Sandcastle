@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Sandcastle.PrintShop
 {
@@ -30,6 +31,8 @@ namespace Sandcastle.PrintShop
         const string kPrintResource = "PRINT_RESOURCE";
         const string kMinimumGravity = "minimumGravity";
         const string kMinimumPressure = "minimumPressure";
+        const string kRemoveResources = "removeResources";
+        const string kVariantIndex = "variantIndex";
         #endregion
 
         #region Housekeeping
@@ -81,6 +84,16 @@ namespace Sandcastle.PrintShop
         /// If set to 0, then the printer's vessel must be in a vacuum.
         /// </summary>
         public float minimumPressure = -1;
+
+        /// <summary>
+        /// Determines whether or not the printer should remove the part's resources before placing the printed part in an inventory.
+        /// </summary>
+        public bool removeResources = true;
+
+        /// <summary>
+        /// Index of the part variant to use (if any).
+        /// </summary>
+        public int variantIndex = 0;
         #endregion
 
         #region Constructors
@@ -107,6 +120,12 @@ namespace Sandcastle.PrintShop
 
             if (node.HasValue(kMinimumPressure))
                 float.TryParse(node.GetValue(kMinimumPressure), out minimumPressure);
+
+            if (node.HasValue(kRemoveResources))
+                bool.TryParse(node.GetValue(kRemoveResources), out removeResources);
+
+            if (node.HasValue(kVariantIndex))
+                int.TryParse(node.GetValue(kVariantIndex), out variantIndex);
 
             materials = new List<ModuleResource>();
             if (node.HasNode(MaterialsList.kResourceNode))
@@ -229,15 +248,7 @@ namespace Sandcastle.PrintShop
             }
 
             // Now tally up the total units required and each indivdual resources required amounts.
-            totalUnitsRequired = 0;
-            count = materials.Count;
-            for (int index = 0; index < count; index++)
-            {
-                resource = materials[index];
-                resourceDef = definitions[resource.name];
-                resource.amount = calculateRequiredAmount(availablePart.partPrefab.mass, resourceDef.density, resource.rate);
-                totalUnitsRequired += resource.amount;
-            }
+            UpdateResourceRequirements();
 
             // If the part requires additional components, add them too.
             requiredComponents = new List<PartRequiredComponent>();
@@ -269,6 +280,10 @@ namespace Sandcastle.PrintShop
             if (availablePart.partConfig.HasValue(kMinimumPressure))
                 float.TryParse(availablePart.partConfig.GetValue(kMinimumPressure), out minimumPressure);
 
+            // Resource Removal
+            if (availablePart.partConfig.HasValue(kRemoveResources))
+                bool.TryParse(availablePart.partConfig.GetValue(kRemoveResources), out removeResources);
+
             // Finalize the new item
             totalUnitsPrinted = 0;
         }
@@ -285,6 +300,8 @@ namespace Sandcastle.PrintShop
             isBeingRecycled = copyFrom.isBeingRecycled;
             minimumGravity = copyFrom.minimumGravity;
             minimumPressure = copyFrom.minimumPressure;
+            removeResources = copyFrom.removeResources;
+            variantIndex = copyFrom.variantIndex;
 
             PartRequiredComponent component;
             int count = copyFrom.requiredComponents.Count;
@@ -324,6 +341,8 @@ namespace Sandcastle.PrintShop
             node.AddValue(kPartName, partName);
             node.AddValue(kTotalUnitsRequired, totalUnitsRequired.ToString());
             node.AddValue(kTotalUnitsPrinted, totalUnitsPrinted.ToString());
+            node.AddValue(kRemoveResources, removeResources);
+            node.AddValue(kVariantIndex, variantIndex);
 
             // Materials
             ModuleResource[] resources = materials.ToArray();
@@ -346,6 +365,29 @@ namespace Sandcastle.PrintShop
                 node.AddNode(componentNode);
             }
             return node;
+        }
+
+        public void UpdateResourceRequirements()
+        {
+            ModuleResource resource;
+            PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+            PartResourceDefinition resourceDef;
+
+            // Get the adjusted part mass.
+            double partMass = availablePart.partPrefab.mass;
+            if (availablePart.Variants != null && availablePart.Variants.Count > 0 && variantIndex >= 0 && variantIndex <= availablePart.Variants.Count - 1)
+                partMass += availablePart.Variants[variantIndex].Mass;
+
+            // Now tally up the total units required and each indivdual resources required amounts.
+            totalUnitsRequired = 0;
+            int count = materials.Count;
+            for (int index = 0; index < count; index++)
+            {
+                resource = materials[index];
+                resourceDef = definitions[resource.name];
+                resource.amount = calculateRequiredAmount(availablePart.partPrefab.mass, resourceDef.density, resource.rate);
+                totalUnitsRequired += resource.amount;
+            }
         }
         #endregion
 

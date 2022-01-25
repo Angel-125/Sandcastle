@@ -81,7 +81,7 @@ namespace Sandcastle.PrintShop
         /// <summary>
         /// Whitelisted categories that the printer can print from.
         /// </summary>
-        public List<PartCategories> whitelistedCategories;
+        public List<string> whitelistedCategories;
 
         #endregion
 
@@ -89,11 +89,13 @@ namespace Sandcastle.PrintShop
         List<AvailablePart> filteredParts;
         Dictionary<string, BuildItem> itemCache;
         AvailablePart previewPart;
+        List<PartVariant> partVariants = new List<PartVariant>();
         Texture2D previewPartImage;
         string previewPartRequirements = string.Empty;
         string previewPartDescription = string.Empty;
         string previewPartMassVolume = string.Empty;
         Dictionary<string, Texture2D> iconSet;
+        Dictionary<string, string> cckTags;
         Vector2 categoryScrollPos;
         Vector2 partsScrollPos;
         Vector2 partInfoScrollPos;
@@ -108,10 +110,11 @@ namespace Sandcastle.PrintShop
         GUILayoutOption[] previewImagePaneDimensions = new GUILayoutOption[] { GUILayout.Height(200), GUILayout.Width(115) };
         GUILayoutOption[] partRequirementsHeight = new GUILayoutOption[] { GUILayout.Height(200) };
         GUILayoutOption[] previewDescriptionHeight = new GUILayoutOption[] { GUILayout.Height(100) };
-        GUILayoutOption[] printQueueHeight = new GUILayoutOption[] { GUILayout.Height(190) };
+        GUILayoutOption[] previewVariantHeight = new GUILayoutOption[] { GUILayout.Height(75) };
+        GUILayoutOption[] printQueueHeight = new GUILayoutOption[] { GUILayout.Height(115) };
         GUILayoutOption[] partInfoWidth = new GUILayoutOption[] { GUILayout.Width(325) };
-        PartCategories currentCategory = PartCategories.Pods;
-        PartCategories selectedCategory = PartCategories.Pods;
+        string currentCategory = PartCategories.Pods.ToString();
+        string selectedCategory = PartCategories.Pods.ToString();
         Texture2D[] partImages;
         int selectedIndex;
         int currentIndex;
@@ -227,7 +230,7 @@ namespace Sandcastle.PrintShop
             GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_currentJob", new string[1] { jobTitle } ));
 
             // Job status
-            GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_currentJob", new string[1] { jobStatus } ));
+            GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_jobStatus", new string[1] { jobStatus } ));
             GUILayout.EndVertical();
 
             GUILayout.EndHorizontal();
@@ -277,6 +280,48 @@ namespace Sandcastle.PrintShop
 
             GUILayout.EndHorizontal();
 
+            // Part variant
+            GUILayout.BeginScrollView(Vector2.zero, previewVariantHeight);
+            if (previewPart != null)
+            {
+                BuildItem buildItem = itemCache[previewPart.name];
+
+                GUILayout.BeginVertical();
+                if (partVariants != null && partVariants.Count > 0)
+                {
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button("<", buttonDimensions))
+                    {
+                        buildItem.variantIndex -= 1;
+                        if (buildItem.variantIndex < 0)
+                            buildItem.variantIndex = 0;
+                        updatePartPreview(currentIndex, buildItem.variantIndex);
+                    }
+                    GUILayout.FlexibleSpace();
+                    GUILayout.Label("<color=white>" + partVariants[buildItem.variantIndex].DisplayName + "</color>");
+                    GUILayout.FlexibleSpace();
+                    if (GUILayout.Button(">", buttonDimensions))
+                    {
+                        buildItem.variantIndex = (buildItem.variantIndex + 1) % partVariants.Count;
+                        updatePartPreview(currentIndex, buildItem.variantIndex);
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                else
+                {
+                    GUILayout.Label("  ");
+                }
+
+                if (GUILayout.Button(Localizer.Format("#LOC_SANDCASTLE_addItemToPrintQueue")) && previewPart != null)
+                {
+                    buildItem = new BuildItem(itemCache[previewPart.name]);
+                    printQueue.Add(buildItem);
+                }
+
+                GUILayout.EndVertical();
+            }
+            GUILayout.EndScrollView();
+
             // Part description
             partDescriptionScrollPos = GUILayout.BeginScrollView(partDescriptionScrollPos, previewDescriptionHeight);
             GUILayout.Label(previewPartDescription);
@@ -298,17 +343,10 @@ namespace Sandcastle.PrintShop
                 // Increment column
                 column += 1;
 
-                // Add item to print queue
+                // Update preview item
                 if (GUILayout.Button(partImages[index], selectorButtonDimensions))
                 {
-                    updatePartPreview(index);
-                    BuildItem buildItem = new BuildItem(itemCache[previewPart.name]);
-                    printQueue.Add(buildItem);
-                }
-
-                // Update part preview
-                else if (isMouseOver())
-                {
+                    currentIndex = index;
                     updatePartPreview(index);
                 }
 
@@ -334,38 +372,77 @@ namespace Sandcastle.PrintShop
 
             categoryScrollPos = GUILayout.BeginScrollView(categoryScrollPos, categoryPanelWidth);
 
-            if (whitelistedCategories.Contains(PartCategories.Pods))
-                drawCategoryButton(PartCategories.Pods);
-            if (whitelistedCategories.Contains(PartCategories.FuelTank))
-                drawCategoryButton(PartCategories.FuelTank);
-            if (whitelistedCategories.Contains(PartCategories.Engine))
-                drawCategoryButton(PartCategories.Engine);
-            if (whitelistedCategories.Contains(PartCategories.Control))
-                drawCategoryButton(PartCategories.Control);
-            if (whitelistedCategories.Contains(PartCategories.Structural))
-                drawCategoryButton(PartCategories.Structural);
-            if (whitelistedCategories.Contains(PartCategories.Robotics))
-                drawCategoryButton(PartCategories.Robotics);
-            if (whitelistedCategories.Contains(PartCategories.Coupling))
-                drawCategoryButton(PartCategories.Coupling);
-            if (whitelistedCategories.Contains(PartCategories.Payload))
-                drawCategoryButton(PartCategories.Payload);
-            if (whitelistedCategories.Contains(PartCategories.Ground))
-                drawCategoryButton(PartCategories.Ground);
-            if (whitelistedCategories.Contains(PartCategories.Thermal))
-                drawCategoryButton(PartCategories.Thermal);
-            if (whitelistedCategories.Contains(PartCategories.Electrical))
-                drawCategoryButton(PartCategories.Electrical);
-            if (whitelistedCategories.Contains(PartCategories.Communication))
-                drawCategoryButton(PartCategories.Communication);
-            if (whitelistedCategories.Contains(PartCategories.Science))
-                drawCategoryButton(PartCategories.Science);
-            if (whitelistedCategories.Contains(PartCategories.Cargo))
-                drawCategoryButton(PartCategories.Cargo);
-            if (whitelistedCategories.Contains(PartCategories.Utility))
-                drawCategoryButton(PartCategories.Utility);
-            if (whitelistedCategories.Contains(PartCategories.none))
-                drawCategoryButton(PartCategories.none);
+            // Stock categories
+            string stockCategory = PartCategories.Pods.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.FuelTank.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Engine.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Control.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Structural.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Robotics.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Coupling.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Payload.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Ground.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Thermal.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Electrical.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Communication.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Science.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Cargo.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.Utility.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            stockCategory = PartCategories.none.ToString();
+            if (whitelistedCategories.Contains(stockCategory))
+                drawCategoryButton(stockCategory);
+
+            // CCK categories
+            string[] keys = cckTags.Keys.ToArray();
+            for (int index = 0; index < keys.Length; index++)
+            {
+                drawCategoryButton(keys[index]);
+            }
 
             GUILayout.EndScrollView();
 
@@ -390,19 +467,19 @@ namespace Sandcastle.PrintShop
             }
         }
 
-        private string getCategoryName(PartCategories category)
+        private string getCategoryName(string categoryId)
         {
-            return category != PartCategories.none ? category.ToString() : Localizer.Format("#LOC_SANDCASTLE_specialCategory");
+            return categoryId != PartCategories.none.ToString() ? categoryId : Localizer.Format("#LOC_SANDCASTLE_specialCategory");
         }
         
-        private void drawCategoryButton(PartCategories category)
+        private void drawCategoryButton(string categoryId)
         {
-            GUI.backgroundColor = currentCategory == category ? selectedColor : backgroundColor;
-            if (GUILayout.Button(iconSet[category.ToString()], categoryButtonDimensions))
-                selectedCategory = category;
+            GUI.backgroundColor = currentCategory == categoryId ? selectedColor : backgroundColor;
+            if (GUILayout.Button(iconSet[categoryId], categoryButtonDimensions))
+                selectedCategory = categoryId;
             if (isMouseOver())
             {
-                categoryName = getCategoryName(category);
+                categoryName = getCategoryName(categoryId);
                 categoryMousedOver = true;
                 categoryUpdateTime = Planetarium.GetUniversalTime() + 0.25;
             }
@@ -410,9 +487,10 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Helpers
-        private void updatePartPreview(int partIndex)
+        private void updatePartPreview(int partIndex, int variantIndex = 0)
         {
             previewPart = filteredParts[partIndex];
+            partVariants = previewPart.Variants;
 
             // Get the build item
             BuildItem item;
@@ -422,9 +500,10 @@ namespace Sandcastle.PrintShop
                 itemCache.Add(previewPart.name, item);
             }
             item = itemCache[previewPart.name];
+            item.UpdateResourceRequirements();
 
             // Part image
-            previewPartImage = InventoryUtils.GetTexture(previewPart.name);
+            previewPartImage = InventoryUtils.GetTexture(previewPart.name, item.variantIndex);
 
             // Part mass and volume
             ModuleCargoPart cargoPart = previewPart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
@@ -541,9 +620,20 @@ namespace Sandcastle.PrintShop
             int count = partsList.Count;
             List<Texture2D> thumbnails = new List<Texture2D>();
             AvailablePart availablePart;
+            string cckTag = string.Empty;
+
+            if (cckTags.ContainsKey(currentCategory))
+                cckTag = cckTags[currentCategory].ToLower();
+
+            string tags;
+            string partCategory;
+            string title;
             for (int index = 0; index < count; index++)
             {
-                if (partsList[index].category == currentCategory)
+                title = partsList[index].title;
+                partCategory = partsList[index].category.ToString();
+                tags = partsList[index].tags;
+                if (partCategory == currentCategory || (tags.Contains(cckTag) && !string.IsNullOrEmpty(cckTag)))
                 {
                     availablePart = partsList[index];
                     filteredParts.Add(availablePart);
@@ -560,29 +650,114 @@ namespace Sandcastle.PrintShop
         private void loadIcons()
         {
             iconSet = new Dictionary<string, Texture2D>();
+            cckTags = new Dictionary<string, string>();
 
-            iconSet.Add(PartCategories.Aero.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advaerodynamics"));
-            iconSet.Add(PartCategories.Cargo.ToString(), loadTexture("Squad/PartList/SimpleIcons/deployed_science_part"));
-            iconSet.Add(PartCategories.Communication.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advunmanned"));
-            iconSet.Add(PartCategories.Control.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_largecontrol"));
-            iconSet.Add(PartCategories.Coupling.ToString(), loadTexture("Squad/PartList/SimpleIcons/cs_size3"));
-            iconSet.Add(PartCategories.Electrical.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_electrics"));
-            iconSet.Add(PartCategories.Engine.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_propulsionSystems"));
-            iconSet.Add(PartCategories.FuelTank.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_fuelSystems-advanced"));
-            iconSet.Add(PartCategories.Ground.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advancedmotors"));
-            iconSet.Add(PartCategories.Payload.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_composites"));
-            iconSet.Add(PartCategories.Pods.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_commandmodules"));
-            iconSet.Add(PartCategories.Robotics.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_robotics"));
-            iconSet.Add(PartCategories.Science.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advsciencetech"));
-            iconSet.Add(PartCategories.Structural.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generalconstruction"));
-            iconSet.Add(PartCategories.Thermal.ToString(), loadTexture("Squad/PartList/SimpleIcons/fuels_monopropellant"));
-            iconSet.Add(PartCategories.Utility.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generic"));
-            iconSet.Add(PartCategories.none.ToString(), loadTexture("Squad/PartList/SimpleIcons/deployable_part"));
+            if (!iconSet.ContainsKey(PartCategories.Aero.ToString()))
+                iconSet.Add(PartCategories.Aero.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advaerodynamics"));
 
-            iconSet.Add("Play", loadTexture("WildBlueIndustries/Sandcastle/Icons/Play"));
-            iconSet.Add("Pause", loadTexture("WildBlueIndustries/Sandcastle/Icons/Pause"));
-            iconSet.Add("Trash", loadTexture("WildBlueIndustries/Sandcastle/Icons/Trash"));
-            iconSet.Add("Blank", loadTexture("WildBlueIndustries/Sandcastle/Icons/Box"));
+            if (!iconSet.ContainsKey(PartCategories.Cargo.ToString()))
+                iconSet.Add(PartCategories.Cargo.ToString(), loadTexture("Squad/PartList/SimpleIcons/deployed_science_part"));
+
+            if (!iconSet.ContainsKey(PartCategories.Communication.ToString()))
+                iconSet.Add(PartCategories.Communication.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advunmanned"));
+
+            if (!iconSet.ContainsKey(PartCategories.Control.ToString()))
+                iconSet.Add(PartCategories.Control.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_largecontrol"));
+
+            if (!iconSet.ContainsKey(PartCategories.Coupling.ToString()))
+                iconSet.Add(PartCategories.Coupling.ToString(), loadTexture("Squad/PartList/SimpleIcons/cs_size3"));
+
+            if (!iconSet.ContainsKey(PartCategories.Electrical.ToString()))
+                iconSet.Add(PartCategories.Electrical.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_electrics"));
+
+            if (!iconSet.ContainsKey(PartCategories.Engine.ToString()))
+                iconSet.Add(PartCategories.Engine.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_propulsionSystems"));
+
+            if (!iconSet.ContainsKey(PartCategories.FuelTank.ToString()))
+                iconSet.Add(PartCategories.FuelTank.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_fuelSystems-advanced"));
+
+            if (!iconSet.ContainsKey(PartCategories.Ground.ToString()))
+                iconSet.Add(PartCategories.Ground.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advancedmotors"));
+
+            if (!iconSet.ContainsKey(PartCategories.Payload.ToString()))
+                iconSet.Add(PartCategories.Payload.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_composites"));
+
+            if (!iconSet.ContainsKey(PartCategories.Pods.ToString()))
+                iconSet.Add(PartCategories.Pods.ToString(), loadTexture("Squad/PartList/SimpleIcons/RDicon_commandmodules"));
+
+            if (!iconSet.ContainsKey(PartCategories.Robotics.ToString()))
+                iconSet.Add(PartCategories.Robotics.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_robotics"));
+
+            if (!iconSet.ContainsKey(PartCategories.Science.ToString()))
+                iconSet.Add(PartCategories.Science.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advsciencetech"));
+
+            if (!iconSet.ContainsKey(PartCategories.Structural.ToString()))
+                iconSet.Add(PartCategories.Structural.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generalconstruction"));
+
+            if (!iconSet.ContainsKey(PartCategories.Thermal.ToString()))
+                iconSet.Add(PartCategories.Thermal.ToString(), loadTexture("Squad/PartList/SimpleIcons/fuels_monopropellant"));
+
+            if (!iconSet.ContainsKey(PartCategories.Utility.ToString()))
+                iconSet.Add(PartCategories.Utility.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_generic"));
+
+            if (!iconSet.ContainsKey(PartCategories.none.ToString()))
+                iconSet.Add(PartCategories.none.ToString(), loadTexture("Squad/PartList/SimpleIcons/deployable_part"));
+
+            if (!iconSet.ContainsKey("Play"))
+                iconSet.Add("Play", loadTexture("WildBlueIndustries/Sandcastle/Icons/Play"));
+
+            if (!iconSet.ContainsKey("Pause"))
+                iconSet.Add("Pause", loadTexture("WildBlueIndustries/Sandcastle/Icons/Pause"));
+
+            if (!iconSet.ContainsKey("Trash"))
+                iconSet.Add("Trash", loadTexture("WildBlueIndustries/Sandcastle/Icons/Trash"));
+
+            if (!iconSet.ContainsKey("Blank"))
+                iconSet.Add("Blank", loadTexture("WildBlueIndustries/Sandcastle/Icons/Box"));
+
+            // Check for Community Category Kit items
+            ConfigNode[] nodes = GameDatabase.Instance.GetConfigNodes("CCKCommonFilterConfig");
+            if (nodes.Length > 0)
+            {
+                for (int index = 0; index < nodes.Length; index++)
+                {
+                    if (nodes[index].HasNode("Item"))
+                        loadIcons(nodes[index].GetNodes("Item"));
+                }
+            }
+
+            nodes = GameDatabase.Instance.GetConfigNodes("CCKExtraFilterConfig");
+            if (nodes.Length > 0)
+            {
+                for (int index = 0; index < nodes.Length; index++)
+                {
+                    if (nodes[index].HasNode("Item"))
+                        loadIcons(nodes[index].GetNodes("Item"));
+                }
+            }
+        }
+
+        private void loadIcons(ConfigNode[] nodes)
+        {
+            ConfigNode node;
+            string categoryName;
+            string textureName;
+            string tag;
+            for (int index = 0; index < nodes.Length; index++)
+            {
+                node = nodes[index];
+                if (node.HasValue("name") && node.HasValue("normalIcon") && node.HasValue("tag"))
+                {
+                    categoryName = node.GetValue("name");
+                    textureName = node.GetValue("normalIcon");
+                    tag = node.GetValue("tag");
+
+                    if (!iconSet.ContainsKey(categoryName))
+                        iconSet.Add(categoryName, loadTexture(textureName));
+                    if (!cckTags.ContainsKey(categoryName))
+                        cckTags.Add(categoryName, tag);
+                }
+            }
         }
 
         private Texture2D loadTexture(string path)

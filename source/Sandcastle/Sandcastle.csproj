@@ -90,6 +90,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Inventory\InventoryUtils.cs" />
+    <Compile Include="Inventory\PartModules\ModuleCargoCatcher.cs" />
+    <Compile Include="Inventory\PartModules\ModuleDefaultInventoryStack.cs" />
+    <Compile Include="Inventory\PartModules\ModuleStorablePart.cs" />
     <Compile Include="PrintShop\GUI\RecyclerUI.cs" />
     <Compile Include="PrintShop\GUI\PrintShopUI.cs" />
     <Compile Include="PrintShop\PartModules\WBICargoRecycler.cs" />
@@ -102,9 +105,10 @@
     <Compile Include="Utilities\Dialog.cs" />
     <Compile Include="Utilities\DialogManager.cs" />
     <Compile Include="Utilities\DialogUils.cs" />
-    <Compile Include="Utilities\ModulePartGridVariants.cs" />
-    <Compile Include="Utilities\PrinterInfoHelper.cs" />
-    <Compile Include="Utilities\WBIPartModule.cs" />
+    <Compile Include="Utilities\PartModules\ModulePartGridVariants.cs" />
+    <Compile Include="Utilities\PartModules\PrinterInfoHelper.cs" />
+    <Compile Include="Utilities\PartModules\WBIPartModule.cs" />
+    <Compile Include="Inventory\PartModules\ModuleCargoDispenser.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="MarkdownSeparator.exe">

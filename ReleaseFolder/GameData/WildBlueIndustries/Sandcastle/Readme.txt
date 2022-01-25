@@ -1,5 +1,11 @@
 Sandcastle: 3D Printed Bases
 
+Real-world references
+
+https://www.youtube.com/watch?v=yp_Xz6r2Aso
+https://room.eu.com/article/How_to_3Dprint_a_habitat_on_Mars
+https://www.nasa.gov/directorates/spacetech/centennial_challenges/3DPHab/index.html
+
 ---INSTALLATION---
 
 Simply copy all the files into your GameData folder. When done, it should look like:
@@ -10,116 +16,73 @@ GameData
 
 Changes
 
-New Part Module
+New Parts
 
-- WBIPrinterRequirements: Added to parts that have a ModuleCargoPart or ModuleGroundPart or a part module derived from ModuleCargoPart/ModuleGroundPart, this part module lists the material requirements and conditions needed to 3D print the part in the VAB/SPH part info panel.
+- Quicksand 3D Print Shop: The size of the stock Hitchhiker, this print shop is able to print small cargo items. It can be used as an Extraplanetary Launchpads workshop that also produces Rocket Parts.
 
-3D Printers
+- Sandcastle 3D Print Shop: This module is Size 2 (2.5m diameter) and it has a large 3D printer that's capable of printing objects up to the size of the FL-TX1800 Fuel Tank. It can be used as an Extraplanetary Launchpads workshop that also produces Rocket Parts.
 
-- PARTS_BLACKLIST: You can specify one or more blacklistedPart entries in this node. The value is the name of the part (NOT the title). If a part is on the blacklist, then 3D printers cannot print it. If it's a required component for another part, then you'll have to add the blacklisted part to a vessel or inventory while in the VAB/SPH (or cheat and use something like Extraplanetary Launchpads).
-NOTE: You can specify a global PARTS_BLACKLIST, which affects ALL 3D printers, and/or a PARTS_BLACKLIST to a WBIPrintShop which only affects that specific printer. if a part is on the global blacklist but not on the WBIPrintShop's local blacklist, then the part is still banned from being printed.
-NOTE: The WBIPrintShop's PARTS_WHITELIST overrides the global/local PARTS_BLACKLIST.
-Ex: The Kerbal Flying Saucers GND-00 Gravitic Engine requires a TD Blanket and a Black Box. Because they are specialized components that are listed on the global PARTS_BLACKLIST, no printer can print them. To make a GND-00 Gravitic Engine offworld, you'll need to ship the TD Blanket and Black Box to the printer.
+- UHC-4K Cargo Storage Unit: This Size 2 (2.5m diameter) part stores 4,000l of stock cargo items in 24 slots.
 
-- You can add an optional minimumGravity field to a part config to specify, in m/sec^2, how much gravity/acceleration is needed to print the part. If the printer's vessel is below the minimum threshold, then the part cannot be printed. If you specify a value of 0, then the printer will need to be in orbit, sub-orbital, or on an escape trajectory, and not accelerating. The default value is -1, which means that there are no g-level restrictions.
-Ex: The Kerbal Flying Saucers GND-00 Gravitic Engine requires a GN Furnace, but the GN Furnace needs to be printed while in a high-gravity environment like Tylo.
+- UHC-8K Cargo Storage Unit: This Size 2 (2.5m diameter) part stores 8,000l of stock cargo items in 24 slots.
 
-- You can add an optional minimumPressure field to a part config to specify, in kPA, how much pressure is needed to print the part. If the printer's vessel is below the minimum threshold, then the part cannot be printed. If you specify a value of 0, then the printer will need to be in a vacuum. A value > 1 requires atmospheric pressure or the depths of an ocean. The default is -1, which means that there are no pressure restrictions.
-Ex: The Kerbal Flying Saucers GND-00 Gravitic Engine requires a GN Furnace, but the GN Furnace needs to be printed while in a vacuum.
+- UHC-16K Cargo Storage Unit: This Size 2 (2.5m diameter) part stores 16,000l of stock cargo items in 24 slots.
 
-- You can add an optional canPrintHiddenPart = true field to a part config to add parts that have a ModuleCargoPart, ModuleGroundPart, or a part module derived from ModuleCargoPart, in their config file. Parts hidden from the tech tree and/or editor that have canPrintHiddenPart = true will be printable with a 3D printer.
-IMPORTANT NOTE: The part config must set category = none and TechHidden = true.
+- MS-37 Yard Frame: Inspired by the shipyard from Star Trek The Motion Picture, this Modular Shipyard component is a Size 3 (3.75m) panel that lets you configure it like a grid in order to keep the part count down. It also has angled variants.
 
-- WBIPrintShop has a new part category that it can print from: none. It appears as "Special" in the GUI. Parts marked with category = none and TechHidden = true and canPrintHiddenPart = true will appear in this new part category. 
+- MS-75 Yard Frame: Inspired by the shipyard from Star Trek The Motion Picture, this Modular Shipyard component is a Size 5 (7.5m) panel that lets you configure it like a grid in order to keep the part count down. It also has angled variants.
 
-- Removed the optional requiredComponent field, and replaced it with the following config node:
-REQUIRED_COMPONENT
-{
-	// The name of the part that is required as a component in order to print the part.
-	name = somePartName
+- MS-L Lighting Panel: This panel provides lighting for your orbital shipyard's construction projects.
 
-	// The required number of required parts that must be in the vessel's inventory in order to print the part. Default is 1.
-	amount = 2
-}
+- EB-1V Variable Extension Boom: Similar to the stock girder, this is designed for robot arms that are used to build spacecraft. Its length can vary.
 
-- When specifying one or more resources in a MATERIALS_LIST, the sum of each RESOURCE's rate field must be equal to or greater than 1. If that isn't the case, then the 3D printer will add Ore as a material requirement until the total sum of each RESOURCE's rate is equal to 1.
+Extraplanetary Launchpad Parts
 
-New Part
+These parts are only available if you have Extraplanetary Launchpads installed.
 
-- Box of Generic Specialized Parts: This 0.625m cube contains various specialized components that were originally created by a heroic individual in a cave with a box of scraps. They are used as required components for some 3D printed parts. The specialized parts themselves cannot be 3D printed and must be shipped to the desired 3D printer.
-NOTE: No parts currently require the Box of Generic Specialized Parts. This part is provided for modders who want a generic part that must be shipped in order to complete printing of a desired part.
+- Sand Caster 3D Printer: This automated 3D printer is capable of creating whole vessels and bases without the need for kerbals on site. It will be slower than having kerbals around, but it will get the job done. it is designed for ground-based operations, and it's inspired by NASA's 3D habitat concept printers.
 
-Sample Config
+- EL-M Construction Marker: Equivalent to the Extraplanetary Launchpads' KS-MP Disposable Pad, the Konstruction Marker depicts where new builds will be added to the vessel. The Marker will be consumed when the new assembly is attached. It can be placed into stock inventories.
 
-Creative use of the new options makes it possible to restrict parts from being added in the VAB/SPH and requiring a 3D printer to make them.
-Additionally, with the new prerequisite conditions, you can spread part creation throughout the solar system. For instance, maybe a component made from metastable metallic hydrogen needs Jool's unique conditions, while another component needs Tylo's environment.
+- STK-1 Survey Cone: Functionally equivalent to the KS-BBQ Survey Stake, the Survey Cone can be placed in stock inventories. It marks where new constructions will appear.
 
-Below are sample part configs that demonstrate the new features. These parts don't actually exist in Kerbal Flying Saucers- yet. Imagine that they did, and that KFS included these module manager patches.
+- CD-10 Cone Dispenser: This dispenser holds 10 Survey Cones and can both drop them on the ground and pick them up again without the need for a kerbal.
 
-// We're going to modify the GND-00 Gravitic Engine so that it can only be made in space. It requires specialized components, some of which can't be 3D printed,
-// and others that can only be 3D printed.
-@PART[wbiGND00]:NEEDS[Sandcastle]
-{
-	// Hide the part from the VAB/SPH so that it can only be printed from a 3D printer.
-	category = none
-	TechHidden = true
+- EL-OCD Construction Manipulator: Equivalent to the Extraplanetary Launchpads' KS-OCD Orbital Construction Dock, the Konstruction Manipulator enables shipyards to build new vessels in orbit.
 
-	// Make sure that the part can be printed from a 3D printer. It will show up in the printer's "Special" part category.
-	canPrintHiddenPart = true
+- EL-MTL Smelter: This is a Size 2 part that is designed to convert Metal Ore into Metal, and Scrap Metal into Metal.
 
-	// The GND-00 Gravitic Engine requires a TD Blanket, a GN Black Box, and a GN Furnce in order to be printed.
-	REQUIRED_COMPONENT
-	{
-		name = wbiTDBlanket
-		// Remmeber, amount = 1 is the default, so we don't have to include it.
-	}
-	REQUIRED_COMPONENT
-	{
-		name = wbiGNBlackBox
-		amount = 2
-	}
-	REQUIRED_COMPONENT
-	{
-		name = wbiGNFurnace
-	}
-}
+- ELC-8 Rocket Parts Container: This Size 2 container holds up to 1,600 Rocket Parts. If you have Wild Blue Tools installed, then it becomes an omni storage container with an 8,000 L capacity. If you don't have Wild Blue Tools but you have B9PartSwitch, then it can switch between Rocket Parts, Metal, Scrap Metal, and Metal Ore.
 
-// The GN Furnace can't be bought in the VAB/SPH, but it can be printed.
-// Here, we are defining the part- but only if Sandcastle is installed.
-PART:NEEDS[Sandcastle]
-{
-	name = wbiGNFurnace
+Plugin
 
-	// Hide the part from the VAB/SPH so that it can only be printed from a 3D printer.
-	category = none
-	TechHidden = true
+- WBIPrintShop and WBICargoRecycler now support animations when operating.
+- You can now add the removeResources field to a part config. Setting removeResources = false will prevent the print shop from removing resources when it prints a part and places it into an inventory.
+- WBIPrintShop now supports part variants.
+- WBIPrintShop now supports Community Category Kit.
+- ModulePartGridVariants: This new part module supports mesh grids.
+- ModuleCargoDispenser: This part module lets you drop cargo parts from an inventory onto the ground or release them into space. No kerbal needed.
+- ModuleCargoGrabber: This part module lets you pick up cargo parts and place them in an inventory. No kerbal needed.
+- ModuleDefaultInventoryStack: ModuleInventoryPart's DEFAULTPARTS doesn't support stacked parts. This part module gets around the problem by maxing out the default all the parts' stack sizes when the part is first loaded into the editor.
+- ModuleStorablePart: This is just a thinly veiled ModuleCargoPart that enables parts to both have an inventory and to be placed in an inventory. Without this module, parts cannot have both a ModuleInventoryPart and a ModuleCargoPart.
 
-	// Make sure that the part can be printed from a 3D printer.
-	canPrintHiddenPart = true
+Patches
 
-	// The GN Furnace can only be made in a high gravity environment and in a vacuum- like, say, on Tylo...
-	minimumGravity = 9.81
-	minimumPressure = 0
+- Disabled the Module Manager patch that added a 3D printer to the stock science lab. This was always intended to be temporary until Sandcastle had custom parts. If you want this functionality back, go to the Sandcastle/Patches folder and rename ScienceLab3DPrinter from .txt to .cfg.
 
-	// ...And so on with the other config file entries for a typical KSP part...
-}
+- HorizontalPrintShops: Rename this from .txt to .cfg to use a horizontally orented IVA in the print shops.
 
-// Blacklist the TD Blanket and GN Black Box so they MUST be sent from the VAB/SPH
-// NOTE: You don't need one single global PARTS_BLACKLIST. You can define as many global PARTS_BLACKLIST nodes as you'd like, and Sandcastle will read all of them.
-PARTS_BLACKLIST
-{
-	blacklistedPart = wbiTDBlanket
-	blacklistedPart = wbiGNBlackBox
-}
+- OmniStorage: Adds omni storage capacity for the Cargo Storage Units and the Rocket Parts Kontainer if Wild Blue Tools is installed.
 
-// Define the TD Blanked- but only if Sandcastle is installed. We do something similar for the GN Black Box.
-PART:NEEDS[Sandcastle]
-{
-	name = wbiTDBlanket
-	...
-}
+- B9PS: Adds additional resource storage options to the Rocket Parts Kontainer if B9 Part Switch is installed and Wild Blue Tools isn't installed.
+
+Known Issues
+
+- When a printer finishes printing a part and placing it in the inventory, the image might not appear. This appears to be an issue with the stock inventory module.
 
 ---LICENSE---
+Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0
+
 Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.
 
 Wild Blue Industries is trademarked by Michael Billard. All rights reserved.

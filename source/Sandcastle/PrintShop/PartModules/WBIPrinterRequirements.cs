@@ -16,9 +16,12 @@ namespace Sandcastle.PrintShop
     [KSPModule("#LOC_SANDCASTLE_printRequirementsTitle")]
     public class WBIPrinterRequirements: WBIPartModule
     {
+        [KSPField]
+        public string requirementsInfo = "Placeholder. Filled out via PrinterInfoHelper.";
+
         public override string GetInfo()
         {
-            return "Placeholder. Filled out via PrinterInfoHelper.";
+            return requirementsInfo;
         }
     }
 }

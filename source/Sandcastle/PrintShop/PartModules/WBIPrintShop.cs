@@ -124,12 +124,20 @@ namespace Sandcastle.PrintShop
         [KSPField(isPersistant = true)]
         public string currentJob = string.Empty;
 
+        /// <summary>
+        /// Name of the animation to play during printing.
+        /// </summary>
+        [KSPField]
+        public string animationName = string.Empty;
+
         List<AvailablePart> filteredParts = null;
         PrintShopUI shopUI = null;
         double printResumeTime = 0;
         bool missingRequirements = false;
         Dictionary<double, Part> unHighlightList = null;
-        List<PartCategories> whitelistedCategories;
+        List<string> whitelistedCategories;
+        public Animation animation = null;
+        protected AnimationState animationState;
         #endregion
 
         #region FixedUpdate
@@ -147,6 +155,11 @@ namespace Sandcastle.PrintShop
                 lastUpdateTime = Planetarium.GetUniversalTime();
                 shopUI.jobStatus = printState.ToString();
                 part.Effect(runningEffect, 0);
+                if (animation != null)
+                {
+                    animation[animationName].speed = 0f;
+                    animation.Stop();
+                }
                 return;
             }
 
@@ -157,11 +170,22 @@ namespace Sandcastle.PrintShop
                 printState = WBIPrintStates.Idle;
                 shopUI.jobStatus = printState.ToString();
                 part.Effect(runningEffect, 0);
+                if (animation != null)
+                {
+                    animation[animationName].speed = 0f;
+                    animation.Stop();
+                }
                 return;
             }
 
             // Play effects
             part.Effect(runningEffect, 1);
+            if (animation != null && animation[animationName].time <= 0)
+            {
+                animation.Play(animationName);
+                animation[animationName].time = 0f;
+                animation[animationName].speed = 1.0f;
+            }
 
             // Handle catchup
             handleCatchup();
@@ -184,6 +208,8 @@ namespace Sandcastle.PrintShop
 
             // Watch for game events
             GameEvents.onVesselChange.Add(onVesselChange);
+
+            setupAnimation();
         }
 
         public override void OnAwake()
@@ -545,7 +571,7 @@ namespace Sandcastle.PrintShop
             if (buildItem.requiredComponents.Count == 0)
             {
                 // Add the item to an inventory
-                Part inventoryPart = InventoryUtils.AddItem(part.vessel, buildItem.availablePart, part.FindModuleImplementing<ModuleInventoryPart>());
+                Part inventoryPart = InventoryUtils.AddItem(part.vessel, buildItem.availablePart, buildItem.variantIndex, part.FindModuleImplementing<ModuleInventoryPart>(), buildItem.removeResources);
                 ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_storedPart", new string[2] { buildItem.availablePart.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
                 inventoryPart.Highlight(Color.cyan);
                 unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
@@ -595,7 +621,7 @@ namespace Sandcastle.PrintShop
             List<AvailablePart> availableParts = InventoryUtils.GetPrintableParts(maxPrintVolume);
             ConfigNode node = getPartConfigNode();
             PartCategories category;
-            whitelistedCategories = new List<PartCategories>();
+            whitelistedCategories = new List<string>();
             filteredParts = new List<AvailablePart>();
 
             // Get the whitelisted categories
@@ -609,7 +635,7 @@ namespace Sandcastle.PrintShop
                 {
                     if (Enum.TryParse(categories[index], out category))
                     {
-                        whitelistedCategories.Add(category);
+                        whitelistedCategories.Add(category.ToString());
                     }
                 }
             }
@@ -622,7 +648,7 @@ namespace Sandcastle.PrintShop
                 {
                     if (Enum.TryParse(categoryNames[index], out category))
                     {
-                        whitelistedCategories.Add(category);
+                        whitelistedCategories.Add(category.ToString());
                     }
                 }
             }
@@ -645,7 +671,7 @@ namespace Sandcastle.PrintShop
                     availablePart = availableParts[index];
 
                     // If the part is on our whitelist then we can print it regardless of black lists.
-                    if (whitelistedParts.Contains(availablePart.name) && whitelistedCategories.Contains(availablePart.category))
+                    if (whitelistedParts.Contains(availablePart.name) && whitelistedCategories.Contains(availablePart.category.ToString()))
                         filteredParts.Add(availablePart);
                 }
             }
@@ -704,6 +730,21 @@ namespace Sandcastle.PrintShop
             }
 
             return blacklistedParts.ToArray();
+        }
+
+        private void setupAnimation()
+        {
+            Animation[] animations = this.part.FindModelAnimators(animationName);
+            if (animations == null || animations.Length == 0)
+                return;
+
+            animation = animations[0];
+            if (animation == null)
+                return;
+
+            animationState = animation[animationName];
+            animationState.wrapMode = WrapMode.Loop;
+            animation.Stop();
         }
         #endregion
     }
