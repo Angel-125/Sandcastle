@@ -1,0 +1,48 @@
++PART[Panel2]:NEEDS[SquadExpansion/MakingHistory]
+{
+	@name = Panel2Grid
+	@title = SP-S25 Structural Panel Grid
+	@tags = cck-Sandcastle body build construct cover extend fabricate plat structur support
+
+	// This module lets you create a grid of meshes out of a single model.
+	// You can create large grids out of the single model without the need for large numbers of parts.
+	MODULE
+	{
+		name = ModuleMeshGrid
+
+		// Name of the mesh transform that we'll clone into a grid.
+		meshTransformName = Panel2
+
+		// Whenever you update the grid, ModuleMeshGrid will fire onEditorVariantApplied and onVariantApplied.
+		// You can apply key-value pairs when that happens via the EXTRA_INFO node of the VARIANT node.
+		// Part modules like Buffalo2's ModuleResourceVariants can make use of the key-value pairs.
+		// You can specify fixed values, but ModuleMeshGrid recognizes a few keywords and will
+		// replace the keyword with the appropriate value. The keywords are:
+		// <<Rows>> = current row count in the grid.
+		// <<Columns>> = current column count in the grid.
+		// <<Stacks>> = current stack height of the grid.
+		// <<Rows*Columns>> = current row count multiplied by the current column count.
+		// <<Rows*Columns*Stacks>> = current row count multiplied by the current column count 
+		// multiplied by the current stack height.
+		// Below is an example for Buffalo2:
+//		VARIANT
+//		{
+//			// Fields like name, displayName, etc. are automatically filled out by ModuleMeshGrid.
+//
+//			EXTRA_INFO
+//			{
+//				// ModuleMeshGrid doesn't know what packedVolumeLimit is, but it will
+//				// include it along with its value when it fires the variant applied events.
+//				packedVolumeLimit = 100
+//
+//				// ModuleMeshGrid doesn't know what packedVolumeMultiplier is, but it does know to
+//				// set its value to <<Rows*Columns*Stacks>>
+//				packedVolumeMultiplier = <<Rows*Columns*Stacks>>
+//
+//				// ModuleMeshGrid doesn't know what resourceMultiplier is, but it does know to
+//				// set its value to <<Rows*Columns>>
+//				resourceMultiplier = <<Rows*Columns>>
+//			}
+//		}
+	}
+}

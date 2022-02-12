@@ -670,6 +670,70 @@
             and not all of the parts will be loaded when GetInfo is called.
             </summary>
         </member>
+        <member name="T:Sandcastle.Utilities.PartModules.ModuleMeshGrid">
+            <summary>
+            This class provides a dynamically configurable mesh grid based on a single mesh transform. It clones the mesh and its colliders and places them in a grid based on the mesh's dimensions.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.Utilities.PartModules.ModuleMeshGrid.meshTransformName">
+            <summary>
+            Name of the model transform that has the mesh to duplicate. The mesh must have a box collider for the grid to work properly.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.Utilities.PartModules.ModuleMeshGrid.rowCount">
+            <summary>
+            How many rows in the grid
+            </summary>
+        </member>
+        <member name="F:Sandcastle.Utilities.PartModules.ModuleMeshGrid.columnCount">
+            <summary>
+            How many columns in the grid.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.Utilities.PartModules.ModuleMeshGrid.stackCount">
+            <summary>
+            How many vertical stacks in the grid.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Utilities.PartModules.ModuleMeshGrid.AddRow">
+            <summary>
+            Adds a single row to the mesh grid.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Utilities.PartModules.ModuleMeshGrid.RemoveRow">
+            <summary>
+            Removes a single row to the mesh grid.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Utilities.PartModules.ModuleMeshGrid.AddColumn">
+            <summary>
+            Adds a single column to the mesh grid.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Utilities.PartModules.ModuleMeshGrid.RemoveColumn">
+            <summary>
+            Removes a single column to the mesh grid.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Utilities.PartModules.ModuleMeshGrid.UpdateGrid">
+            <summary>
+            Updates the grid.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Utilities.PartModules.ModuleMeshGrid.copyOriginalNodes(System.Collections.Generic.List{AttachNode})">
+            <summary>
+            Called when the part was copied in the editor.
+            </summary>
+            <param name="copyNodes">The list of AttachNode objects to copy into our originalNodes field.</param>
+        </member>
+        <member name="T:Sandcastle.Utilities.PrinterInfoHelper">
+            <summary>
+            This helper fills out the info text for the WBIPrinterRequirements part module. During the game startup, it asks part modules to GetInfo. WBIPrinterRequirements is no exception.
+            However, because it relies on the PartLoader to obtain information about prerequisite components, WBIPrinterRequirements can't completely fill out its info.
+            We get around the problem by waiting until we load into the editor, and manually changing the ModuleInfo associated with WBIPrinterRequirements.
+            It's crude but effective.
+            </summary>
+        </member>
         <member name="T:Sandcastle.ModulePartGridVariants">
             <summary>
             This is a specialized class that creates a two-dimensional grid of meshes from a collection of meshes provided by the model.
@@ -726,14 +790,6 @@
             Called when the part was copied in the editor.
             </summary>
             <param name="copyNodes">The list of AttachNode objects to copy into our originalNodes field.</param>
-        </member>
-        <member name="T:Sandcastle.Utilities.PrinterInfoHelper">
-            <summary>
-            This helper fills out the info text for the WBIPrinterRequirements part module. During the game startup, it asks part modules to GetInfo. WBIPrinterRequirements is no exception.
-            However, because it relies on the PartLoader to obtain information about prerequisite components, WBIPrinterRequirements can't completely fill out its info.
-            We get around the problem by waiting until we load into the editor, and manually changing the ModuleInfo associated with WBIPrinterRequirements.
-            It's crude but effective.
-            </summary>
         </member>
         <member name="T:Sandcastle.WBIPartModule">
             <summary>
