@@ -9,6 +9,13 @@
             An inventory helper class
             </summary>
         </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetPartFromAvailablePart(AvailablePart)">
+            <summary>
+            Retrieves an instantiated part from the supplied available part.
+            </summary>
+            <param name="availablePart">The AvailablePart</param>
+            <returns></returns>
+        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.GetInventoryWithCargoSpace(Vessel,AvailablePart)">
             <summary>
             Gets an inventory with enough storage space and storage mass for the desired part.

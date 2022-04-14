@@ -27,6 +27,31 @@ namespace Sandcastle.Inventory
 
         #region API
         /// <summary>
+        /// Retrieves an instantiated part from the supplied available part.
+        /// </summary>
+        /// <param name="availablePart">The AvailablePart</param>
+        /// <returns></returns>
+        public static Part GetPartFromAvailablePart(AvailablePart availablePart)
+        {
+            Part part = availablePart.partPrefab.protoPartSnapshot.CreatePart();
+            part.ResumeState = PartStates.PLACEMENT;
+            part.State = PartStates.PLACEMENT;
+            part.name = availablePart.title;
+            //part.persistentId = FlightGlobals.CheckPartpersistentId(part.persistentId, part, false, true, 0U);
+            part.gameObject.SetActive(true);
+            part.partInfo = availablePart;
+
+            /*
+            Part part = UnityEngine.Object.Instantiate(availablePart.partPrefab);
+            part.vessel = part.gameObject.AddComponent<Vessel>();
+            part.gameObject.SetActive(true);
+            part.OnLoad(availablePart.internalConfig);
+            part.ModulesOnStart();
+            */
+            return part;
+        }
+
+        /// <summary>
         /// Gets an inventory with enough storage space and storage mass for the desired part.
         /// </summary>
         /// <param name="vessel">The vessel to query.</param>
@@ -469,7 +494,7 @@ namespace Sandcastle.Inventory
                         break;
                     }
                 }
-                if (partIcon != null && partIcon.inventoryItemThumbnail.texture == null)
+                if (partIcon != null && partIcon.inventoryItemThumbnail != null && partIcon.inventoryItemThumbnail.texture == null)
                 {
                     Texture2D texture = GetTexture(availablePart.name, variantIndex);
                     partIcon.inventoryItemThumbnail.texture = texture;
@@ -512,14 +537,23 @@ namespace Sandcastle.Inventory
                 int count = cargoParts.Count;
                 ModuleCargoPart cargoPart;
                 float maxPrintableVolume = maxPrintVolume > 0 ? maxPrintVolume : float.MaxValue;
+                AvailablePart availablePart;
                 for (int index = 0; index < count; index++)
                 {
-                    cargoPart = cargoParts[index].partPrefab.FindModuleImplementing<ModuleCargoPart>();
+                    availablePart = cargoParts[index];
+                    cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
 
                     if (cargoPart.packedVolume > 0 && cargoPart.packedVolume <= maxPrintableVolume)
                     {
-                        if (cargoParts[index].TechHidden == false || canPrintHiddenPart(cargoParts[index]))
-                            filteredParts.Add(cargoParts[index]);
+                        if (availablePart.TechHidden == false || canPrintHiddenPart(availablePart))
+                        {
+                            // For some reason, flat-packed and boxed Pathfinder parts list a negative prefab mass. We need to fix that.
+                            if (availablePart.partPrefab.mass < 0 && availablePart.partConfig != null && availablePart.partConfig.HasValue("mass"))
+                            {
+                                float.TryParse(availablePart.partConfig.GetValue("mass"), out availablePart.partPrefab.mass);
+                            }
+                            filteredParts.Add(availablePart);
+                        }
                     }
                 }
             }

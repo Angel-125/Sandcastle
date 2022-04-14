@@ -5,6 +5,7 @@ using System.Text;
 using UnityEngine;
 using KSP.IO;
 using Sandcastle.PrintShop;
+using Sandcastle.Inventory;
 using KSP.Localization;
 
 namespace Sandcastle.Utilities
@@ -94,6 +95,11 @@ namespace Sandcastle.Utilities
             if (cargoPart != null && cargoPart.packedVolume < 0)
                 return Localizer.Format("#LOC_SANDCASTLE_printRequirementsBanned");
 
+            // For some reason, flat-packed and boxed Pathfinder parts list a negative prefab mass. We need to fix that.
+            if (availablePart.partPrefab.mass < 0 && availablePart.partConfig != null && availablePart.partConfig.HasValue("mass"))
+            {
+                float.TryParse(availablePart.partConfig.GetValue("mass"), out availablePart.partPrefab.mass);
+            }
             BuildItem item = new BuildItem(availablePart.partPrefab.partInfo);
 
             // Required resources
