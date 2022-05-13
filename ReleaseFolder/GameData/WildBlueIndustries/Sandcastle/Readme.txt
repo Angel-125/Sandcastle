@@ -16,7 +16,7 @@ GameData
 
 Changes
 
-- Fixed compatibility issues with Pathfinder.
+- Removed superflous ELHelper dll.
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0
