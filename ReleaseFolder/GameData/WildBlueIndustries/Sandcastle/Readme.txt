@@ -13,10 +13,13 @@ Simply copy all the files into your GameData folder. When done, it should look l
 GameData
 	WildBlueIndustries
 		Sandcastle
+		WildBlueCore
 
 Changes
 
-- Removed superflous ELHelper dll.
+- Added new dependency for WildBlueCore.
+- Added new LaunchPosVert transform to the Konstruction Manipulator.
+- Fixed orientation issues with the Konstruction Marker.
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0

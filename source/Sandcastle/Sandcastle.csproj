@@ -89,27 +89,21 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Inventory\InventoryUtils.cs" />
-    <Compile Include="Inventory\PartModules\ModuleCargoCatcher.cs" />
-    <Compile Include="Inventory\PartModules\ModuleDefaultInventoryStack.cs" />
-    <Compile Include="Inventory\PartModules\ModuleStorablePart.cs" />
-    <Compile Include="PrintShop\GUI\RecyclerUI.cs" />
-    <Compile Include="PrintShop\GUI\PrintShopUI.cs" />
-    <Compile Include="PrintShop\PartModules\WBICargoRecycler.cs" />
-    <Compile Include="PrintShop\SupportClasses\BuildItem.cs" />
-    <Compile Include="PrintShop\SupportClasses\MaterialsList.cs" />
-    <Compile Include="PrintShop\PartModules\WBIPrintShop.cs" />
-    <Compile Include="PrintShop\PartModules\WBIPrinterRequirements.cs" />
+    <Compile Include="PartModules\Inventory\SupportClasses\InventoryUtils.cs" />
+    <Compile Include="PartModules\Inventory\ModuleCargoCatcher.cs" />
+    <Compile Include="PartModules\Inventory\ModuleDefaultInventoryStack.cs" />
+    <Compile Include="PartModules\Inventory\ModuleStorablePart.cs" />
+    <Compile Include="PartModules\PrintShop\GUI\RecyclerUI.cs" />
+    <Compile Include="PartModules\PrintShop\GUI\PrintShopUI.cs" />
+    <Compile Include="PartModules\PrintShop\WBICargoRecycler.cs" />
+    <Compile Include="PartModules\PrintShop\SupportClasses\BuildItem.cs" />
+    <Compile Include="PartModules\PrintShop\SupportClasses\MaterialsList.cs" />
+    <Compile Include="PartModules\PrintShop\WBIPrintShop.cs" />
+    <Compile Include="PartModules\PrintShop\WBIPrinterRequirements.cs" />
     <Compile Include="Scenario\SandcastleScenario.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utilities\Dialog.cs" />
-    <Compile Include="Utilities\DialogManager.cs" />
-    <Compile Include="Utilities\DialogUils.cs" />
-    <Compile Include="Utilities\PartModules\ModuleMeshGrid.cs" />
-    <Compile Include="Utilities\PartModules\ModulePartGridVariants.cs" />
-    <Compile Include="Utilities\PartModules\PrinterInfoHelper.cs" />
-    <Compile Include="Utilities\PartModules\WBIPartModule.cs" />
-    <Compile Include="Inventory\PartModules\ModuleCargoDispenser.cs" />
+    <Compile Include="PartModules\PrintShop\SupportClasses\PrinterInfoHelper.cs" />
+    <Compile Include="PartModules\Inventory\ModuleCargoDispenser.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="MarkdownSeparator.exe">
@@ -130,7 +124,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\WildBlueCore\source\WildBlueCore\WildBlueCore.csproj">
+      <Project>{7d8d783f-dda6-4c96-bf65-8905fab07cb5}</Project>
+      <Name>WildBlueCore</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /Y "$(TargetPath)" "C:\KSPDev\GameData\WildBlueIndustries\Sandcastle\Plugin\"﻿
