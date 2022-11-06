@@ -1,0 +1,11 @@
+@PART[konstructionManipulator]:NEEDS[Launchpad]:AFTER[Sandcastle]
+{
+    @MODULE[ELLaunchpad]
+	{
+		@SpawnTransform = LaunchPosVert
+    }
+    @MODULE[ELTarget]
+	{
+		@TargetTransform = LaunchPosVert
+	}
+}

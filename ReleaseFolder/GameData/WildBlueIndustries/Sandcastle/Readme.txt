@@ -15,11 +15,9 @@ GameData
 		Sandcastle
 		WildBlueCore
 
-Changes
+New Parts
 
-- Added new dependency for WildBlueCore.
-- Added new LaunchPosVert transform to the Konstruction Manipulator.
-- Fixed orientation issues with the Konstruction Marker.
+- EL-MTL-M Mini Smelter: This Size 1 (1.25m) part is a half-sized version of the existing smelter. As with its larger cousin, the Mini Smelter requires Extraplanetary Launchpads.
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0

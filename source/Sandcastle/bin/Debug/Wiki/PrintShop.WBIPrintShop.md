@@ -25,4 +25,6 @@ Current state of the printer.
 Describes when the printer was last updated.
 ### currentJob
 Current job being printed.
+### animationName
+Name of the animation to play during printing.
 

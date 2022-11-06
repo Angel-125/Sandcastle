@@ -23,6 +23,10 @@ Flag indicating whether or not the part is being recycled.
 The mininum gravity, in m/sec^2, that the part requires in order for the printer to print it. If set to 0, then the printer's vessel must be orbiting, sub-orbital, or on an escape trajectory, and not under acceleration. The default is -1, which ignores this requirement.
 ### minimumPressure
 The minimum pressure, in kPA, that the part required in order for the printer to print it. If set to > 1, then the printer's vessel must be in an atmosphere or submerged. If set to 0, then the printer's vessel must be in a vacuum.
+### removeResources
+Determines whether or not the printer should remove the part's resources before placing the printed part in an inventory.
+### variantIndex
+Index of the part variant to use (if any).
 ## Methods
 
 

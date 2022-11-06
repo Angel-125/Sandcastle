@@ -12,8 +12,6 @@ GameData
 
 If these directories already exist, then delete the existing ones before installing the latest update.
 
-Changes
-
 ---ACKNOWLEDGEMENTS
 
 ---LICENSE---

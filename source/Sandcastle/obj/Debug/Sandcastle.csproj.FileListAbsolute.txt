@@ -1,9 +1,8 @@
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\MarkdownSeparator.exe
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\xmldoc2md.xsl
+C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\xmldoc2md.ps1
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\RunMDSeparator.bat
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\RunPowershell.bat
-C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\xmldoc2md.ps1
-C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\xmldoc2md.xml
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\Sandcastle.dll
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\Sandcastle.pdb
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\Assembly-CSharp-firstpass.dll
@@ -72,9 +71,11 @@ C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\UnityE
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\UnityEngine.XRModule.dll
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\UnityEngine.InputModule.dll
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\WildBlueCore.pdb
+C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\WildBlueCore.xml
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\KSPAssets.XmlSerializers.dll
-C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csprojAssemblyReference.cache
+C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.AssemblyReference.cache
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.CoreCompileInputs.cache
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.CopyComplete
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.dll
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.pdb
+C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\Sandcastle.xml

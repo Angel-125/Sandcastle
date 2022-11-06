@@ -17,6 +17,8 @@ The skill required to improve the recycle speed.
 Name of the effect to play from the part's EFFECTS node when the printer is running.
 ### recyclePercentage
 What percentage of resources will be recycled.
+### animationName
+Name of the animation to play during printing.
 ### recycleQueue
 Represents the list of build items to recycle.
 ### recycleState

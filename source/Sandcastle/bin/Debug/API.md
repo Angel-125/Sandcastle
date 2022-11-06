@@ -8,6 +8,14 @@ An inventory helper class
 ## Methods
 
 
+### GetPartFromAvailablePart(AvailablePart)
+Retrieves an instantiated part from the supplied available part.
+> #### Parameters
+> **availablePart:** The AvailablePart
+
+> #### Return value
+> 
+
 ### GetInventoryWithCargoSpace(Vessel,AvailablePart)
 Gets an inventory with enough storage space and storage mass for the desired part.
 > #### Parameters
@@ -88,12 +96,14 @@ Removes the item from the vessel if it exists.
 > **partCount:** The number parts to remove. Default is 1.
 
 
-### AddItem(Vessel,AvailablePart,ModuleInventoryPart,System.Boolean)
+### AddItem(Vessel,AvailablePart,System.Int32,ModuleInventoryPart,System.Boolean)
 Adds the item to the vessel inventory if there is enough room.
 > #### Parameters
 > **vessel:** The vessel to query.
 
 > **availablePart:** The part to add to the inventory
+
+> **variantIndex:** An int containing the index of the part variant to store.
 
 > **preferredInventory:** The preferred inventory to store the part in.
 
@@ -101,6 +111,14 @@ Adds the item to the vessel inventory if there is enough room.
 
 > #### Return value
 > The Part that the item was stored in, or null if no place could be found for the part.
+
+### GetPrintableParts(System.Single)
+Retrieves a list of parts that can be printed by the specified max print volume.
+> #### Parameters
+> **maxPrintVolume:** A float containing the max possible print volume.
+
+> #### Return value
+> A List of AvailablePart objects that can be printed.
 
 ### FindThumbnailPaths
 Searches the game folder for thumbnail images.
@@ -113,21 +131,86 @@ Retrieves the thumbnail texture that depicts the specified part name.
 > #### Return value
 > A Texture2D if the texture exists, or a blank texture if not.
 
-### GetPrintableParts(System.Single)
-Retrieves a list of parts that can be printed by the specified max print volume.
+### GetFilePathForThumbnail(AvailablePart,System.Int32,System.Boolean)
+Returns the full path to the part's thumbnail image.
 > #### Parameters
-> **maxPrintVolume:** A float containing the max possible print volume.
+> **availablePart:** An AvailablePart to check for images.
+
+> **variantIndex:** An int containing the variant index to check for. Default is -1.
+
+> **useDefaultPath:** A bool indicating whether or not to use the default thumbnails path.
 
 > #### Return value
-> A List of AvailablePart objects that can be printed.
+> 
 
-### loadTexture(System.String)
-Retrieves the thumbnail texture that depicts the specified part name.
+# Inventory.ModuleCargoCatcher
+            
+Catches and stores cargo items into the part's inventory as long as they fit. Does not require a kerbal. This only works on single-part vessels. Note that you'll need a trigger collider set up in the part containing this part module in order to trigger the catch and store operation.
+        
+## Fields
+
+### debugMode
+Flag to indicate that we're in debug mode.
+### deployAnimationName
+Optional name of the animation to play when preparing the catcher to catch cargo parts.
+### canCatchParts
+Flag to indicate that we can catch parts.
+## Methods
+
+
+### ArmCatcher
+Arms the catcher, enabling it to catch parts.
+
+### DisarmCatcher
+Disarms the catcher, preventing it from catching parts.
+
+# Inventory.ModuleDefaultInventoryStack
+            
+ModuleInventoryPart's DEFAULTPARTS doesn't support stacked parts. This part module gets around the problem. Add this part module AFTER ModuleInventoryPart and part stacks will be filled out to their max stack size in the editor.
+        
+## Fields
+
+### inventoryInitialized
+Flag to indicate that the part's stackable inventory items has been initialized.
+
+# Inventory.ModuleCargoDispenser
+            
+The stock EVA Construction system lets you drag and drop inventory parts onto the ground, but it requires a kerbal to do so. This part module enables non-kerbal parts to remove items from the part's inventory and drop them onto the ground. This code is based on vessel creation code from Extraplanetary Launchpads by Taniwha and is used under the GNU General Public License.
+        
+## Fields
+
+### debugMode
+Debug flag.
+### dropTransformName
+Name of the transform where dropped cargo items will appear.
+### animationName
+Optional name of the animation to play when dropping an item.
+## Methods
+
+
+### DropPart
+Drops the desired item.
+
+### ChangePartToDrop
+Changes the desired item to drop.
+
+### ChangePartToDrop(System.Int32)
+Changes the desired item to drop to the desired inventory slot index (if it exists).
 > #### Parameters
-> **partName:** A string containing the name of the part.
+> **inventoryIndex:** An int containing the inventory index of the item to drop.
 
-> #### Return value
-> A Texture2D if the texture exists, or a blank texture if not.
+
+### DropPart(System.Int32)
+Drops the item in the desired inventory index (if it exists)
+> #### Parameters
+> **inventoryIndex:** An int containing the index of the inventory item to drop.
+
+
+### DropPart(AvailablePart)
+Drops the desired part if it is in the inventory.
+> #### Parameters
+> **availablePart:** An AvailablePart containing the item to drop.
+
 
 # PrintShop.RecyclerUI
             
@@ -261,6 +344,8 @@ The skill required to improve the recycle speed.
 Name of the effect to play from the part's EFFECTS node when the printer is running.
 ### recyclePercentage
 What percentage of resources will be recycled.
+### animationName
+Name of the animation to play during printing.
 ### recycleQueue
 Represents the list of build items to recycle.
 ### recycleState
@@ -296,6 +381,10 @@ Flag indicating whether or not the part is being recycled.
 The mininum gravity, in m/sec^2, that the part requires in order for the printer to print it. If set to 0, then the printer's vessel must be orbiting, sub-orbital, or on an escape trajectory, and not under acceleration. The default is -1, which ignores this requirement.
 ### minimumPressure
 The minimum pressure, in kPA, that the part required in order for the printer to print it. If set to > 1, then the printer's vessel must be in an atmosphere or submerged. If set to 0, then the printer's vessel must be in a vacuum.
+### removeResources
+Determines whether or not the printer should remove the part's resources before placing the printed part in an inventory.
+### variantIndex
+Index of the part variant to use (if any).
 ## Methods
 
 
@@ -400,6 +489,8 @@ Current state of the printer.
 Describes when the printer was last updated.
 ### currentJob
 Current job being printed.
+### animationName
+Name of the animation to play during printing.
 
 # PrintShop.WBIPrinterRequirements
             
@@ -410,24 +501,3 @@ Describes the 3D Printer requirements for the part. This is a stub part module; 
             
 This helper fills out the info text for the WBIPrinterRequirements part module. During the game startup, it asks part modules to GetInfo. WBIPrinterRequirements is no exception. However, because it relies on the PartLoader to obtain information about prerequisite components, WBIPrinterRequirements can't completely fill out its info. We get around the problem by waiting until we load into the editor, and manually changing the ModuleInfo associated with WBIPrinterRequirements. It's crude but effective.
         
-
-# WBIPartModule
-            
-Just a simple base class to handle common functionality
-        
-## Methods
-
-
-### getPartConfigNode
-Retrieves the module's config node from the part config.
-> #### Return value
-> A ConfigNode for the part module.
-
-### loadCurve(FloatCurve,System.String,ConfigNode)
-Loads the desired FloatCurve from the desired config node.
-> #### Parameters
-> **curve:** The FloatCurve to load
-
-> **curveNodeName:** The name of the curve to load
-
-> **defaultCurve:** An optional default curve to use in case the curve's node doesn't exist in the part module's config.

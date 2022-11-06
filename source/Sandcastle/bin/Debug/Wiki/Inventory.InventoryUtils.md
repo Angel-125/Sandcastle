@@ -4,6 +4,14 @@ An inventory helper class
 ## Methods
 
 
+### GetPartFromAvailablePart(AvailablePart)
+Retrieves an instantiated part from the supplied available part.
+> #### Parameters
+> **availablePart:** The AvailablePart
+
+> #### Return value
+> 
+
 ### GetInventoryWithCargoSpace(Vessel,AvailablePart)
 Gets an inventory with enough storage space and storage mass for the desired part.
 > #### Parameters
@@ -84,12 +92,14 @@ Removes the item from the vessel if it exists.
 > **partCount:** The number parts to remove. Default is 1.
 
 
-### AddItem(Vessel,AvailablePart,ModuleInventoryPart,System.Boolean)
+### AddItem(Vessel,AvailablePart,System.Int32,ModuleInventoryPart,System.Boolean)
 Adds the item to the vessel inventory if there is enough room.
 > #### Parameters
 > **vessel:** The vessel to query.
 
 > **availablePart:** The part to add to the inventory
+
+> **variantIndex:** An int containing the index of the part variant to store.
 
 > **preferredInventory:** The preferred inventory to store the part in.
 
@@ -97,6 +107,14 @@ Adds the item to the vessel inventory if there is enough room.
 
 > #### Return value
 > The Part that the item was stored in, or null if no place could be found for the part.
+
+### GetPrintableParts(System.Single)
+Retrieves a list of parts that can be printed by the specified max print volume.
+> #### Parameters
+> **maxPrintVolume:** A float containing the max possible print volume.
+
+> #### Return value
+> A List of AvailablePart objects that can be printed.
 
 ### FindThumbnailPaths
 Searches the game folder for thumbnail images.
@@ -109,19 +127,15 @@ Retrieves the thumbnail texture that depicts the specified part name.
 > #### Return value
 > A Texture2D if the texture exists, or a blank texture if not.
 
-### GetPrintableParts(System.Single)
-Retrieves a list of parts that can be printed by the specified max print volume.
+### GetFilePathForThumbnail(AvailablePart,System.Int32,System.Boolean)
+Returns the full path to the part's thumbnail image.
 > #### Parameters
-> **maxPrintVolume:** A float containing the max possible print volume.
+> **availablePart:** An AvailablePart to check for images.
+
+> **variantIndex:** An int containing the variant index to check for. Default is -1.
+
+> **useDefaultPath:** A bool indicating whether or not to use the default thumbnails path.
 
 > #### Return value
-> A List of AvailablePart objects that can be printed.
-
-### loadTexture(System.String)
-Retrieves the thumbnail texture that depicts the specified part name.
-> #### Parameters
-> **partName:** A string containing the name of the part.
-
-> #### Return value
-> A Texture2D if the texture exists, or a blank texture if not.
+> 
 
