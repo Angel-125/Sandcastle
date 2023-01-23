@@ -89,6 +89,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PartModules\Inventory\ModulePartModuleFactory.cs" />
     <Compile Include="PartModules\Inventory\SupportClasses\InventoryUtils.cs" />
     <Compile Include="PartModules\Inventory\ModuleCargoCatcher.cs" />
     <Compile Include="PartModules\Inventory\ModuleDefaultInventoryStack.cs" />

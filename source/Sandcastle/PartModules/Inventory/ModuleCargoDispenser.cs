@@ -314,6 +314,7 @@ namespace Sandcastle.Inventory
             ShipConstruction.AssembleForLaunch(shipConstruct, "", "", part.flagURL, FlightDriver.FlightStateCache, new VesselCrewManifest());
             Vessel craftVessel = shipConstruct.parts[0].localRoot.GetComponent<Vessel>();
             craftVessel.launchedFrom = "";
+            craftVessel.vesselType = VesselType.Base;
 
             // Now update orbit.
             setCraftOrbit(craftVessel, OrbitDriver.UpdateMode.IDLE);

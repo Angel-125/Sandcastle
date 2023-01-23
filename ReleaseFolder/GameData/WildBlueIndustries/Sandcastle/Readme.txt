@@ -15,9 +15,13 @@ GameData
 		Sandcastle
 		WildBlueCore
 
-New Parts
+Changes
 
-- EL-MTL-M Mini Smelter: This Size 1 (1.25m) part is a half-sized version of the existing smelter. As with its larger cousin, the Mini Smelter requires Extraplanetary Launchpads.
+- The Sandcaster 3D Printer can now recycle vessels, just like the Konstruction Manipulator.
+- Fixed issue where Sandcastle wouldn't show parts in the print shop window when Sandcastle was added to Pathfinder templates.
+- Fixed issue where the game would crash when deploying the Survey Cone from the Survey Cone Dispenser.
+- Fixed odd coloration on deployed survey cones.
+- Fixed issue where resources were pulled from the entire vessel instead of stage priority flow.
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0

@@ -518,7 +518,7 @@ namespace Sandcastle.PrintShop
                         }
 
                         // Consume the resource
-                        part.RequestResource(material.resourceDef.id, consumptionRate, material.resourceDef.resourceFlowMode);
+                        part.RequestResource(material.resourceDef.id, consumptionRate, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
 
                         material.amount -= consumptionRate;
                         if (material.amount < 0)
@@ -626,7 +626,7 @@ namespace Sandcastle.PrintShop
             filteredParts = new List<AvailablePart>();
 
             // Get the whitelisted categories
-            if (node.HasNode(kCategoryWhitelistNode))
+            if (node != null && node.HasNode(kCategoryWhitelistNode))
             {
                 ConfigNode categoryNode = node.GetNode(kCategoryWhitelistNode);
                 string[] categories = categoryNode.GetValues(kWhitelistedCategory);
@@ -656,7 +656,7 @@ namespace Sandcastle.PrintShop
 
             // Get whitelisted parts. They can be printed regardless of whether or not the part is on the blacklist.
             string[] blacklistedParts = blacklistedParts = getBlacklistedParts(node);
-            if (node.HasNode(kPartWhiteListNode))
+            if (node != null && node.HasNode(kPartWhiteListNode))
             {
                 ConfigNode partsNode = node.GetNode(kPartWhiteListNode);
                 string[] whitelistedParts = partsNode.GetValues(kWhitelistedPart);
@@ -698,6 +698,9 @@ namespace Sandcastle.PrintShop
             ConfigNode[] nodes = null;
             ConfigNode blacklistNode;
             string[] values = null;
+
+            if (node == null)
+                return blacklistedParts.ToArray();
 
             // Handle local blacklist
             if (node.HasNode(kPartBlackListNode))
