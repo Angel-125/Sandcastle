@@ -1,12 +1,12 @@
-// Adds the print shop and recycler to the stock science lab.
-@PART[Large_Crewed_Lab]
+// Adds the print shop and recycler to the ModuleScienceLab
+@PART:HAS[@MODULE[ModuleScienceLab],!MODULE[WBIPrintShop],!MODULE[WBICargoRecycler]]
 {
 	MODULE
 	{
 		name = WBIPrintShop
 
 		// The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
-		maxPrintVolume = 200
+		maxPrintVolume = -1
 
 		// The number of resource units per second that the printer can print.
 		printSpeedUSec = 1
