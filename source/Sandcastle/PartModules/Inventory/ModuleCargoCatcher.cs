@@ -144,7 +144,7 @@ namespace Sandcastle.Inventory
         /// <summary>
         /// Arms the catcher, enabling it to catch parts.
         /// </summary>
-        [KSPEvent(guiActive = true, guiName = "#LOC_SANDCASTLE_armCatcherEventName")]
+        [KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "#LOC_SANDCASTLE_armCatcherEventName")]
         public void ArmCatcher()
         {
             canCatchParts = true;
@@ -174,11 +174,16 @@ namespace Sandcastle.Inventory
         /// <summary>
         /// Disarms the catcher, preventing it from catching parts.
         /// </summary>
-        [KSPEvent(guiActive = true, guiName = "#LOC_SANDCASTLE_disarmCatcherEventName")]
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "#LOC_SANDCASTLE_disarmCatcherEventName")]
         public void DisarmCatcher()
         {
             canCatchParts = false;
             Events["DisarmCatcher"].guiActive = false;
+            Events["DisarmCatcher"].guiActiveEditor = false;
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                Events["ArmCatcher"].guiActiveEditor = true;
+            }
 
             // Play animation in reverse.
             if (animation != null)
@@ -302,6 +307,8 @@ namespace Sandcastle.Inventory
         {
             Events["DisarmCatcher"].guiActive = canCatchParts;
             Events["ArmCatcher"].guiActive = !canCatchParts;
+            Events["DisarmCatcher"].guiActiveEditor = canCatchParts;
+            Events["ArmCatcher"].guiActiveEditor = !canCatchParts;
         }
 
         private void setupAnimation()

@@ -1,0 +1,8 @@
+// This patch makes it possible to have horizontally aligned 3D print shops.
+@PART[Size2PrintShop,Size2PrintShopSmall]:FOR[Sandcastle]
+{
+	@INTERNAL[Size2PrintShopIVAVert]
+	{
+		@name = Size2PrintShopIVA
+	}
+}

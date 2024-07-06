@@ -89,11 +89,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Loaders\SandcastleLoader.cs" />
     <Compile Include="PartModules\Inventory\ModulePartModuleFactory.cs" />
     <Compile Include="PartModules\Inventory\SupportClasses\InventoryUtils.cs" />
     <Compile Include="PartModules\Inventory\ModuleCargoCatcher.cs" />
     <Compile Include="PartModules\Inventory\ModuleDefaultInventoryStack.cs" />
     <Compile Include="PartModules\Inventory\ModuleStorablePart.cs" />
+    <Compile Include="PartModules\ModuleMassFixer.cs" />
     <Compile Include="PartModules\PrintShop\GUI\RecyclerUI.cs" />
     <Compile Include="PartModules\PrintShop\GUI\PrintShopUI.cs" />
     <Compile Include="PartModules\PrintShop\WBICargoRecycler.cs" />

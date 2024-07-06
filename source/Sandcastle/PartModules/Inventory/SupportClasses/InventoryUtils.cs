@@ -422,6 +422,13 @@ namespace Sandcastle.Inventory
                     moduleVariants.SetVariant(variantName);
             }
 
+            // Fix for science lab
+            ModuleScienceLab lab = availablePart.partPrefab.FindModuleImplementing<ModuleScienceLab>();
+            if (lab != null)
+            {
+                lab.ExperimentData = new List<string>();
+            }
+
             ModuleInventoryPart inventory = null;
             if (InventoryHasSpace(preferredInventory, availablePart))
                 inventory = preferredInventory;
@@ -506,7 +513,11 @@ namespace Sandcastle.Inventory
                 {
                     int count = storedPart.snapshot.resources.Count;
                     for (int resourceIndex = 0; resourceIndex < count; resourceIndex++)
+                    {
+                        if (storedPart.snapshot.resources[resourceIndex].resourceName == "ElectricCharge")
+                            continue;
                         storedPart.snapshot.resources[resourceIndex].amount = 0;
+                    }
                 }
             }
 

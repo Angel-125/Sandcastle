@@ -167,6 +167,21 @@
             Rotates the seat to the right.
             </summary>
         </member>
+        <member name="T:WildBlueCore.PartModules.KerbalGear.ModuleEVAResourceTransfer">
+            <summary>
+            This part module enables resource transfers between inventory parts.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.ModuleEVAResourceTransfer.OnInactive">
+            <summary>
+            Overrides OnInactive. Called when an inventory item is unequipped and the module is disabled.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.ModuleEVAResourceTransfer.OnActive">
+            <summary>
+            Overrides OnActive. Called when an inventory item is equipped and the module is enabled.
+            </summary>
+        </member>
         <member name="T:WildBlueCore.PartModules.Resources.ModuleFuelPump">
             <summary>
             This part module pumps one or more resources from the host part to other parts that have the same resource. The module can be directly added to a resource tank part or to a part that is
@@ -217,6 +232,17 @@
             <summary>
             In meters, the maximum range that the fuel pump can reach when remote pumping resources. Default is 2000 meters.
             </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.Resources.ModuleFuelPump.selfIsHostPart">
+            <summary>
+            Flag to indicate that the part that has the ModuleFuelPump is the host part.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.Resources.ModuleFuelPump.ActionFuelPumpOn(KSPActionParam)">
+            <summary>
+            Turns off the fuel pump.
+            </summary>
+            <param name="param">A KSPActionParam containing the action parameters.</param>
         </member>
         <member name="M:WildBlueCore.PartModules.Resources.ModuleFuelPump.ActionFuelPumpOff(KSPActionParam)">
             <summary>
@@ -485,6 +511,11 @@
         <member name="F:WildBlueCore.PartModules.Resources.ModuleSupplyLine.payFlatFee">
             <summary>
             Flag to indicate whether or not the player should be charged a flat fee to deliver resources
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.Resources.ModuleSupplyLine.selfIsHostPart">
+            <summary>
+            Flag to indicate that the part that has the ModuleSupplyLine is the host part.
             </summary>
         </member>
         <member name="T:WildBlueCore.PartModules.ModulePartSubvariants">
