@@ -14,7 +14,7 @@ namespace Sandcastle.Inventory
     {
         #region Constants
         const int kTextureSize = 64;
-        const bool debugMode = false;
+        public static bool debugMode = false;
         #endregion
 
         #region Fields
@@ -37,17 +37,9 @@ namespace Sandcastle.Inventory
             part.ResumeState = PartStates.PLACEMENT;
             part.State = PartStates.PLACEMENT;
             part.name = availablePart.title;
-            //part.persistentId = FlightGlobals.CheckPartpersistentId(part.persistentId, part, false, true, 0U);
             part.gameObject.SetActive(true);
             part.partInfo = availablePart;
 
-            /*
-            Part part = UnityEngine.Object.Instantiate(availablePart.partPrefab);
-            part.vessel = part.gameObject.AddComponent<Vessel>();
-            part.gameObject.SetActive(true);
-            part.OnLoad(availablePart.internalConfig);
-            part.ModulesOnStart();
-            */
             return part;
         }
 
@@ -214,7 +206,7 @@ namespace Sandcastle.Inventory
         /// <param name="availablePart">The AvailablePart to check for space.</param>
         /// <param name="amount">The number of parts that need space. Default is 1.</param>
         /// <returns>true if there is enough space, false if not.</returns>
-        public static bool HasEnoughSpace(Vessel vessel, AvailablePart availablePart, int amount = 1)
+        public static bool HasEnoughSpace(Vessel vessel, AvailablePart availablePart, int amount = 1, double partMassOverride = -1, float volumeOverride = -1)
         {
             ModuleCargoPart cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
             if (cargoPart == null)
@@ -225,9 +217,15 @@ namespace Sandcastle.Inventory
             int count = inventories.Count;
             bool massRequirementMet = false;
             bool volRequirementMet = false;
+
             double partMass = availablePart.partPrefab.mass + availablePart.partPrefab.resourceMass;
+            if (partMassOverride > 0)
+                partMass = partMassOverride;
+
             double totalMassNeeded = partMass * amount;
             float totalVolumeNeeded = cargoPart.packedVolume * amount;
+            if (volumeOverride > 0)
+                totalVolumeNeeded = volumeOverride * amount;
 
             for (int index = 0; index < count; index++)
             {
@@ -491,22 +489,25 @@ namespace Sandcastle.Inventory
             {
                 storedPart = inventory.storedParts[storedPartIndex];
                 UI_Grid grid = inventory.Fields["InventorySlots"].uiControlFlight as UI_Grid;
-                List<EditorPartIcon> partIcons = grid.pawInventory.slotPartIcon;
-                EditorPartIcon partIcon = null;
-                for (int index = 0; index < partIcons.Count; index++)
+                if (grid != null && grid.pawInventory != null)
                 {
-                    if (partIcons[index].AvailPart == availablePart)
+                    List<EditorPartIcon> partIcons = grid.pawInventory.slotPartIcon;
+                    EditorPartIcon partIcon = null;
+                    for (int index = 0; index < partIcons.Count; index++)
                     {
-                        partIcon = partIcons[index];
-                        break;
+                        if (partIcons[index].AvailPart == availablePart)
+                        {
+                            partIcon = partIcons[index];
+                            break;
+                        }
                     }
-                }
-                if (partIcon != null && partIcon.inventoryItemThumbnail != null && partIcon.inventoryItemThumbnail.texture == null)
-                {
-                    Texture2D texture = GetTexture(availablePart.name, variantIndex);
-                    partIcon.inventoryItemThumbnail.texture = texture;
-                    partIcon.inventoryItemThumbnail.SetNativeSize();
-                    MonoUtilities.RefreshContextWindows(inventory.part);
+                    if (partIcon != null && partIcon.inventoryItemThumbnail != null && partIcon.inventoryItemThumbnail.texture == null)
+                    {
+                        Texture2D texture = GetTexture(availablePart.name, variantIndex);
+                        partIcon.inventoryItemThumbnail.texture = texture;
+                        partIcon.inventoryItemThumbnail.SetNativeSize();
+                        MonoUtilities.RefreshContextWindows(inventory.part);
+                    }
                 }
 
                 if (removeResources)
@@ -552,6 +553,8 @@ namespace Sandcastle.Inventory
                 for (int index = 0; index < count; index++)
                 {
                     availablePart = cargoParts[index];
+                    if (availablePart.partPrefab == null)
+                        continue;
                     cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
 
                     if (cargoPart.packedVolume > 0 && cargoPart.packedVolume <= maxPrintableVolume)
@@ -788,9 +791,410 @@ namespace Sandcastle.Inventory
             UnityEngine.Object.DestroyImmediate(goIconPrefab);
             return thumbTexture;
         }
+
+        public static void SpawnPart(AvailablePart availablePart, Part parentPart, Transform dropTransform, Vector3 offsetAxis)
+        {
+            // Calculate craft size so we don't smack into the printer when we drop the part.
+            Part part = availablePart.partPrefab;
+            List<Part> parts = new List<Part>();
+            parts.Add(part);
+
+            Vector3 craftSize = ShipConstruction.CalculateCraftSize(parts, part);
+
+            // Account for offset axis
+            craftSize.x *= offsetAxis.x;
+            craftSize.y *= offsetAxis.y;
+            craftSize.z *= offsetAxis.z;
+
+            // Offset the drop point so we don't smack into the printer when we drop the part.
+            Vector3 dropPoint = dropTransform.TransformPoint(craftSize);
+            Quaternion dropRotation = Quaternion.Inverse(FlightGlobals.ActiveVessel.mainBody.bodyTransform.rotation) * dropTransform.rotation;
+
+            ConfigNode node = EVAConstructionModeController.Instance.evaEditor.GetProtoVesselNode(availablePart.title, dropPoint, dropRotation, FlightGlobals.ActiveVessel, part);
+            ProtoVessel protoVessel = HighLogic.CurrentGame.AddVessel(node);
+            Vessel unloadedVessel = null;
+            for (int index = 0; index < FlightGlobals.VesselsUnloaded.Count; ++index)
+            {
+                if (protoVessel.persistentId == FlightGlobals.VesselsUnloaded[index].persistentId)
+                {
+                    unloadedVessel = FlightGlobals.VesselsUnloaded[index];
+                    unloadedVessel.SetPhysicsHoldExpiryOverride();
+                    clearResources(unloadedVessel);
+                    break;
+                }
+            }
+        }
+
+        public static void SpawnShip(ShipConstruct shipConstruct, Part parentPart, Transform dropTransform, Callback<DockedVesselInfo> onVesselCoupled, bool removeResources = true)
+        {
+            Debug.Log("[Sandcastle] - SpawnShip called for " + shipConstruct.shipName);
+            shipConstruct.missionFlag = parentPart.flagURL;
+
+            Part rootPart = shipConstruct.parts[0].localRoot;
+
+            /*
+            // This attempt to rotate the dropTransform hasn't been successful. Keep this code for future experimentation.
+            Vector3 centerOfMass = parentPart.vessel.CoMD;
+            Vector3 upVector = (centerOfMass - parentPart.vessel.mainBody.position).normalized;
+            Vector3 northVector = Vector3.ProjectOnPlane((parentPart.vessel.mainBody.position + parentPart.vessel.mainBody.transform.up * (float)parentPart.vessel.mainBody.Radius) - centerOfMass, upVector).normalized;
+            Quaternion surfaceRotation = Quaternion.Inverse(Quaternion.Euler(90.0f, 0.0f, 0.0f) * Quaternion.Inverse(parentPart.vessel.transform.rotation) * Quaternion.LookRotation(northVector, upVector));
+            double pitch = surfaceRotation.eulerAngles.x > 180 ? 360 - surfaceRotation.eulerAngles.x : -surfaceRotation.eulerAngles.x;
+            double roll = surfaceRotation.eulerAngles.z > 180 ? 360 - surfaceRotation.eulerAngles.z : -surfaceRotation.eulerAngles.z;
+            Debug.Log("[Sandcastle] - parentPart.vessel: pitch: " + pitch + " roll: " + roll);
+
+            dropTransform.Rotate(Vector3.right, -(float)pitch);
+            dropTransform.Rotate(Vector3.up, -(float)roll);
+            */
+
+            // Setup launch clamps
+            setupLaunchClamps(shipConstruct);
+
+            // Calculate craft size so that we can offset the dropTransform and avoid colliding with the printer.
+            // VAB/SPH dimensions: Height (X) Width (Y) Length (Z)
+            Vector3 craftSize = ShipConstruction.CalculateCraftSize(shipConstruct);
+
+            // Vessel's front will be pointing towards the printhead.
+            Quaternion baseRotation = new Quaternion(0, 1, 0, 0);
+            Quaternion rotation = baseRotation * rootPart.transform.rotation;
+            rootPart.transform.rotation = dropTransform.rotation * rotation;
+
+            // Get the bounds
+            Bounds printerBounds = getBounds(parentPart, new List<Part>() { parentPart });
+            printerBounds.Expand(printerBounds.size.magnitude);
+            Debug.Log("[Sandcastle] - Printer Bounds: " + printerBounds.ToString());
+            Bounds craftBounds = getBounds(rootPart, shipConstruct.parts);
+            Debug.Log("[Sandcastle] - Craft Bounds: " + craftBounds.ToString());
+
+            // Offset the craft so it won't slam into the printer.
+            float length = rootPart.transform.position.z - craftBounds.min.z;
+            Vector3 offset = new Vector3(0, 0, length);
+            Vector3 pos = dropTransform.TransformPoint(offset);
+            rootPart.transform.position = pos;
+
+            // Spawn the vessel into the game.
+            ShipConstruction.AssembleForLaunch(shipConstruct, "", "", parentPart.flagURL, FlightDriver.FlightStateCache, new VesselCrewManifest());
+            Vessel vessel = shipConstruct.parts[0].localRoot.GetComponent<Vessel>();
+            vessel.launchedFrom = parentPart.vessel.launchedFrom;
+            vessel.vesselType = VesselType.Probe;
+
+            // Update highlighters
+            rootPart.highlighter.UpdateHighlighting(true);
+            parentPart.highlighter.UpdateHighlighting(true);
+
+            // Now update orbit.
+            FlightGlobals.ForceSetActiveVessel(vessel);
+            setCraftOrbit(vessel, OrbitDriver.UpdateMode.IDLE, parentPart);
+
+            // Clear resources
+            if (removeResources)
+                clearResources(vessel);
+
+            // Set the situation to match the dispenser part's parent vessel.
+            vessel.situation = parentPart.vessel.situation;
+            Debug.Log("[Sandcastle] - crafVessel.situation: " + vessel.situation);
+
+            // We're landed, check for ground collisions and such
+            if (parentPart.vessel.LandedOrSplashed)
+            {
+                vessel.UpdateLandedSplashed();
+
+                // Register the vessel to be repositioned after it goes off rails.
+                SandcastleScenario.shared.addSpawnedVessel(vessel);
+            }
+
+            // We're flying, orbiting, suborbital, or escaping. Couple the new craft to the printer.
+            else
+            {
+                FlightGlobals.overrideOrbit = true;
+                setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
+                FlightGlobals.overrideOrbit = false;
+
+                // Couple the vessel to the printer for later release.
+                parentPart.StartCoroutine(coupleVessel(vessel, parentPart, onVesselCoupled));
+            }
+            StageManager.BeginFlight();
+        }
+
+        public static void setupLaunchClamps(ShipConstruct ship)
+        {
+            int count = ship.parts.Count;
+            Part part;
+            PartModule partModule;
+            for (int index = 0; index < count; index++)
+            {
+                part = ship.parts[index];
+
+                // Special case: handle Restock clamps
+                partModule = part.Modules.GetModule("ModuleRestockLaunchClamp");
+                if (partModule != null)
+                {
+                    part.SendMessage("RotateTower", SendMessageOptions.DontRequireReceiver);
+                }
+
+                // Special case: handle EL clamps
+                partModule = part.Modules.GetModule("ELExtendingLaunchClamp");
+                if (partModule != null)
+                {
+                    part.SendMessage("RotateTower", SendMessageOptions.DontRequireReceiver);
+                }
+
+                List<LaunchClamp> launchClamps = part.FindModulesImplementing<LaunchClamp>();
+                if (launchClamps != null && launchClamps.Count > 0)
+                {
+                    int clampCount = launchClamps.Count;
+                    for (int clampIndex = 0; clampIndex < clampCount; clampIndex++)
+                    {
+                        launchClamps[clampIndex].EnableExtension();
+                    }
+                }
+            }
+        }
+
+        public static Bounds getVesselBounds(Vessel vessel)
+        {
+            int count = vessel.Parts.Count;
+            if (count == 0 || vessel.rootPart == null)
+                return new Bounds();
+
+            //Bounds bounds1 = new Bounds();
+            List<Bounds> boundsList = new List<Bounds>();
+            Part part;
+            Bounds[] partRendererBounds;
+            Bounds partRendererBound;
+            Bounds localBounds;
+            Vector3 boundsSize;
+            for (int index = 0; index < count; index++)
+            {
+                part = vessel.Parts[index];
+                if (part.Modules.GetModule<LaunchClamp>() != null)
+                    continue;
+
+                partRendererBounds = PartGeometryUtil.GetPartRendererBounds(part);
+                for (int renderBoundsIndex = 0; renderBoundsIndex < partRendererBounds.Length; renderBoundsIndex++)
+                {
+                    partRendererBound = partRendererBounds[renderBoundsIndex];
+                    localBounds = partRendererBound;
+                    localBounds.size = localBounds.size * part.boundsMultiplier;
+                    boundsSize = partRendererBound.size;
+                    partRendererBound.Expand(part.GetModuleSize(boundsSize));
+                    boundsList.Add(partRendererBound);
+                }
+            }
+            if (boundsList.Count < 1)
+                return new Bounds();
+
+            return PartGeometryUtil.MergeBounds(boundsList.ToArray(), vessel.rootPart.transform.root);
+        }
+
+        public static Bounds getBounds(Part rootPart, List<Part> parts)
+        {
+            if (rootPart == null || parts.Count == 0)
+                return new Bounds();
+
+            List<Bounds> boundsList = new List<Bounds>();
+            Part part;
+            Bounds[] partRendererBounds;
+            Bounds partRendererBound;
+            Bounds localBounds;
+            Vector3 boundsSize;
+            int count = parts.Count;
+            for (int index = 0; index < count; index++)
+            {
+                part = parts[index];
+                if (part.Modules.GetModule<LaunchClamp>() != null)
+                    continue;
+
+                partRendererBounds = PartGeometryUtil.GetPartRendererBounds(part);
+                for (int renderBoundsIndex = 0; renderBoundsIndex < partRendererBounds.Length; renderBoundsIndex++)
+                {
+                    partRendererBound = partRendererBounds[renderBoundsIndex];
+                    localBounds = partRendererBound;
+                    localBounds.size = localBounds.size * part.boundsMultiplier;
+                    boundsSize = partRendererBound.size;
+                    partRendererBound.Expand(part.GetModuleSize(boundsSize));
+                    boundsList.Add(partRendererBound);
+                }
+            }
+            if (boundsList.Count < 1)
+                return new Bounds();
+
+            return PartGeometryUtil.MergeBounds(boundsList.ToArray(), rootPart.transform.root);
+
+        }
+
+        public static IEnumerator<YieldInstruction> coupleVessel(Vessel vessel, Part parentPart, Callback<DockedVesselInfo> onVesselCoupled)
+        {
+            // Wait for all part to be initialized.
+            Debug.Log("[Sandcastle] - coupleVessel called");
+            Debug.Log("[Sandcastle] - vessel part count: " + vessel.Parts.Count);
+            int count = vessel.Parts.Count;
+            Part part;
+            bool allPartsStarted = false;
+            while (!allPartsStarted)
+            {
+                allPartsStarted = true;
+                for (int index = 0; index < count; index++)
+                {
+                    part = vessel.Parts[index];
+                    if (!part.started)
+                    {
+                        allPartsStarted = false;
+                        break;
+                    }
+                }
+
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+                yield return new WaitForFixedUpdate();
+
+                if (allPartsStarted)
+                    break;
+            }
+
+            // Create docked vessel info
+            vessel.GoOffRails();
+            DockedVesselInfo dockedVesselInfo = new DockedVesselInfo();
+            dockedVesselInfo.name = vessel.name;
+            dockedVesselInfo.vesselType = vessel.vesselType;
+            dockedVesselInfo.rootPartUId = vessel.rootPart.flightID;
+
+            // Couple the vessel to the printer.
+            // NOTE: Doing this will cause the vessel object to be destroyed and it will become null.
+            // But you can get the docked root part via its flightID (rootPartUId in docked vessel info).
+            vessel.rootPart.Couple(parentPart);
+
+            // Reset active vessel to the printer.
+            if (parentPart.vessel != FlightGlobals.ActiveVessel)
+                FlightGlobals.SetActiveVessel(parentPart.vessel);
+
+            // Signal that we're done.
+            onVesselCoupled(dockedVesselInfo);
+        }
+
+        public static IEnumerator<YieldInstruction> decoupleVessel(Part rootPart, DockedVesselInfo dockedVesselInfo, bool switchToVessel = false)
+        {
+            rootPart.Undock(dockedVesselInfo);
+
+            if (switchToVessel)
+            {
+                yield return new WaitForFixedUpdate();
+                Vessel undockedVessel = FlightGlobals.VesselsLoaded[FlightGlobals.VesselsLoaded.Count - 1];
+                yield return new WaitForFixedUpdate();
+                FlightGlobals.ForceSetActiveVessel(undockedVessel);
+            }
+
+            yield return new WaitForFixedUpdate();
+        }
         #endregion
 
         #region Helpers
+        internal static void clearResources(Vessel vessel)
+        {
+            if (vessel.loaded)
+            {
+                int partCount = vessel.Parts.Count;
+                Part part;
+                PartResource resource;
+                int resourceCount;
+                for (int partIndex = 0; partIndex < partCount; partIndex++)
+                {
+                    part = vessel.Parts[partIndex];
+                    resourceCount = part.Resources.Count;
+                    for (int index = 0; index < resourceCount; index++)
+                    {
+                        resource = part.Resources[index];
+                        if (resource.resourceName != "ElectricCharge")
+                            resource.amount = 0f;
+                    }
+                }
+            }
+            else
+            {
+                int partCount = vessel.protoVessel.protoPartSnapshots.Count;
+                ProtoPartSnapshot protoPart;
+                int resourceCount;
+                ProtoPartResourceSnapshot resourceSnapshot;
+                for (int partIndex = 0; partIndex < partCount; partIndex++)
+                {
+                    protoPart = vessel.protoVessel.protoPartSnapshots[partIndex];
+                    resourceCount = protoPart.resources.Count;
+                    for (int index = 0; index < resourceCount; index++)
+                    {
+                        resourceSnapshot = protoPart.resources[index];
+                        if (resourceSnapshot.resourceName != "ElectricCharge")
+                            resourceSnapshot.amount = 0;
+                    }
+                }
+            }
+        }
+
+        internal static void updateAttachNode(Part p, AttachNode vnode)
+        {
+            var pnode = p.FindAttachNode(vnode.id);
+            if (pnode != null)
+            {
+                pnode.originalPosition = vnode.originalPosition;
+                pnode.position = vnode.position;
+                pnode.size = vnode.size;
+            }
+        }
+
+        internal static Vector3 getVesselWorldCoM(Vessel v)
+        {
+            Vector3 com = v.localCoM;
+            return v.rootPart.partTransform.TransformPoint(com);
+        }
+
+        internal static void applyNodeVariants(ShipConstruct ship)
+        {
+            for (int i = 0; i < ship.parts.Count; i++)
+            {
+                var p = ship.parts[i];
+                var pv = p.FindModulesImplementing<ModulePartVariants>();
+                for (int j = 0; j < pv.Count; j++)
+                {
+                    var variant = pv[j].SelectedVariant;
+                    for (int k = 0; k < variant.AttachNodes.Count; k++)
+                    {
+                        var vnode = variant.AttachNodes[k];
+                        updateAttachNode(p, vnode);
+                    }
+                }
+            }
+        }
+
+        internal static string saveCraftFile(AvailablePart availablePart)
+        {
+            ShipConstruct ship = new ShipConstruct(availablePart.title, "Sandcaster created part", availablePart.partPrefab);
+            Quaternion rotation = ship.parts[0].transform.rotation;
+            ship.parts[0].transform.rotation = Quaternion.identity;
+            ConfigNode node = ship.SaveShip();
+            ship.parts[0].transform.rotation = rotation;
+
+            string dir = $"{KSPUtil.ApplicationRootPath}saves/{HighLogic.SaveFolder}/Sandcaster/";
+            string filePath = $"{dir}/temp.craft";
+
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+
+            node.Save(filePath);
+            return filePath;
+        }
+
+        internal static void setCraftOrbit(Vessel craftVessel, OrbitDriver.UpdateMode mode, Part parentPart)
+        {
+            craftVessel.orbitDriver.SetOrbitMode(mode);
+
+            var craftCoM = getVesselWorldCoM(craftVessel);
+            var vesselCoM = getVesselWorldCoM(parentPart.vessel);
+            var offset = (Vector3d.zero + craftCoM - vesselCoM).xzy;
+
+            var corb = craftVessel.orbit;
+            var orb = parentPart.vessel.orbit;
+            var UT = Planetarium.GetUniversalTime();
+            var body = orb.referenceBody;
+            corb.UpdateFromStateVectors(orb.pos + offset, orb.vel, body, UT);
+        }
+
         internal static Texture2D renderCamera(Camera cam, int width, int height, int depth, RenderTextureReadWrite rtReadWrite)
         {
             RenderTexture renderTexture = new RenderTexture(width, height, depth, RenderTextureFormat.ARGB32, rtReadWrite);

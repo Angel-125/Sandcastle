@@ -518,6 +518,152 @@
             Flag to indicate that the part that has the ModuleSupplyLine is the host part.
             </summary>
         </member>
+        <member name="T:WildBlueCore.PartModules.ModuleAnimateGenericExtended">
+            <summary>
+            This part module derives from ModuleAnimatedGeneric. It adds the ability to play sound effects while animating.
+            It also adds several options to check before playing the animation.
+            First, it can check the active vessel for a necessary skill and skill level.
+            Second, it can check for and consume required resources. Those resources can be pulled from the part's vessel and/or from a remote vessel.
+            Third, it can check for and consume parts stored in an inventory. Those parts can be pulled form the parts vessel and/or from a remote vessel.
+            Finally, you can provide a list of part modules that will be enabled after tne animation completes, and disabled when when not complete.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.debugMode">
+            <summary>
+            Debug flag
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.startEventRequiresSkillCheck">
+            <summary>
+            Flag indicating whether or not to require a skill check before playing the start event animation. Default is false.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.endEventRequiresSkillCheck">
+            <summary>
+            Flag indicating whether or not to require a skill check before playing the end event animation. Default is false.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.skillToCheck">
+            <summary>
+            The skill required to unpack the part.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.minimumSkillLevel">
+            <summary>
+            The minimum skill level required to unpack the box. Default is 0.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.startEventRequiresResources">
+            <summary>
+            Flag to indicate whether or not to make a resource requirements check before playing the start event animation. Default is false.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.endEventGivesResources">
+            <summary>
+            Flag to indicate whether or not to make a resource requirements check before playing the end event animation. Default is false.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.canUseRemoteResources">
+            <summary>
+            Flag to indicate whether or not when checking resources,
+            resources can come from other vessels.
+            Default is true.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.startSoundURL">
+            <summary>
+            URL for the start sound played when the animation starts.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.startSoundPitch">
+            <summary>
+            Pitch level for the start sound.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.startSoundVolume">
+            <summary>
+            Volume level for the start sound.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.loopSoundURL">
+            <summary>
+            URL for the loop sound, played while the animation is playing.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.loopSoundPitch">
+            <summary>
+            Pitch level for the loop sound.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.loopSoundVolume">
+            <summary>
+            Volume level for the loop sound.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.stopSoundURL">
+            <summary>
+            URL four the stop sound, played when the animation is completed.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.stopSoundPitch">
+            <summary>
+            Pitch level for the stop sound.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.ModuleAnimateGenericExtended.stopSoundVolume">
+            <summary>
+            Volume level for the stop sound.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.ModuleAnimateGenericExtended.Toggle">
+            <summary>
+            Toggles the animation.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.ModuleAnimateGenericExtended.ToggleAction(KSPActionParam)">
+            <summary>
+            Action to toggle the animation.
+            </summary>
+            <param name="param"></param>
+        </member>
+        <member name="M:WildBlueCore.PartModules.ModuleAnimateGenericExtended.SetProgress(System.Single)">
+            <summary>
+            Sets the Progress level. Call this instead of setting deployPercent directly.
+            </summary>
+            <param name="toValue">A float between 0 and 100.</param>
+        </member>
+        <member name="M:WildBlueCore.PartModules.ModuleAnimateGenericExtended.PlayStartSound">
+            <summary>
+            Plays the start sound.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.ModuleAnimateGenericExtended.PlayEndSound">
+            <summary>
+            Plays the end sound.
+            </summary>
+        </member>
+        <member name="T:WildBlueCore.PartModules.Variants.ModuleInternalVariants">
+            <summary>
+            Use this module to change the INTERNAL model (the IVA) of a part.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.Variants.ModuleInternalVariants.variantIndex">
+            <summary>
+            Index for the internal variant.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.Variants.ModuleInternalVariants.GetModuleDisplayName">
+            <summary>
+            Gets the module display name.
+            </summary>
+            <returns>A string containing the display name.</returns>
+        </member>
+        <member name="M:WildBlueCore.PartModules.Variants.ModuleInternalVariants.GetInfo">
+            <summary>
+            Gets the module description.
+            </summary>
+            <returns>A string containing the module description.</returns>
+        </member>
         <member name="T:WildBlueCore.PartModules.ModulePartSubvariants">
             <summary>
             Helper part module to handle part mesh and texture switching. Stock ModulePartVariants doesn't cooperate with multiple ModulePartVariants in the same part, so this class

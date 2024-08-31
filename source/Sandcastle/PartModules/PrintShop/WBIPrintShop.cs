@@ -9,191 +9,63 @@ using WildBlueCore;
 
 namespace Sandcastle.PrintShop
 {
-    #region Print states enum
-    /// <summary>
-    /// Lists the different printer states
-    /// </summary>
-    public enum WBIPrintStates
-    {
-        /// <summary>
-        /// Printer is idle, nothing to print.
-        /// </summary>
-        Idle,
-
-        /// <summary>
-        /// Printer has an item to print but is paused.
-        /// </summary>
-        Paused,
-
-        /// <summary>
-        /// Printer is printing something.
-        /// </summary>
-        Printing,
-
-        /// <summary>
-        /// The recycler is recycling something.
-        /// </summary>
-        Recycling
-    }
-    #endregion
-
     /// <summary>
     /// Represents a shop that is capable of printing items and placing them in an available inventory.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_printShopTitle")]
-    public class WBIPrintShop : BasePartModule
+    public class WBIPrintShop : SCBasePrinter
     {
-        #region Constants
-        public const double kCatchupTime = 3600;
-        public const float kMsgDuration = 5;
-        public const string kPrintState = "printState";
-        public const string kPrintShopGroup = "PrintShop";
-        public const string kPartWhiteListNode = "PARTS_WHITELIST";
-        public const string kWhitelistedPart = "whitelistedPart";
-        public const string kPartBlackListNode = "PARTS_BLACKLIST";
-        public const string kBlacklistedPart = "blacklistedPart";
-        public const string kCategoryWhitelistNode = "CATEGORY_WHITELIST";
-        public const string kWhitelistedCategory = "whitelistedCategory";
-        #endregion
-
         #region Fields
-        /// <summary>
-        /// A flag to enable/disable debug mode.
-        /// </summary>
-        [KSPField]
-        public bool debugMode = false;
-
-        /// <summary>
-        /// The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
-        /// </summary>
-        [KSPField]
-        public float maxPrintVolume = 500f;
-
-        /// <summary>
-        /// The number of resource units per second that the printer can print.
-        /// </summary>
-        [KSPField]
-        public float printSpeedUSec = 1f;
-
-        /// <summary>
-        /// Flag to indicate whether or not to allow specialists to improve the print speed. Exactly how the specialist(s) does that is a trade secret.
-        /// </summary>
-        [KSPField]
-        public bool UseSpecialistBonus = true;
-
-        /// <summary>
-        /// Per experience rating, how much to improve the print speed by.
-        /// The print shop part must have crew capacity.
-        /// </summary>
-        [KSPField]
-        public float SpecialistBonus = 0.05f;
-
-        /// <summary>
-        /// The skill required to improve the print speed.
-        /// </summary>
-        [KSPField]
-        public string ExperienceEffect = "ConverterSkill";
-
-        /// <summary>
-        /// Name of the effect to play from the part's EFFECTS node when the printer is running.
-        /// </summary>
-        [KSPField]
-        public string runningEffect = string.Empty;
         #endregion
 
         #region Housekeeping
         /// <summary>
-        /// Represents the list of build items to print.
-        /// </summary>
-        public List<BuildItem> printQueue;
-
-        /// <summary>
-        /// Current state of the printer.
-        /// </summary>
-        [KSPField(guiName = "#LOC_SANDCASTLE_printState", guiActive = true, groupName = kPrintShopGroup, groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName")]
-        public WBIPrintStates printState = WBIPrintStates.Idle;
-
-        /// <summary>
-        /// Describes when the printer was last updated.
-        /// </summary>
-        [KSPField(isPersistant = true)]
-        public double lastUpdateTime;
-
-        /// <summary>
-        /// Current job being printed.
-        /// </summary>
-        [KSPField(isPersistant = true)]
-        public string currentJob = string.Empty;
-
-        /// <summary>
-        /// Name of the animation to play during printing.
+        /// GUI name to use for the event that opens the printer GUI.
         /// </summary>
         [KSPField]
-        public string animationName = string.Empty;
+        public string printShopGUIName = "#LOC_SANDCASTLE_openGUI";
 
-        List<AvailablePart> filteredParts = null;
+        /// <summary>
+        /// Alternate group display name to use.
+        /// </summary>
+        [KSPField]
+        public string printShopwGroupDisplayName;
+
+        /// <summary>
+        /// Title to use for the print shop dialog
+        /// </summary>
+        [KSPField]
+        public string printShopDialogTitle;
+
+        /// <summary>
+        /// Current print state.
+        /// </summary>
+        [KSPField(guiName = "#LOC_SANDCASTLE_printState", guiActive = true, groupName = "#LOC_SANDCASTLE_printShopGroupName", groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName")]
+        public string printStateString;
+
+        /// <summary>
+        /// Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
+        /// </summary>
+        [KSPField]
+        public bool enablePartSpawn = false;
+
+        /// <summary>
+        /// Where to spawn the printed part.
+        /// </summary>
+        [KSPField]
+        public string spawnTransformName;
+
+        /// <summary>
+        /// Axis upon which to displace the part during spawn in. X, Y, Z
+        /// </summary>
+        [KSPField]
+        public string offsetAxis = "0,1,1";
+
+        List <AvailablePart> filteredParts = null;
         PrintShopUI shopUI = null;
-        double printResumeTime = 0;
-        bool missingRequirements = false;
-        Dictionary<double, Part> unHighlightList = null;
         List<string> whitelistedCategories;
-        public Animation animation = null;
-        protected AnimationState animationState;
-        #endregion
-
-        #region FixedUpdate
-        public void FixedUpdate()
-        {
-            if (!HighLogic.LoadedSceneIsFlight)
-                return;
-
-            // Handle unhighlight
-            handleUnhighlightParts();
-
-            // If the printer is pased then we're done
-            if (printState == WBIPrintStates.Paused)
-            {
-                lastUpdateTime = Planetarium.GetUniversalTime();
-                shopUI.jobStatus = printState.ToString();
-                part.Effect(runningEffect, 0);
-                if (animation != null)
-                {
-                    animation[animationName].speed = 0f;
-                    animation.Stop();
-                }
-                return;
-            }
-
-            // If there are no items in the print queue then we're done.
-            if (printQueue.Count == 0)
-            {
-                lastUpdateTime = Planetarium.GetUniversalTime();
-                printState = WBIPrintStates.Idle;
-                shopUI.jobStatus = printState.ToString();
-                part.Effect(runningEffect, 0);
-                if (animation != null)
-                {
-                    animation[animationName].speed = 0f;
-                    animation.Stop();
-                }
-                return;
-            }
-
-            // Play effects
-            part.Effect(runningEffect, 1);
-            if (animation != null && animation[animationName].time <= 0)
-            {
-                animation.Play(animationName);
-                animation[animationName].time = 0f;
-                animation[animationName].speed = 1.0f;
-            }
-
-            // Handle catchup
-            handleCatchup();
-
-            // Process the print queue
-            processPrintQueue();
-        }
+        BuildItem buildItemToSpawn = null;
+        Transform spawnTransform = null;
         #endregion
 
         #region Overrides
@@ -202,28 +74,44 @@ namespace Sandcastle.PrintShop
             base.OnStart(state);
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
-            printResumeTime = Planetarium.GetUniversalTime() + 5;
 
             // Update the filtered list of cargo parts
             updateFilteredParts();
 
-            // Watch for game events
-            GameEvents.onVesselChange.Add(onVesselChange);
+            if (!string.IsNullOrEmpty(spawnTransformName))
+                spawnTransform = part.FindModelTransform(spawnTransformName);
+        }
 
-            setupAnimation();
+        public override void OnUpdate()
+        {
+            base.OnUpdate();
+            if (!HighLogic.LoadedSceneIsFlight)
+                return;
+
+            printStateString = printState.ToString();
         }
 
         public override void OnAwake()
         {
             base.OnAwake();
-            unHighlightList = new Dictionary<double, Part>();
-            printQueue = new List<BuildItem>();
-            shopUI = new PrintShopUI();
+
+            string titleText = Localizer.Format("#LOC_SANDCASTLE_printShopTitle");
+            if (!string.IsNullOrEmpty(printShopDialogTitle))
+                titleText = Localizer.Format(printShopDialogTitle);
+
+            shopUI = new PrintShopUI(titleText);
             shopUI.part = part;
             shopUI.printQueue = printQueue;
             shopUI.onPrintStatusUpdate = onPrintStatusUpdate;
             shopUI.gravityRequirementsMet = gravityRequirementMet;
             shopUI.pressureRequrementsMet = pressureRequrementsMet;
+            shopUI.onSpawnPrintedPart = onSpawnPrintedPart;
+
+            if (!string.IsNullOrEmpty(printShopwGroupDisplayName))
+                Fields["printStateString"].group.displayName = printShopwGroupDisplayName;
+
+            if (!string.IsNullOrEmpty(printShopGUIName))
+                Events["OpenGUI"].guiName = Localizer.Format(printShopGUIName);
         }
 
         public override void OnInactive()
@@ -233,15 +121,18 @@ namespace Sandcastle.PrintShop
                 shopUI.SetVisible(false);
         }
 
-        public void Destroy()
+        public override void OnDestroy()
         {
+            base.OnDestroy();
+
             if (shopUI.IsVisible())
                 shopUI.SetVisible(false);
-            GameEvents.onVesselChange.Remove(onVesselChange);
         }
 
-        private void onVesselChange(Vessel newVessel)
+        public override void onVesselChange(Vessel newVessel)
         {
+            base.onVesselChange(newVessel);
+
             if (shopUI.IsVisible())
                 shopUI.SetVisible(false);
         }
@@ -288,333 +179,126 @@ namespace Sandcastle.PrintShop
         {
             StringBuilder info = new StringBuilder();
             info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_printerDesc"));
-            info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxPrintVolume", new string[1] { string.Format("{0:n1}", maxPrintVolume) }));
+            if (maxPrintVolume > 0)
+                info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxPrintVolume", new string[1] { string.Format("{0:n1}", maxPrintVolume) }));
             info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_printSpeed", new string[1] { string.Format("{0:n1}", printSpeedUSec) }));
             info.Append(base.GetInfo());
             return info.ToString();
         }
-        #endregion
 
-        #region Events
-        [KSPEvent(guiActive = true, groupName = kPrintShopGroup, groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName", guiName = "#LOC_SANDCASTLE_openGUI")]
-        public void OpenGUI()
+        public override string GetModuleDisplayName()
         {
-            shopUI.partsList = filteredParts;
-            shopUI.whitelistedCategories = whitelistedCategories;
-            shopUI.SetVisible(true);
-        }
-        #endregion
+            if (!string.IsNullOrEmpty(printShopDialogTitle))
+                return Localizer.Format(printShopDialogTitle);
 
-        #region API
+            return base.GetModuleDisplayName();
+        }
         #endregion
 
         #region Helpers
-        private void processPrintQueue()
+        protected override void onSupportPrintingRequest(SCShipwright sender, List<BuildItem> buildList)
         {
-            // Check the print queue again.
-            if (printQueue.Count == 0)
+            if (sender.part.flightID == part.flightID)
             {
-                lastUpdateTime = Planetarium.GetUniversalTime();
-                printState = WBIPrintStates.Idle;
+                if (debugMode)
+                    Debug.Log("[Sandcastle " + part.flightID + "] - " + " I've been asked by " + sender.part.flightID + " to print an item but I'm the same printer!");
                 return;
             }
 
-            // Continue with the printing
-            printState = WBIPrintStates.Printing;
+            // If this is a part printer, and there is a Shipwright in the part, then we defer to it.
+            if (enablePartSpawn && part.FindModuleImplementing<SCShipwright>() != null)
+                return;
 
-            // Consume any resources that we require to operate.
-            if (resHandler.inputResources.Count > 0)
-            {
-                string error = string.Empty;
-                resHandler.UpdateModuleResourceInputs(ref error, 1.0f, 0.1f, true);
-                int count = resHandler.inputResources.Count;
-                for (int index = 0; index < count; index++)
-                {
-                    if (!resHandler.inputResources[index].available)
-                    {
-                        lastUpdateTime = Planetarium.GetUniversalTime();
-                        shopUI.jobStatus = error;
-                        return;
-                    }
-                }
-            }
-            if (resHandler.outputResources.Count > 0)
-                resHandler.UpdateModuleResourceOutputs();
-
-            // Handle the current print job.
-            handlePrintJob(TimeWarp.fixedDeltaTime);
+            // Let the base class handle it.
+            base.onSupportPrintingRequest(sender, buildList);
         }
 
-        private void handleCatchup()
+        public override void buildItemCompleted(BuildItem buildItem)
         {
-            BuildItem buildItem;
-            double printTimeRemaining = 0;
-            double elapsedTime = Planetarium.GetUniversalTime() - lastUpdateTime;
-            while (elapsedTime > TimeWarp.fixedDeltaTime * 2 && printQueue.Count > 0)
+            base.buildItemCompleted(buildItem);
+
+            // If we should spawn the item, then pause printing and enable the spawn item UI
+            if (enablePartSpawn)
             {
-                // We always work with the first item in the queue.
-                buildItem = printQueue[0];
-
-                // Update print state
-                printState = WBIPrintStates.Printing;
-
-                // Calculate print time remaining
-                printTimeRemaining = (buildItem.totalUnitsRequired - buildItem.totalUnitsPrinted) * printSpeedUSec;
-                if (printTimeRemaining > elapsedTime)
-                    printTimeRemaining = elapsedTime;
-
-                // Handle print job
-                handlePrintJob(printTimeRemaining);
-
-                // Update elapsedTime
-                elapsedTime -= printTimeRemaining;
-
-                if (printQueue.Count == 0 || missingRequirements)
-                {
-                    elapsedTime = TimeWarp.fixedDeltaTime;
-                    break;
-                }
-            }
-        }
-
-        private void handleUnhighlightParts()
-        {
-            double[] unHighlightTimes = unHighlightList.Keys.ToArray();
-            double currentTime = Planetarium.GetUniversalTime();
-            List<double> doomed = new List<double>();
-
-            for (int index = 0; index < unHighlightTimes.Length; index++)
-            {
-                if (currentTime >= unHighlightTimes[index])
-                {
-                    doomed.Add(unHighlightTimes[index]);
-                    unHighlightList[unHighlightTimes[index]].Highlight(false);
-                }
-            }
-            int count = doomed.Count;
-            for (int index = 0; index < count; index++)
-                unHighlightList.Remove(doomed[index]);
-        }
-
-        private bool pressureRequrementsMet(float minimumPressure)
-        {
-            if (minimumPressure < 0)
-                return true;
-
-            if (minimumPressure < 0.001)
-                return part.vessel.staticPressurekPa < 0.001;
-            else
-                return part.vessel.staticPressurekPa < minimumPressure;
-        }
-
-        private bool gravityRequirementMet(float minimumGravity)
-        {
-            // If we have no requirements then we're good
-            if (minimumGravity < 0)
-                return true;
-
-            // Check for microgravity requirements
-            if (minimumGravity < 0.00001)
-            {
-                // Vessel must be orbiting, sub-orbital, or escaping.
-                if (part.vessel.situation != Vessel.Situations.ORBITING && part.vessel.situation != Vessel.Situations.SUB_ORBITAL && part.vessel.situation != Vessel.Situations.ESCAPING)
-                    return false;
-
-                // Vessel must not be under acceleration
-                if (part.vessel.geeForce > 0.001)
-                    return false;
-            }
-
-            // Check for heavy gravity requirements
-            else
-            {
-                if (part.vessel.LandedOrSplashed || part.vessel.situation == Vessel.Situations.FLYING)
-                {
-                    // Vessel's gravity at current altitude must meet or exceed the minimum requirement.
-                    if (part.vessel.graviticAcceleration.magnitude < minimumGravity)
-                        return false;
-                }
-
-                // Check vessel acceleration
+                if (printQueue.Count > 1)
+                    printState = WBIPrintStates.Paused;
                 else
-                {
-                    if (part.vessel.geeForce < minimumGravity)
-                        return false;
-                }
+                    printState = WBIPrintStates.Idle;
+
+                // If in timewarp and our queue is empty then kick out of timewarp
+                if (TimeWarp.CurrentRateIndex > 0 && printQueue.Count <= 0)
+                    TimeWarp.SetRate(0, true);
+
+                // Update the GUI
+                shopUI.isPrinting = false;
+                shopUI.showPartSpawnButton = true;
+
+                // Record the part to spawn
+                buildItemToSpawn = buildItem;
             }
-
-            // All good
-            return true;
-        }
-
-        private void handlePrintJob(double elapsedTime)
-        {
-            // Update states
-            missingRequirements = false;
-            shopUI.isPrinting = true;
-
-            // Get the build item
-            BuildItem buildItem = printQueue[0];
-            ModuleCargoPart cargoPart = buildItem.availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
-
-            // If we have a gravity requirement, make sure that the requiement is met.
-            if (!gravityRequirementMet(buildItem.minimumGravity))
-            {
-                if (buildItem.minimumGravity > 0)
-                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsGravity", new string[1] { string.Format("{0:n3}", buildItem.minimumGravity) });
-                else
-                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsZeroGravity");
-                missingRequirements = true;
-                lastUpdateTime = Planetarium.GetUniversalTime();
-                return;
-            }
-
-            // If we have pressure requirements, make sure that the requirement is met.
-            if (!pressureRequrementsMet(buildItem.minimumPressure))
-            {
-                if (buildItem.minimumGravity > 0)
-                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsPressure", new string[1] { string.Format("{0:n3}", buildItem.minimumGravity) });
-                else
-                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsZeroPressure");
-                missingRequirements = true;
-                lastUpdateTime = Planetarium.GetUniversalTime();
-                return;
-            }
-
-            // Make sure that the vessel has enough inventory space
-            if (!InventoryUtils.HasEnoughSpace(part.vessel, buildItem.availablePart))
-            {
-                shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsSpace", new string[1] { string.Format("{0:n3}", cargoPart.packedVolume) });
-                missingRequirements = true;
-                lastUpdateTime = Planetarium.GetUniversalTime();
-                return;
-            }
-
-            // Consume resources
-            int count = 0;
-            if (buildItem.totalUnitsPrinted < buildItem.totalUnitsRequired)
-            {
-                // Calculate consumptionRate
-                float consumptionRate = printSpeedUSec * calculateSpecialistBonus() * (float)elapsedTime;
-
-                double amount = 0;
-                double maxAmount = 0;
-                ModuleResource material;
-                count = buildItem.materials.Count;
-                for (int index = 0; index < count; index++)
-                {
-                    material = buildItem.materials[index];
-
-                    if (material.amount > 0)
-                    {
-                        // Make sure that we have enough of the resource
-                        part.GetConnectedResourceTotals(material.resourceDef.id, out amount, out maxAmount);
-                        if (amount < consumptionRate)
-                        {
-                            shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsResource", new string[1] { material.resourceDef.displayName });
-                            lastUpdateTime = Planetarium.GetUniversalTime();
-                            missingRequirements = true;
-                            return;
-                        }
-
-                        // Consume the resource
-                        part.RequestResource(material.resourceDef.id, consumptionRate, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
-
-                        material.amount -= consumptionRate;
-                        if (material.amount < 0)
-                            material.amount = 0;
-
-                        buildItem.totalUnitsPrinted += consumptionRate;
-                        if (buildItem.totalUnitsPrinted > buildItem.totalUnitsRequired)
-                            buildItem.totalUnitsPrinted = buildItem.totalUnitsRequired;
-                    }
-                }
-            }
-
-            // Update progress
-            double progress = (buildItem.totalUnitsPrinted / buildItem.totalUnitsRequired) * 100;
-            shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_progress", new string[1] { string.Format("{0:n1}", progress) });
-            if (progress < 100)
-            {
-                lastUpdateTime = Planetarium.GetUniversalTime();
-                return;
-            }
-
-            // Consume required components
-            count = buildItem.requiredComponents.Count;
-            PartRequiredComponent requiredPart;
-            List<PartRequiredComponent> doomed = new List<PartRequiredComponent>();
-            int partsFound = 0;
-            for (int index = 0; index < count; index++)
-            {
-                requiredPart = buildItem.requiredComponents[index];
-                partsFound = InventoryUtils.GetInventoryItemCount(part.vessel, requiredPart.name);
-                if (partsFound >= requiredPart.amount)
-                {
-                    InventoryUtils.RemoveItem(part.vessel, requiredPart.name, requiredPart.amount);
-                    doomed.Add(requiredPart);
-                }
-                else
-                {
-                    AvailablePart availablePart = PartLoader.getPartInfoByName(requiredPart.name);
-                    shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsPart", new string[1] { availablePart.title });
-                    lastUpdateTime = Planetarium.GetUniversalTime();
-                    missingRequirements = true;
-                    return;
-                }
-            }
-            count = doomed.Count;
-            for (int index = 0; index < count; index++)
-                buildItem.requiredComponents.Remove(doomed[index]);
-
-            // If we've finished printing then add the item to an inventory.
-            lastUpdateTime = Planetarium.GetUniversalTime();
-            if (buildItem.requiredComponents.Count == 0)
+            else if (!buildItem.skipInventoryAdd)
             {
                 // Add the item to an inventory
                 Part inventoryPart = InventoryUtils.AddItem(part.vessel, buildItem.availablePart, buildItem.variantIndex, part.FindModuleImplementing<ModuleInventoryPart>(), buildItem.removeResources);
                 ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_storedPart", new string[2] { buildItem.availablePart.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
                 inventoryPart.Highlight(Color.cyan);
                 unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
-
-                // Remove the item from the print queue
-                printQueue.RemoveAt(0);
             }
         }
 
-        private void onPrintStatusUpdate(bool isPrinting)
+        protected override void updateUIStatus(string statusUpdate)
         {
-            if (isPrinting)
-            {
-                printState = printQueue.Count > 0 ? WBIPrintStates.Printing : WBIPrintStates.Idle;
-            }
-            else
-            {
-                printState = WBIPrintStates.Paused;
-            }
+            shopUI.jobStatus = statusUpdate;
         }
 
-        private float calculateSpecialistBonus()
+        protected override void updateUIStatus(bool isPrinting)
         {
-            if (!UseSpecialistBonus || part.CrewCapacity == 0 || part.protoModuleCrew.Count == 0)
-                return 1.0f;
+            shopUI.isPrinting = isPrinting;
+        }
 
-            // Find crew with the required skill. They must be in the part.
-            int count = part.protoModuleCrew.Count;
-            ProtoCrewMember astronaut;
-            int highestRank = 0;
-            float bonus = 1.0f;
+        protected override bool spaceRequirementsMet(BuildItem buildItem)
+        {
+            ModuleCargoPart cargoPart = buildItem.availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
 
-            for (int index = 0; index < count; index++)
+            if (!InventoryUtils.HasEnoughSpace(part.vessel, buildItem.availablePart) && !enablePartSpawn)
             {
-                astronaut = part.protoModuleCrew[index];
-                if (astronaut.HasEffect(ExperienceEffect) && astronaut.experienceLevel > highestRank)
-                    highestRank = astronaut.experienceLevel;
-                if (highestRank >= 5)
-                    break;
+                shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsSpace", new string[1] { string.Format("{0:n3}", cargoPart.packedVolume) });
+                return false;
             }
 
-            return bonus + (highestRank * SpecialistBonus);
+            return true;
+        }
+        #endregion
+
+        #region Events
+        [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_printShopGroupName", groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName", guiName = "#LOC_SANDCASTLE_openGUI")]
+        public void OpenGUI()
+        {
+            shopUI.partsList = filteredParts;
+            shopUI.whitelistedCategories = whitelistedCategories;
+            shopUI.SetVisible(true);
+
+            SCShipbreaker shipbreaker = part.FindModuleImplementing<SCShipbreaker>();
+            if (shipbreaker != null)
+            {
+                shipbreaker.DisableRecycler();
+            }
+        }
+        #endregion
+
+        #region Helpers
+        private void onSpawnPrintedPart()
+        {
+            if (buildItemToSpawn == null || spawnTransform == null)
+                return;
+
+            shopUI.showPartSpawnButton = false;
+
+            // Spawn the part.
+            Vector3 axis = KSPUtil.ParseVector3(offsetAxis);
+            InventoryUtils.SpawnPart(buildItemToSpawn.availablePart, part, spawnTransform, axis);
+
+            buildItemToSpawn = null;
         }
 
         private void updateFilteredParts()
@@ -655,7 +339,7 @@ namespace Sandcastle.PrintShop
             }
 
             // Get whitelisted parts. They can be printed regardless of whether or not the part is on the blacklist.
-            string[] blacklistedParts = blacklistedParts = getBlacklistedParts(node);
+            string[] blacklistedParts = getBlacklistedParts(node);
             if (node != null && node.HasNode(kPartWhiteListNode))
             {
                 ConfigNode partsNode = node.GetNode(kPartWhiteListNode);
@@ -690,65 +374,6 @@ namespace Sandcastle.PrintShop
                         filteredParts.Add(availablePart);
                 }
             }
-        }
-
-        private string[] getBlacklistedParts(ConfigNode node)
-        {
-            List<string> blacklistedParts = new List<string>();
-            ConfigNode[] nodes = null;
-            ConfigNode blacklistNode;
-            string[] values = null;
-
-            if (node == null)
-                return blacklistedParts.ToArray();
-
-            // Handle local blacklist
-            if (node.HasNode(kPartBlackListNode))
-            {
-                blacklistNode = node.GetNode(kPartBlackListNode);
-                if (blacklistNode.HasValue(kBlacklistedPart))
-                {
-                    values = blacklistNode.GetValues(kBlacklistedPart);
-                    for (int index = 0; index < values.Length; index++)
-                    {
-                        if (!blacklistedParts.Contains(values[index]))
-                            blacklistedParts.Add(values[index]);
-                    }
-                }
-            }
-
-            // Handle global blacklist
-            nodes = GameDatabase.Instance.GetConfigNodes(kPartBlackListNode);
-            for (int index = 0; index < nodes.Length; index++)
-            {
-                blacklistNode = nodes[index];
-                if (!blacklistNode.HasValue(kBlacklistedPart))
-                    continue;
-
-                values = blacklistNode.GetValues(kBlacklistedPart);
-                for (int listIndex = 0; listIndex < values.Length; listIndex++)
-                {
-                    if (!blacklistedParts.Contains(values[listIndex]))
-                        blacklistedParts.Add(values[listIndex]);
-                }
-            }
-
-            return blacklistedParts.ToArray();
-        }
-
-        private void setupAnimation()
-        {
-            Animation[] animations = this.part.FindModelAnimators(animationName);
-            if (animations == null || animations.Length == 0)
-                return;
-
-            animation = animations[0];
-            if (animation == null)
-                return;
-
-            animationState = animation[animationName];
-            animationState.wrapMode = WrapMode.Loop;
-            animation.Stop();
         }
         #endregion
     }

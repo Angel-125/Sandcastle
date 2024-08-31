@@ -29,16 +29,16 @@ namespace Sandcastle.PrintShop
     public delegate bool PressureRequirementMetDelegate(float minimumPressure);
 
     /// <summary>
+    /// Asks the delegate to spawn the current part that's just been printed.
+    /// </summary>
+    public delegate void SpawnPartDelegate();
+
+    /// <summary>
     /// Represents the Print Shop UI
     /// </summary>
     public class PrintShopUI: Dialog<PrintShopUI>
     {
         #region Fields
-        /// <summary>
-        /// Title of the selection dialog.
-        /// </summary>
-        public string titleText = Localizer.Format("#LOC_SANDCASTLE_printShopTitle");
-
         /// <summary>
         /// Complete list of printable parts.
         /// </summary>
@@ -70,6 +70,11 @@ namespace Sandcastle.PrintShop
         public PressureRequirementMetDelegate pressureRequrementsMet;
 
         /// <summary>
+        /// Callback to let the controller to spawn the printed part.
+        /// </summary>
+        public SpawnPartDelegate onSpawnPrintedPart;
+
+        /// <summary>
         /// Flag indicating that the printer is printing
         /// </summary>
         public bool isPrinting;
@@ -83,6 +88,11 @@ namespace Sandcastle.PrintShop
         /// Whitelisted categories that the printer can print from.
         /// </summary>
         public List<string> whitelistedCategories;
+
+        /// <summary>
+        /// Flag to indicate whether or not to show the part spawn button.
+        /// </summary>
+        public bool showPartSpawnButton = false;
 
         #endregion
 
@@ -127,10 +137,9 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Constructors
-        public PrintShopUI() :
-        base("Print Shop", 635, 650)
+        public PrintShopUI(string windowTitle = "Print Shop", float defaultWidth = 635, float defaultHeight = 650) :
+        base(windowTitle, defaultWidth, defaultHeight)
         {
-            WindowTitle = titleText;
             Resizable = false;
 
             // Load category icons
@@ -181,7 +190,10 @@ namespace Sandcastle.PrintShop
             GUILayout.EndHorizontal();
 
             // Print status
-            drawPrintStatus();
+            if (showPartSpawnButton)
+                drawSpawnButton();
+            else
+                drawPrintStatus();
 
             GUILayout.EndVertical();
 
@@ -205,6 +217,19 @@ namespace Sandcastle.PrintShop
             drawPrintQueue();
 
             GUILayout.EndScrollView();
+        }
+
+        private void drawSpawnButton()
+        {
+            GUILayout.BeginHorizontal();
+            if (showPartSpawnButton)
+            {
+                if (GUILayout.Button("Finalize Printing"))
+                {
+                    onSpawnPrintedPart();
+                }
+            }
+            GUILayout.EndHorizontal();
         }
 
         private void drawPrintStatus()
@@ -508,8 +533,10 @@ namespace Sandcastle.PrintShop
 
             // Part mass and volume
             ModuleCargoPart cargoPart = previewPart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
-            previewPartMassVolume = Localizer.Format("#LOC_SANDCASTLE_partMassVolume", 
-                new string[2] { string.Format("{0:n3}", previewPart.partPrefab.mass), string.Format("{0:n3}", cargoPart.packedVolume) });
+            if (cargoPart != null)
+                previewPartMassVolume = Localizer.Format("#LOC_SANDCASTLE_partMassVolume", new string[2] { string.Format("{0:n3}", previewPart.partPrefab.mass), string.Format("{0:n3}", cargoPart.packedVolume) });
+            else
+                previewPartMassVolume = Localizer.Format("#LOC_SANDCASTLE_partMass", new string[1] { string.Format("{0:n3}", previewPart.partPrefab.mass) });
 
             // Part description
             previewPartDescription = "<color=white>" + previewPart.description + "</color>";

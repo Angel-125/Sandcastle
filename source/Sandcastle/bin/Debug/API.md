@@ -1,6 +1,19 @@
 ﻿# Sandcastle
 
 
+# PartModules.SCModuleEVAVariants
+            
+This helper part module makes it possible to change part variants during EVA Construction.
+        
+## Methods
+
+
+### enableVariantSwitching
+Enables in-flight variant switching
+
+### disableVariantSwitching
+Disables in-flight variant switching
+
 # Inventory.InventoryUtils
             
 An inventory helper class
@@ -44,7 +57,7 @@ Determines whether or not the supplied inventory has space for the desired part.
 > #### Return value
 > true if the inventory has space for the part, false if not.
 
-### HasEnoughSpace(Vessel,AvailablePart,System.Int32)
+### HasEnoughSpace(Vessel,AvailablePart,System.Int32,System.Double,System.Single)
 Determines whether or not the vessel has enough storage space.
 > #### Parameters
 > **vessel:** The vessel to query
@@ -212,6 +225,124 @@ Drops the desired part if it is in the inventory.
 > **availablePart:** An AvailablePart containing the item to drop.
 
 
+# PrintShop.ShipbreakerUI
+            
+Represents the Print Shop UI
+        
+## Fields
+
+### recycleQueue
+Represents the list of build items to recycle.
+### jobStatus
+Status of the current print job.
+### onCancelVesselBuild
+Callback to tell the controller to cancel the build.
+### isRecycling
+Flag indicating that the printer is recycling
+### part
+The Part associated with the UI.
+### showDecoupleButton
+Flag to indicate whether or not to show the decouple button.
+### craftName
+Name of the craft being printed.
+### estimatedCompletion
+Estimated time to completion of the vessel.
+### createAlarm
+Flag to indicate if an alarm shoudl be created for print job completion.
+### onRecycleStatusUpdate
+Callback to let the controller know about the recycle state.
+### resourceRecylePercent
+Percentage of the resources that can be recycled.
+### supportShipbreakers
+List of support shipbreakers
+## Methods
+
+
+### SetVisible(System.Boolean)
+Toggles window visibility
+> #### Parameters
+> **newValue:** A flag indicating whether the window shoudld be visible or not.
+
+
+### DrawWindowContents(System.Int32)
+Draws the window
+> #### Parameters
+> **windowId:** An int representing the window ID.
+
+
+# PrintShop.SpawnShipDelegate
+            
+Asks the delegate to spawn the ship that's just been printed.
+        
+
+# PrintShop.DecoupleShipDelegate
+            
+Asks the delegate to decouple the ship that's just been printed.
+        
+
+# PrintShop.SelectShipDelegate
+            
+Delegate to get the ship to print.
+        
+
+# PrintShop.CancelBuildDelegate
+            
+Delegate to cancel the build.
+        
+
+# PrintShop.ShipwrightUI
+            
+Represents the Print Shop UI
+        
+## Fields
+
+### printQueue
+Represents the list of build items to print.
+### jobStatus
+Status of the current print job.
+### onPrintStatusUpdate
+Callback to let the controller know about the print state.
+### gravityRequirementsMet
+Callback to see if the part's gravity requirements are met.
+### pressureRequrementsMet
+Callback to see if the part's pressure requirements are met.
+### onSpawnShip
+Callback to let the controller to spawn the printed ship.
+### onDecoupleShip
+Callback to let the controller to decouple the printed ship.
+### onOpenCraftBrowser
+Callback to select a ship to print.
+### onCancelVesselBuild
+Callback to tell the controller to cancel the build.
+### isPrinting
+Flag indicating that the printer is printing
+### part
+The Part associated with the UI.
+### showSpawnButton
+Flag to indicate whether or not to show the spawn button.
+### showDecoupleButton
+Flag to indicate whether or not to show the decouple button.
+### craftName
+Name of the craft being printed.
+### estimatedCompletion
+Estimated time to completion of the vessel.
+### createAlarm
+Flag to indicate if an alarm shoudl be created for print job completion.
+## Methods
+
+
+### SetVisible(System.Boolean)
+Toggles window visibility
+> #### Parameters
+> **newValue:** A flag indicating whether the window shoudld be visible or not.
+
+
+### DrawWindowContents(System.Int32)
+Draws the window
+> #### Parameters
+> **windowId:** An int representing the window ID.
+
+
 # PrintShop.RecyclerUI
             
 Represents the Print Shop UI
@@ -283,14 +414,17 @@ Asks the delegate if the minimum pressure requirements are met.
 > true if the requirement can be met, false if not.
         
 
+# PrintShop.SpawnPartDelegate
+            
+Asks the delegate to spawn the current part that's just been printed.
+        
+
 # PrintShop.PrintShopUI
             
 Represents the Print Shop UI
         
 ## Fields
 
-### titleText
-Title of the selection dialog.
 ### partsList
 Complete list of printable parts.
 ### printQueue
@@ -303,12 +437,16 @@ Callback to let the controller know about the print state.
 Callback to see if the part's gravity requirements are met.
 ### pressureRequrementsMet
 Callback to see if the part's pressure requirements are met.
+### onSpawnPrintedPart
+Callback to let the controller to spawn the printed part.
 ### isPrinting
 Flag indicating that the printer is printing
 ### part
 The Part associated with the UI.
 ### whitelistedCategories
 Whitelisted categories that the printer can print from.
+### showPartSpawnButton
+Flag to indicate whether or not to show the part spawn button.
 ## Methods
 
 
@@ -323,6 +461,43 @@ Draws the window
 > #### Parameters
 > **windowId:** An int representing the window ID.
 
+
+# PrintShop.SCShipbreaker
+            
+Represents a shop that is capable of printing items and placing them in an available inventory.
+        
+## Fields
+
+### debugMode
+A flag to enable/disable debug mode.
+### recycleSpeedUSec
+The number of resource units per second that the recycler can recycle.
+### UseSpecialistBonus
+Flag to indicate whether or not to allow specialists to improve the recycle speed. Exactly how the specialist(s) does that is a trade secret.
+### SpecialistBonus
+Per experience rating, how much to improve the recycle speed by. The print shop part must have crew capacity.
+### ExperienceEffect
+The skill required to improve the recycle speed.
+### runningEffect
+Name of the effect to play from the part's EFFECTS node when the printer is running.
+### recyclePercentage
+What percentage of resources will be recycled.
+### animationName
+Name of the animation to play during printing.
+### recyclingEnabled
+Flag to indicate if recycling is enabled.
+### maxBuildingDistance
+Maximum distance allowed for other shipbreakers to help break up a vessel.
+### recycleQueue
+Represents the list of build items to recycle.
+### recycleState
+Current state of the recycler.
+### recycleStatusText
+status text.
+### lastUpdateTime
+Describes when the recycler was last updated.
+### currentJob
+Current job being recycled.
 
 # PrintShop.WBICargoRecycler
             
@@ -385,6 +560,22 @@ The minimum pressure, in kPA, that the part required in order for the printer to
 Determines whether or not the printer should remove the part's resources before placing the printed part in an inventory.
 ### variantIndex
 Index of the part variant to use (if any).
+### packedVolume
+Volume of the item being printed.
+### isBlacklisted
+Flag indicating if the part is blacklisted or not. If blacklisted then it can't be printed by a shipwright printer.
+### mass
+Mass of the part including variant.
+### unpackedVolume
+Volume of the part when unpacked.
+### isUnpacked
+Flag to indicate whether or not the part is unpacked.
+### flightId
+ID of the part.
+### waitForSupportCompletion
+Flag to wait for a support unit to complete the job.
+### skipInventoryAdd
+Flag to indicate whether or not to add the item to the inventory when printing has completed. This is used by printers that are supporting a lead Shipwright. Instead of storing the part, they hand it over to the lead Shipwright for inclusion in a vessel.
 ## Methods
 
 
@@ -446,6 +637,45 @@ Creates the default materials list.
 > #### Return value
 > A MaterialsList containing the default materials.
 
+# PrintShop.WBIPrintShop
+            
+Represents a shop that is capable of printing items and placing them in an available inventory.
+        
+## Fields
+
+### printShopGUIName
+GUI name to use for the event that opens the printer GUI.
+### printShopwGroupDisplayName
+Alternate group display name to use.
+### printShopDialogTitle
+Title to use for the print shop dialog
+### printStateString
+Current print state.
+### enablePartSpawn
+Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
+### spawnTransformName
+Where to spawn the printed part.
+### offsetAxis
+Axis upon which to displace the part during spawn in. X, Y, Z
+
+# PrintShop.WBIPrinterRequirements
+            
+Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper. We have to do this because GetInfo is called during game start, we rely on PartLoader to get information about other parts that are needed to 3D print this part, and not all of the parts will be loaded when GetInfo is called.
+        
+
+# PrintShop.SCShipwright
+            
+Prints entire vessels
+        
+## Fields
+
+### printStateString
+Current printer state.
+### spawnTransformName
+Where to spawn the printed part.
+### maxCraftDimensions
+Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
+
 # PrintShop.WBIPrintStates
             
 Lists the different printer states
@@ -460,42 +690,6 @@ Printer has an item to print but is paused.
 Printer is printing something.
 ### Recycling
 The recycler is recycling something.
-
-# PrintShop.WBIPrintShop
-            
-Represents a shop that is capable of printing items and placing them in an available inventory.
-        
-## Fields
-
-### debugMode
-A flag to enable/disable debug mode.
-### maxPrintVolume
-The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
-### printSpeedUSec
-The number of resource units per second that the printer can print.
-### UseSpecialistBonus
-Flag to indicate whether or not to allow specialists to improve the print speed. Exactly how the specialist(s) does that is a trade secret.
-### SpecialistBonus
-Per experience rating, how much to improve the print speed by. The print shop part must have crew capacity.
-### ExperienceEffect
-The skill required to improve the print speed.
-### runningEffect
-Name of the effect to play from the part's EFFECTS node when the printer is running.
-### printQueue
-Represents the list of build items to print.
-### printState
-Current state of the printer.
-### lastUpdateTime
-Describes when the printer was last updated.
-### currentJob
-Current job being printed.
-### animationName
-Name of the animation to play during printing.
-
-# PrintShop.WBIPrinterRequirements
-            
-Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper. We have to do this because GetInfo is called during game start, we rely on PartLoader to get information about other parts that are needed to 3D print this part, and not all of the parts will be loaded when GetInfo is called.
-        
 
 # Utilities.PrinterInfoHelper
             

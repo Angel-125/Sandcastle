@@ -1,0 +1,249 @@
+Sandcastle provides the Sandcastle 3D Print Shop and Quicksand 3D Print Shop that prints parts and places them into the vessel's inventory. They can also recycle parts in your inventory, turning them into raw resources.
+Similarly, the Sandcaster 3D Printer and the EL-OCD Konstruction Manipulator can print entire vessels and recycle them into raw resources.
+But what if you'd like to give your own parts those abilities? Read on!
+
+Sandcastle's printers use Ore to print their parts and vessels, but you can easily customize that for other resources if desired. That customization is beyond the scope of this document. Instead, please refer to MaterialsList.cfg for a detailed description of what you can customize and how. This document just shows you how to add the require part modules to your part config.
+
+CONTENTS
+
+*** Adding a print shop ***
+*** Adding a recycler ***
+*** Adding a vessel printer ***
+*** Adding a vessel recycler ***
+*** (Advanced) Adding a part-vessel printer ***
+
+*** Adding a print shop ***
+
+To add the print shop part module, just cut and paste the following, and change the parameters to your liking:
+
+	MODULE
+	{
+		name = WBIPrintShop
+
+		// The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
+		// This number corresponds to the packedVolume field of the ModuleCargoPart part module config.
+		maxPrintVolume = 11000
+
+		// The number of resource units per second that the printer can print.
+		printSpeedUSec = 0.25
+
+		// Flag to indicate whether or not to allow specialists to improve the print speed. 
+		// Exactly how the specialist does that is a trade secret.
+		UseSpecialistBonus = true
+
+		// Per experience rating, how much to improve the print speed by.
+		// The print shop part must have crew capacity.
+		SpecialistBonus = 0.05
+
+		// The skill required to improve the print speed.
+		ExperienceEffect = "ConverterSkill"
+
+		// Name of the effect to play from the part's EFFECTS node when the printer is running.
+//		runningEffect = 
+
+		// Name of the animation to play when the printer is running.
+		animationName = PrinterAnim
+
+		// The printer itself may require one or more resources in order to operate.
+		// You can also use INPUT_RESOURCE in place of RESOURCE, but the other fields remain the same.		
+		// It's possible to have some kind of OUTPUT_RESOURCE as well, but we just use the stock resources.
+		RESOURCE
+		{
+			name = ElectricCharge
+			rate = 10
+		}
+
+		// Normally, 3D printers can print from any category, but you can create specialized printers
+		// that can only print from one or more categories. To do so, simply specify a CATEGORY_WHITELIST
+		// and one or more whitelistedCategory entries.
+//		CATEGORY_WHITELIST
+//		{
+//			whitelistedCategory = Pods
+//			whitelistedCategory = Electrical
+//			whitelistedCategory = none
+//		}
+
+		// Normally, 3D printers can print any part that fits in its maxPrintVolume, but you can create specialized printers
+		// that can only print one or more parts. To do so, simply specify a PARTS_WHITELIST and one or more whitelistedPart entries.
+		// Parts on the whitelist can be printed even if they show up on the global PARTS_BLACKLIST.
+//		PARTS_WHITELIST
+//		{
+//			whitelistedPart = batteryPack
+//			whitelistedPart = probeCoreCube
+//		}
+
+		// Normally, 3D printers can print any part that fits in its maxPrintVolume, but you can create specialized printers
+		// that are incapable of printing parts on this list. To do so, simply specify a PARTS_BLACKLIST and one or more blacklistedPart entries.
+//		PARTS_BLACKLIST
+//		{
+//			blacklistedPart = whoopieCushions
+//			blacklistedPart = boomerangFish
+//		}
+	}
+
+
+*** Adding a recycler ***
+
+To add the part recycler part module, just cut and paste the following, and change the parameters to your liking:
+
+	MODULE
+	{
+		name = WBICargoRecycler
+		
+		// The number of units of a resource to recycle per second.
+		recycleSpeedUSec = 0.5
+
+		// What percentage of the resources that can be recycled.
+		recyclePercentage = 0.45
+
+		// Flag to indicate whether or not to allow specialists to improve the recycle speed. 
+		// Exactly how the specialist does that is a trade secret.
+		UseSpecialistBonus = true
+
+		// Per experience rating, how much to improve the recycle speed by.
+		// The recycler part must have crew capacity.
+		SpecialistBonus = 0.05
+
+		// The skill required to improve the recycling speed.
+		ExperienceEffect = "ConverterSkill"
+
+		// Name of the effect to play from the part's EFFECTS node when the recycler is running.
+//		runningEffect = 
+
+		// Name of the animation to play when the printer is running.
+		animationName = PrinterAnim
+
+		// The recycler itself may require one or more resources in order to operate.
+		// You can also use INPUT_RESOURCE in place of RESOURCE, but the other fields remain the same.		
+		// It's possible to have some kind of OUTPUT_RESOURCE as well, but we just use the stock resources.
+		RESOURCE
+		{
+			name = ElectricCharge
+			rate = 5
+		}
+	}
+
+*** Adding a vessel printer ***
+
+To add a vessel printer to your part, you'll need two entries in your part config file: a MODEL config node for the vessel spawn points, and the SCShipwright part module.
+The vessel printer needs to know where to spawn the vessel. To do that, add the following MODEL config node to your part's config file:
+
+	MODEL
+	{
+		model = WildBlueIndustries/Sandcastle/Parts/Utility/SharedAssets/spawnPoints
+	}
+
+The above should go right after the existing MODEL object. Next add the following, adjusting parameters as desired:
+
+	MODULE
+	{
+		name = SCShipwright
+		printSpeedUSec = 0.25
+		UseSpecialistBonus = false
+//		debugMode = true
+
+		// Spawn transform
+		//   +Y
+		//    |
+		// +Z | +X
+		//   \|/
+		spawnTransformName = VesselSpawnPoint
+
+		// In meters how far along the X, Y, and Z axis to offset the spawn transform. YOU NEED TO EXPERIMENT WITH THIS to avoid spawned vessels from colliding with the printer part.
+		spawnTransformOffset = 
+
+		// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z)
+		// Leave empty for unlimited printing.
+//		maxCraftDimensions = 
+
+		RESOURCE
+		{
+			name = ElectricCharge
+			rate = 10
+		}
+	}
+
+*** Adding a vessel recycler ***
+
+To add a vessel recycler to your part, you'll need two entries: a MODEL config node for the vessel spawn points, and the SCShipbreaker part module.
+The vessel recycler needs to know what triggers the recycler to activate. To do that, add the following MODEL config node to your part's config file:
+
+	MODEL
+	{
+		model = WildBlueIndustries/Sandcastle/Parts/Utility/SharedAssets/spawnPoints
+	}
+
+The above should go right after the existing MODEL object. Next add the following, adjusting parameters as desired:
+
+	MODULE
+	{
+		name = SCShipbreaker
+//		debugMode = true
+		recycleSpeedUSec = 0.25
+		recyclePercentage = 0.4
+		UseSpecialistBonus = false
+
+		// In meters how far along the X, Y, and Z axis to offset the recycler's activation trigger. YOU NEED TO EXPERIMENT WITH THIS to avoid spawned vessels from colliding with the printer part.
+		// As a good rule of thumb, use the same values that you use for the spawnTransformOffset found in the SCShipwright.
+		spawnTransformOffset = 
+
+		// The recycler itself may require one or more resources in order to operate.
+		// You can also use INPUT_RESOURCE in place of RESOURCE, but the other fields remain the same.		
+		// It's possible to have some kind of OUTPUT_RESOURCE as well, but we just use the stock resources.
+		RESOURCE
+		{
+			name = ElectricCharge
+			rate = 5
+		}
+	}
+
+*** (Advanced) Adding a part-vessel printer ***
+
+You can print a single part and spawn it just like a vessel. To do that, you'll need two entries in your part config file: a MODEL config node for the vessel spawn points, and the WBIPrintShop part module.
+The printer needs to know where to spawn the part. To do that, add the following MODEL config node to your part's config file:
+
+	MODEL
+	{
+		model = WildBlueIndustries/Sandcastle/Parts/Utility/SharedAssets/spawnPoints
+	}
+
+The above should go right after the existing MODEL object. Next add the following, adjusting parameters as desired:
+
+	MODULE
+	{
+		name = WBIPrintShop
+
+		// Prints parts of any size
+		maxPrintVolume = -1
+
+		printSpeedUSec = 0.25
+
+		UseSpecialistBonus = false
+
+		// Spawns the part into the world instead of placing it into an inventory
+		enablePartSpawn = true
+
+		// Where to spawn the printed part.
+		spawnTransformName = VesselSpawnPoint
+
+		// In meters how far along the X, Y, and Z axis to offset the spawn transform. YOU NEED TO EXPERIMENT WITH THIS to avoid spawned vessels from colliding with the printer part.
+		spawnTransformOffset = 
+
+		// Axis upon which to displace the part during spawn in. X, Y, Z
+		offsetAxis = 0,1,1
+
+		// What to show on the button that opens the printer
+		printShopGUIName = #LOC_SANDCASTLE_printAPart
+
+		// Custom group name of the part printer
+		printShopwGroupDisplayName = #LOC_SANDCASTLE_partPrinter
+
+		// Name the print shop something other than "Print Shop"
+		printShopDialogTitle = #LOC_SANDCASTLE_partPrinter
+
+		RESOURCE
+		{
+			name = ElectricCharge
+			rate = 10
+		}
+	}

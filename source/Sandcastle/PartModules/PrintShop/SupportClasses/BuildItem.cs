@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace Sandcastle.PrintShop
 {
@@ -29,10 +30,17 @@ namespace Sandcastle.PrintShop
         const string kRequriedComponentAmount = "amount";
         const string kIsBeingRecycled = "isBeingRecycled";
         const string kPrintResource = "PRINT_RESOURCE";
+        const string kPrintResourceAssembled = "PRINT_RESOURCE_ASSEMBLED";
         const string kMinimumGravity = "minimumGravity";
         const string kMinimumPressure = "minimumPressure";
         const string kRemoveResources = "removeResources";
         const string kVariantIndex = "variantIndex";
+        const string kPackedVolume = "packedVolume";
+        const string kBlacklisted = "isBlacklisted";
+        const string kMass = "mass";
+        const string kUnpackedInfo = "UNPACKED_INFO";
+        const string kUnpackedVolume = "unpackedVolume";
+        const string kIsUnpacked = "isUnpacked";
         #endregion
 
         #region Housekeeping
@@ -94,6 +102,47 @@ namespace Sandcastle.PrintShop
         /// Index of the part variant to use (if any).
         /// </summary>
         public int variantIndex = 0;
+
+        /// <summary>
+        /// Volume of the item being printed.
+        /// </summary>
+        public float packedVolume = 0;
+
+        /// <summary>
+        /// Flag indicating if the part is blacklisted or not. If blacklisted then it can't be printed by a shipwright printer.
+        /// </summary>
+        public bool isBlacklisted;
+
+        /// <summary>
+        /// Mass of the part including variant.
+        /// </summary>
+        public double mass;
+
+        /// <summary>
+        /// Volume of the part when unpacked.
+        /// </summary>
+        public double unpackedVolume = -1;
+
+        /// <summary>
+        /// Flag to indicate whether or not the part is unpacked.
+        /// </summary>
+        public bool isUnpacked;
+
+        /// <summary>
+        /// ID of the part.
+        /// </summary>
+        public uint flightId;
+
+        /// <summary>
+        /// Flag to wait for a support unit to complete the job.
+        /// </summary>
+        public bool waitForSupportCompletion;
+
+        /// <summary>
+        /// Flag to indicate whether or not to add the item to the inventory when printing has completed.
+        /// This is used by printers that are supporting a lead Shipwright. Instead of storing the part, they hand it over to the lead Shipwright for inclusion in a vessel.
+        /// </summary>
+        public bool skipInventoryAdd;
         #endregion
 
         #region Constructors
@@ -126,6 +175,24 @@ namespace Sandcastle.PrintShop
 
             if (node.HasValue(kVariantIndex))
                 int.TryParse(node.GetValue(kVariantIndex), out variantIndex);
+
+            if (node.HasValue(kPackedVolume))
+                float.TryParse(node.GetValue(kPackedVolume), out packedVolume);
+
+            if (node.HasValue(kBlacklisted))
+                bool.TryParse(node.GetValue(kBlacklisted), out isBeingRecycled);
+
+            if (node.HasValue(kMass))
+                double.TryParse(node.GetValue(kMass), out mass);
+
+            if (node.HasValue("flightId"))
+                uint.TryParse(node.GetValue("flightId"), out flightId);
+
+            if (node.HasValue("waitForSupportCompletion"))
+                bool.TryParse(node.GetValue("waitForSupportCompletion"), out waitForSupportCompletion);
+
+            if (node.HasValue("skipInventoryAdd"))
+                bool.TryParse(node.GetValue("skipInventoryAdd"), out skipInventoryAdd);
 
             materials = new List<ModuleResource>();
             if (node.HasNode(MaterialsList.kResourceNode))
@@ -162,7 +229,28 @@ namespace Sandcastle.PrintShop
                 }
             }
 
-            availablePart = PartLoader.getPartInfoByName(partName);
+            if (node.HasNode(kUnpackedInfo))
+            {
+                ConfigNode unpackedNode = node.GetNode(kUnpackedInfo);
+
+                if (unpackedNode.HasValue(kUnpackedVolume))
+                {
+                    double.TryParse(unpackedNode.GetValue(kUnpackedVolume), out unpackedVolume);
+                }
+            }
+
+            if (node.HasValue(kIsUnpacked))
+            {
+                bool.TryParse(node.GetValue(kIsUnpacked), out isUnpacked);
+            }
+
+            if (node.HasValue(kUnpackedVolume))
+            {
+                double.TryParse(node.GetValue(kUnpackedVolume), out unpackedVolume);
+            }
+
+            if (!string.IsNullOrEmpty(partName))
+                availablePart = PartLoader.getPartInfoByName(partName);
         }
 
         /// <summary>
@@ -173,6 +261,7 @@ namespace Sandcastle.PrintShop
         {
             partName = availablePart.name;
             this.availablePart = availablePart;
+            mass = availablePart.partPrefab.mass;
 
             // Get the materials list
             MaterialsList materialsList = MaterialsList.GetListForCategory(availablePart.category.ToString());
@@ -180,23 +269,21 @@ namespace Sandcastle.PrintShop
             ModuleResource resource;
             ConfigNode node;
             PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
-            PartResourceDefinition resourceDef;
-
             // Copy the required materials and tally the total units required.
-            materials = new List<ModuleResource>();
+            Dictionary<string, ModuleResource> buildMaterials = new Dictionary<string, ModuleResource>();
             for (int index = 0; index < resources.Length; index++)
             {
                 resource = resources[index];
                 if (definitions.Contains(resource.name))
                 {
-                    resourceDef = definitions[resource.name];
                     node = new ConfigNode(MaterialsList.kResourceNode);
                     resource.Save(node);
 
                     resource = new ModuleResource();
                     resource.Load(node);
 
-                    materials.Add(resource);
+                    if (!buildMaterials.ContainsKey(resource.name))
+                        buildMaterials.Add(resource.name, resource);
                 }
             }
 
@@ -210,12 +297,27 @@ namespace Sandcastle.PrintShop
                     resource.Load(nodes[index]);
                     if (definitions.Contains(resource.name))
                     {
-                        resourceDef = definitions[resource.name];
-
-                        materials.Add(resource);
+                        if (!buildMaterials.ContainsKey(resource.name))
+                            buildMaterials.Add(resource.name, resource);
+                        else
+                            buildMaterials[resource.name].rate = resource.rate;
                     }
                 }
             }
+
+            if (availablePart.partConfig.HasNode(kUnpackedInfo))
+            {
+                ConfigNode unpackedNode = availablePart.partConfig.GetNode(kUnpackedInfo);
+
+                if (unpackedNode.HasValue(kUnpackedVolume))
+                {
+                    double.TryParse(unpackedNode.GetValue(kUnpackedVolume), out unpackedVolume);
+                }
+            }
+
+            // Setup the materials list
+            materials = new List<ModuleResource>();
+            materials.AddRange(buildMaterials.Values);
 
             // Tally the sum of all required resources' rates. Also grab the Ore resource if it's a requirement.
             int count = materials.Count;
@@ -284,6 +386,10 @@ namespace Sandcastle.PrintShop
             if (availablePart.partConfig.HasValue(kRemoveResources))
                 bool.TryParse(availablePart.partConfig.GetValue(kRemoveResources), out removeResources);
 
+            ModuleCargoPart cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
+            if (cargoPart != null)
+                packedVolume = cargoPart.packedVolume;
+
             // Finalize the new item
             totalUnitsPrinted = 0;
         }
@@ -302,6 +408,13 @@ namespace Sandcastle.PrintShop
             minimumPressure = copyFrom.minimumPressure;
             removeResources = copyFrom.removeResources;
             variantIndex = copyFrom.variantIndex;
+            isBlacklisted = copyFrom.isBlacklisted;
+            mass = copyFrom.mass;
+            unpackedVolume = copyFrom.unpackedVolume;
+            isUnpacked = copyFrom.isUnpacked;
+            flightId = copyFrom.flightId;
+            waitForSupportCompletion = copyFrom.waitForSupportCompletion;
+            skipInventoryAdd = skipInventoryAdd;
 
             PartRequiredComponent component;
             int count = copyFrom.requiredComponents.Count;
@@ -338,11 +451,19 @@ namespace Sandcastle.PrintShop
         {
             ConfigNode node = new ConfigNode(kBuildItemNode);
 
-            node.AddValue(kPartName, partName);
+            if (!string.IsNullOrEmpty(partName))
+                node.AddValue(kPartName, partName);
             node.AddValue(kTotalUnitsRequired, totalUnitsRequired.ToString());
             node.AddValue(kTotalUnitsPrinted, totalUnitsPrinted.ToString());
             node.AddValue(kRemoveResources, removeResources);
             node.AddValue(kVariantIndex, variantIndex);
+            node.AddValue(kBlacklisted, isBlacklisted);
+            node.AddValue(kMass, mass);
+            node.AddValue(kIsUnpacked, isUnpacked);
+            node.AddValue(kUnpackedVolume, unpackedVolume);
+            node.AddValue("flightId", flightId);
+            node.AddValue("waitForSupportCompletion", waitForSupportCompletion);
+            node.AddValue("skipInventoryAdd", skipInventoryAdd);
 
             // Materials
             ModuleResource[] resources = materials.ToArray();
@@ -385,13 +506,231 @@ namespace Sandcastle.PrintShop
             {
                 resource = materials[index];
                 resourceDef = definitions[resource.name];
-                resource.amount = calculateRequiredAmount(availablePart.partPrefab.mass, resourceDef.density, resource.rate);
+                resource.amount = calculateRequiredAmount(partMass, resourceDef.density, resource.rate);
                 totalUnitsRequired += resource.amount;
             }
+        }
+
+        public void UpdateResourceRequirements(Part part)
+        {
+            double partMass = availablePart.partPrefab.mass;
+
+            // Check for variant mass
+            ModulePartVariants partVariant = part.FindModuleImplementing<ModulePartVariants>();
+            if (partVariant != null && partVariant.useVariantMass)
+            {
+                PartVariant selectedVariant = partVariant.SelectedVariant;
+                if (selectedVariant != null)
+                    partMass += selectedVariant.Mass;
+            }
+
+            // Check for unpacked mass
+            int count = part.Modules.Count;
+            PartModule partModule = null;
+            for (int index = 0; index < count; index++)
+            {
+                partModule = part.Modules[index];
+                if (partModule.moduleName == "WBIPackingBox" || partModule.moduleName == "WBIMultipurposeHab" || partModule.moduleName == "WBIMultipurposeLab")
+                {
+                    BaseField field = partModule.Fields["isDeployed"];
+                    if (field != null)
+                    {
+                        bool isDeployed = (bool)field.GetValue(partModule);
+                        if (!isDeployed)
+                            return;
+                    }
+
+                    field = partModule.Fields["partMass"];
+                    if (field != null)
+                    {
+                        float deployedMass = (float)field.GetValue(partModule);
+                        partMass += deployedMass;
+                        isUnpacked = true;
+                        break;
+                    }
+                }
+            }
+
+            // Now update the resources
+            // We have the adjusted part mass. Now add any resources that are required to build the part when it's pre-assembled.
+            PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+            ModuleResource resource;
+
+            // Create our building materials dictionary
+            Dictionary<string, ModuleResource> buildMaterials = new Dictionary<string, ModuleResource>();
+            count = materials.Count;
+            for (int index = 0; index < count; index++)
+            {
+                buildMaterials.Add(materials[index].name, materials[index]);
+            }
+
+            // If the part requires special resources that only apply when the part has been pre-assembled, then add them too.
+            if (availablePart.partConfig.HasNode(kPrintResourceAssembled))
+            {
+                ConfigNode[] nodes = availablePart.partConfig.GetNodes(kPrintResourceAssembled);
+                for (int index = 0; index < nodes.Length; index++)
+                {
+                    resource = new ModuleResource();
+                    resource.Load(nodes[index]);
+                    if (definitions.Contains(resource.name))
+                    {
+                        if (!buildMaterials.ContainsKey(resource.name))
+                            buildMaterials.Add(resource.name, resource);
+                        else
+                            buildMaterials[resource.name].rate = resource.rate;
+                    }
+                }
+            }
+
+            // Setup the materials list
+            materials = new List<ModuleResource>();
+            materials.AddRange(buildMaterials.Values);
+
+            // Now update resoure mass
+            updateResourceMasses(partMass);
+            mass = partMass;
+        }
+
+        public void UpdateResourceRequirements(ConfigNode partNode)
+        {
+            double partMass = availablePart.partPrefab.mass;
+
+            ConfigNode[] moduleNodes = partNode.GetNodes("MODULE");
+            ConfigNode moduleNode;
+            string moduleName;
+            totalUnitsRequired = 0;
+            for (int moduleIndex = 0; moduleIndex < moduleNodes.Length; moduleIndex++)
+            {
+                moduleNode = moduleNodes[moduleIndex];
+                moduleName = moduleNode.GetValue("name");
+                switch (moduleName) {
+                    case "ModulePartVariants":
+                        partMass += updateModulePartVariantsMass(moduleNode);
+                        break;
+
+                    case "WBIPackingBox":
+                    case "WBIMultipurposeHab":
+                    case "WBIMultipurposeLab":
+                        partMass += updateAssembledPartMass(moduleNode);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            updateResourceMasses(partMass);
+
+            mass = partMass;
         }
         #endregion
 
         #region Helpers
+        double updateAssembledPartMass(ConfigNode moduleNode)
+        {
+            if (!moduleNode.HasValue("isDeployed"))
+                return 0;
+            bool isDeployed;
+            bool.TryParse(moduleNode.GetValue("isDeployed"), out isDeployed);
+            if (!isDeployed)
+                return 0;
+
+            if (!moduleNode.HasValue("partMass"))
+                return 0;
+            double partMass;
+            double.TryParse(moduleNode.GetValue("partMass"), out partMass);
+
+            // We have the adjusted part mass. Now add any resources that are required to build the part when it's pre-assembled.
+            PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+            ModuleResource resource;
+
+            // Create our building materials dictionary
+            Dictionary<string, ModuleResource> buildMaterials = new Dictionary<string, ModuleResource>();
+            int count = materials.Count;
+            for (int index = 0; index < count; index++)
+            {
+                buildMaterials.Add(materials[index].name, materials[index]);
+            }
+
+            // If the part requires special resources that only apply when the part has been pre-assembled, then add them too.
+            if (availablePart.partConfig.HasNode(kPrintResourceAssembled))
+            {
+                ConfigNode[] nodes = availablePart.partConfig.GetNodes(kPrintResourceAssembled);
+                for (int index = 0; index < nodes.Length; index++)
+                {
+                    resource = new ModuleResource();
+                    resource.Load(nodes[index]);
+                    if (definitions.Contains(resource.name))
+                    {
+                        if (!buildMaterials.ContainsKey(resource.name))
+                            buildMaterials.Add(resource.name, resource);
+                        else
+                            buildMaterials[resource.name].rate = resource.rate;
+                    }
+                }
+            }
+
+            // Setup the materials list
+            materials = new List<ModuleResource>();
+            materials.AddRange(buildMaterials.Values);
+
+            return partMass;
+        }
+
+        double updateModulePartVariantsMass(ConfigNode moduleNode)
+        {
+            if (availablePart.Variants == null || availablePart.Variants.Count <= 0)
+                return 0;
+
+            if (!moduleNode.HasValue("isEnabled"))
+                return 0;
+            bool enabled = false;
+            bool.TryParse(moduleNode.GetValue("isEnabled"), out enabled);
+            if (!enabled)
+                return 0;
+
+            if (!moduleNode.HasValue("useVariantMass"))
+                return 0;
+            bool useVariantMass = false;
+            bool.TryParse(moduleNode.GetValue("useVariantMass"), out useVariantMass);
+            if (!useVariantMass)
+                return 0;
+
+            if (!moduleNode.HasValue("selectedVariant"))
+                return 0;
+            string selectedVariant = moduleNode.GetValue("selectedVariant");
+
+            int count = availablePart.Variants.Count;
+            for (int index = 0; index < count; index++)
+            {
+                if (availablePart.Variants[index].Name == selectedVariant)
+                {
+                    variantIndex = index;
+                    return availablePart.Variants[index].Mass;
+                }
+            }
+
+            return 0;
+        }
+
+        void updateResourceMasses(double adjustedPartMass)
+        {
+            ModuleResource resource;
+            PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+            PartResourceDefinition resourceDef;
+
+            // Now tally up the total units required and each indivdual resources required amounts.
+            totalUnitsRequired = 0;
+            int count = materials.Count;
+            for (int index = 0; index < count; index++)
+            {
+                resource = materials[index];
+                resourceDef = definitions[resource.name];
+                resource.amount = calculateRequiredAmount(adjustedPartMass, resourceDef.density, resource.rate);
+                totalUnitsRequired += resource.amount;
+            }
+        }
+
         double calculateRequiredAmount(double partMass, double resourceDensity, double rate)
         {
             return (partMass / resourceDensity) * rate;

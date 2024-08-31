@@ -4,6 +4,21 @@
         <name>Sandcastle</name>
     </assembly>
     <members>
+        <member name="T:Sandcastle.PartModules.SCModuleEVAVariants">
+            <summary>
+            This helper part module makes it possible to change part variants during EVA Construction.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.SCModuleEVAVariants.enableVariantSwitching">
+            <summary>
+            Enables in-flight variant switching
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.SCModuleEVAVariants.disableVariantSwitching">
+            <summary>
+            Disables in-flight variant switching
+            </summary>
+        </member>
         <member name="T:Sandcastle.Inventory.InventoryUtils">
             <summary>
             An inventory helper class
@@ -39,7 +54,7 @@
             <param name="availablePart">An AvailablePart to check to see if it fits.</param>
             <returns>true if the inventory has space for the part, false if not.</returns>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.HasEnoughSpace(Vessel,AvailablePart,System.Int32)">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.HasEnoughSpace(Vessel,AvailablePart,System.Int32,System.Double,System.Single)">
             <summary>
             Determines whether or not the vessel has enough storage space.
             </summary>
@@ -213,6 +228,200 @@
             </summary>
             <param name="availablePart">An AvailablePart containing the item to drop.</param>
         </member>
+        <member name="T:Sandcastle.PrintShop.ShipbreakerUI">
+            <summary>
+            Represents the Print Shop UI
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.recycleQueue">
+            <summary>
+            Represents the list of build items to recycle.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.jobStatus">
+            <summary>
+            Status of the current print job.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onCancelVesselBuild">
+            <summary>
+            Callback to tell the controller to cancel the build.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.isRecycling">
+            <summary>
+            Flag indicating that the printer is recycling
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.part">
+            <summary>
+            The Part associated with the UI.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.showDecoupleButton">
+            <summary>
+            Flag to indicate whether or not to show the decouple button.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.craftName">
+            <summary>
+            Name of the craft being printed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.estimatedCompletion">
+            <summary>
+            Estimated time to completion of the vessel.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.createAlarm">
+            <summary>
+            Flag to indicate if an alarm shoudl be created for print job completion.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onRecycleStatusUpdate">
+            <summary>
+            Callback to let the controller know about the recycle state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.resourceRecylePercent">
+            <summary>
+            Percentage of the resources that can be recycled.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.supportShipbreakers">
+            <summary>
+            List of support shipbreakers
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.ShipbreakerUI.SetVisible(System.Boolean)">
+            <summary>
+            Toggles window visibility
+            </summary>
+            <param name="newValue">A flag indicating whether the window shoudld be visible or not.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.ShipbreakerUI.DrawWindowContents(System.Int32)">
+            <summary>
+            Draws the window
+            </summary>
+            <param name="windowId">An int representing the window ID.</param>
+        </member>
+        <member name="T:Sandcastle.PrintShop.SpawnShipDelegate">
+            <summary>
+            Asks the delegate to spawn the ship that's just been printed.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.DecoupleShipDelegate">
+            <summary>
+            Asks the delegate to decouple the ship that's just been printed.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.SelectShipDelegate">
+            <summary>
+            Delegate to get the ship to print.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.CancelBuildDelegate">
+            <summary>
+            Delegate to cancel the build.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.ShipwrightUI">
+            <summary>
+            Represents the Print Shop UI
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.printQueue">
+            <summary>
+            Represents the list of build items to print.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.jobStatus">
+            <summary>
+            Status of the current print job.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.onPrintStatusUpdate">
+            <summary>
+            Callback to let the controller know about the print state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.gravityRequirementsMet">
+            <summary>
+            Callback to see if the part's gravity requirements are met.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.pressureRequrementsMet">
+            <summary>
+            Callback to see if the part's pressure requirements are met.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.onSpawnShip">
+            <summary>
+            Callback to let the controller to spawn the printed ship.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.onDecoupleShip">
+            <summary>
+            Callback to let the controller to decouple the printed ship.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.onOpenCraftBrowser">
+            <summary>
+            Callback to select a ship to print.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.onCancelVesselBuild">
+            <summary>
+            Callback to tell the controller to cancel the build.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.isPrinting">
+            <summary>
+            Flag indicating that the printer is printing
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.part">
+            <summary>
+            The Part associated with the UI.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.showSpawnButton">
+            <summary>
+            Flag to indicate whether or not to show the spawn button.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.showDecoupleButton">
+            <summary>
+            Flag to indicate whether or not to show the decouple button.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.craftName">
+            <summary>
+            Name of the craft being printed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.estimatedCompletion">
+            <summary>
+            Estimated time to completion of the vessel.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipwrightUI.createAlarm">
+            <summary>
+            Flag to indicate if an alarm shoudl be created for print job completion.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.ShipwrightUI.SetVisible(System.Boolean)">
+            <summary>
+            Toggles window visibility
+            </summary>
+            <param name="newValue">A flag indicating whether the window shoudld be visible or not.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.ShipwrightUI.DrawWindowContents(System.Int32)">
+            <summary>
+            Draws the window
+            </summary>
+            <param name="windowId">An int representing the window ID.</param>
+        </member>
         <member name="T:Sandcastle.PrintShop.RecyclerUI">
             <summary>
             Represents the Print Shop UI
@@ -300,14 +509,14 @@
             <param name="minimumPressure">A float containing the minimum required pressure.</param>
             <returns>true if the requirement can be met, false if not.</returns>
         </member>
+        <member name="T:Sandcastle.PrintShop.SpawnPartDelegate">
+            <summary>
+            Asks the delegate to spawn the current part that's just been printed.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PrintShop.PrintShopUI">
             <summary>
             Represents the Print Shop UI
-            </summary>
-        </member>
-        <member name="F:Sandcastle.PrintShop.PrintShopUI.titleText">
-            <summary>
-            Title of the selection dialog.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.PrintShopUI.partsList">
@@ -340,6 +549,11 @@
             Callback to see if the part's pressure requirements are met.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.onSpawnPrintedPart">
+            <summary>
+            Callback to let the controller to spawn the printed part.
+            </summary>
+        </member>
         <member name="F:Sandcastle.PrintShop.PrintShopUI.isPrinting">
             <summary>
             Flag indicating that the printer is printing
@@ -355,6 +569,11 @@
             Whitelisted categories that the printer can print from.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.showPartSpawnButton">
+            <summary>
+            Flag to indicate whether or not to show the part spawn button.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.PrintShopUI.SetVisible(System.Boolean)">
             <summary>
             Toggles window visibility
@@ -366,6 +585,87 @@
             Draws the window
             </summary>
             <param name="windowId">An int representing the window ID.</param>
+        </member>
+        <member name="T:Sandcastle.PrintShop.SCShipbreaker">
+            <summary>
+            Represents a shop that is capable of printing items and placing them in an available inventory.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.debugMode">
+            <summary>
+            A flag to enable/disable debug mode.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleSpeedUSec">
+            <summary>
+            The number of resource units per second that the recycler can recycle.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.UseSpecialistBonus">
+            <summary>
+            Flag to indicate whether or not to allow specialists to improve the recycle speed. Exactly how the specialist(s) does that is a trade secret.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.SpecialistBonus">
+            <summary>
+            Per experience rating, how much to improve the recycle speed by.
+            The print shop part must have crew capacity.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.ExperienceEffect">
+            <summary>
+            The skill required to improve the recycle speed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.runningEffect">
+            <summary>
+            Name of the effect to play from the part's EFFECTS node when the printer is running.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recyclePercentage">
+            <summary>
+            What percentage of resources will be recycled.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.animationName">
+            <summary>
+            Name of the animation to play during printing.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recyclingEnabled">
+            <summary>
+            Flag to indicate if recycling is enabled.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.maxBuildingDistance">
+            <summary>
+            Maximum distance allowed for other shipbreakers to help break up a vessel.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleQueue">
+            <summary>
+            Represents the list of build items to recycle.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleState">
+            <summary>
+            Current state of the recycler.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleStatusText">
+            <summary>
+            status text.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.lastUpdateTime">
+            <summary>
+            Describes when the recycler was last updated.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.currentJob">
+            <summary>
+            Current job being recycled.
+            </summary>
         </member>
         <member name="T:Sandcastle.PrintShop.WBICargoRecycler">
             <summary>
@@ -502,6 +802,47 @@
             Index of the part variant to use (if any).
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.packedVolume">
+            <summary>
+            Volume of the item being printed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.isBlacklisted">
+            <summary>
+            Flag indicating if the part is blacklisted or not. If blacklisted then it can't be printed by a shipwright printer.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.mass">
+            <summary>
+            Mass of the part including variant.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.unpackedVolume">
+            <summary>
+            Volume of the part when unpacked.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.isUnpacked">
+            <summary>
+            Flag to indicate whether or not the part is unpacked.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.flightId">
+            <summary>
+            ID of the part.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.waitForSupportCompletion">
+            <summary>
+            Flag to wait for a support unit to complete the job.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.skipInventoryAdd">
+            <summary>
+            Flag to indicate whether or not to add the item to the inventory when printing has completed.
+            This is used by printers that are supporting a lead Shipwright. Instead of storing the part, they hand it over to the lead Shipwright for inclusion in a vessel.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.BuildItem.#ctor(ConfigNode)">
             <summary>
             Constructs a new build item from the supplied config node.
@@ -579,6 +920,74 @@
             </summary>
             <returns>A MaterialsList containing the default materials.</returns>
         </member>
+        <member name="T:Sandcastle.PrintShop.WBIPrintShop">
+            <summary>
+            Represents a shop that is capable of printing items and placing them in an available inventory.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printShopGUIName">
+            <summary>
+            GUI name to use for the event that opens the printer GUI.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printShopwGroupDisplayName">
+            <summary>
+            Alternate group display name to use.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printShopDialogTitle">
+            <summary>
+            Title to use for the print shop dialog
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printStateString">
+            <summary>
+            Current print state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.enablePartSpawn">
+            <summary>
+            Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.spawnTransformName">
+            <summary>
+            Where to spawn the printed part.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.offsetAxis">
+            <summary>
+            Axis upon which to displace the part during spawn in. X, Y, Z
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.WBIPrinterRequirements">
+            <summary>
+            Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper.
+            We have to do this because GetInfo is called during game start, we rely on PartLoader to get information about other parts that are needed to 3D print this part,
+            and not all of the parts will be loaded when GetInfo is called.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.SCShipwright">
+            <summary>
+            Prints entire vessels
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipwright.printStateString">
+            <summary>
+            Current printer state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipwright.spawnTransformName">
+            <summary>
+            Where to spawn the printed part.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipwright.maxCraftDimensions">
+            <summary>
+            Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
+            Leave empty for unlimited printing.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PrintShop.WBIPrintStates">
             <summary>
             Lists the different printer states
@@ -604,77 +1013,80 @@
             The recycler is recycling something.
             </summary>
         </member>
-        <member name="T:Sandcastle.PrintShop.WBIPrintShop">
-            <summary>
-            Represents a shop that is capable of printing items and placing them in an available inventory.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.debugMode">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.debugMode">
             <summary>
             A flag to enable/disable debug mode.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.maxPrintVolume">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.maxPrintVolume">
             <summary>
             The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printSpeedUSec">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.printSpeedUSec">
             <summary>
             The number of resource units per second that the printer can print.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.UseSpecialistBonus">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.UseSpecialistBonus">
             <summary>
             Flag to indicate whether or not to allow specialists to improve the print speed. Exactly how the specialist(s) does that is a trade secret.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.SpecialistBonus">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.SpecialistBonus">
             <summary>
             Per experience rating, how much to improve the print speed by.
             The print shop part must have crew capacity.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.ExperienceEffect">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.ExperienceEffect">
             <summary>
             The skill required to improve the print speed.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.runningEffect">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.runningEffect">
             <summary>
             Name of the effect to play from the part's EFFECTS node when the printer is running.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printQueue">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.printQueue">
             <summary>
             Represents the list of build items to print.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.printState">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.printState">
             <summary>
             Current state of the printer.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.lastUpdateTime">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.lastUpdateTime">
             <summary>
             Describes when the printer was last updated.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.currentJob">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.currentJob">
             <summary>
             Current job being printed.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.animationName">
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.animationName">
             <summary>
             Name of the animation to play during printing.
             </summary>
         </member>
-        <member name="T:Sandcastle.PrintShop.WBIPrinterRequirements">
+        <member name="F:Sandcastle.SandcastleScenario.onSupportPrintingRequest">
             <summary>
-            Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper.
-            We have to do this because GetInfo is called during game start, we rely on PartLoader to get information about other parts that are needed to 3D print this part,
-            and not all of the parts will be loaded when GetInfo is called.
+            A vessel printer has requested a list of parts to be printed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.SandcastleScenario.onPartPrinted">
+            <summary>
+            A part has been printed.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.SandcastleScenario.onPartRecycled">
+            <summary>
+            A part has been recycled.
             </summary>
         </member>
         <member name="T:Sandcastle.Utilities.PrinterInfoHelper">

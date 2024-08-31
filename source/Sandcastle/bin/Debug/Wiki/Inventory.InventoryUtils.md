@@ -40,7 +40,7 @@ Determines whether or not the supplied inventory has space for the desired part.
 > #### Return value
 > true if the inventory has space for the part, false if not.
 
-### HasEnoughSpace(Vessel,AvailablePart,System.Int32)
+### HasEnoughSpace(Vessel,AvailablePart,System.Int32,System.Double,System.Single)
 Determines whether or not the vessel has enough storage space.
 > #### Parameters
 > **vessel:** The vessel to query

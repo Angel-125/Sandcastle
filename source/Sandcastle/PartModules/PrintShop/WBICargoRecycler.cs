@@ -20,7 +20,6 @@ namespace Sandcastle.PrintShop
         const float kMsgDuration = 5;
         const float kInventoryRefreshDelay = 3;
         const string kRecycleState = "recycleState";
-        const string kRecyclerGroup = "PrintShop";
         #endregion
 
         #region Fields
@@ -83,7 +82,7 @@ namespace Sandcastle.PrintShop
         /// <summary>
         /// Current state of the recycler.
         /// </summary>
-        [KSPField(guiName = "#LOC_SANDCASTLE_recycleState", guiActive = true, groupName = kRecyclerGroup, groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName")]
+        [KSPField(guiName = "#LOC_SANDCASTLE_recycleState", guiActive = true, groupName = "#LOC_SANDCASTLE_printShopGroupName", groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName")]
         public WBIPrintStates recycleState = WBIPrintStates.Idle;
 
         /// <summary>
@@ -273,7 +272,7 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Events
-        [KSPEvent(guiActive = true, groupName = kRecyclerGroup, groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName", guiName = "#LOC_SANDCASTLE_openRecyclerGUI")]
+        [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_printShopGroupName", groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName", guiName = "#LOC_SANDCASTLE_openRecyclerGUI")]
         public void OpenGUI()
         {
             recyclerUI.partsList = partsToRecycle;
