@@ -19,8 +19,8 @@ Name of the effect to play from the part's EFFECTS node when the printer is runn
 What percentage of resources will be recycled.
 ### animationName
 Name of the animation to play during printing.
-### recyclingEnabled
-Flag to indicate if recycling is enabled.
+### vesselCaptureEnabled
+Flag to indicate if vessel capture is enabled.
 ### maxBuildingDistance
 Maximum distance allowed for other shipbreakers to help break up a vessel.
 ### recycleQueue

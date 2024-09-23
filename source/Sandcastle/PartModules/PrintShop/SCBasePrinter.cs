@@ -94,6 +94,12 @@ namespace Sandcastle.PrintShop
         /// </summary>
         [KSPField]
         public string runningEffect = string.Empty;
+
+        /// <summary>
+        /// Where to spawn the printed part.
+        /// </summary>
+        [KSPField]
+        public string spawnTransformName;
         #endregion
 
         #region Housekeeping
@@ -130,12 +136,13 @@ namespace Sandcastle.PrintShop
         public bool missingRequirements = false;
         protected Dictionary<double, Part> unHighlightList = null;
         protected AnimationState animationState;
+        protected Transform spawnTransform = null;
         string partsBlacklisted = string.Empty;
         string partsWhitelisted = string.Empty;
         #endregion
 
         #region FixedUpdate
-        public void FixedUpdate()
+        public virtual void FixedUpdate()
         {
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
@@ -206,7 +213,12 @@ namespace Sandcastle.PrintShop
             GameEvents.onVesselChange.Add(onVesselChange);
             SandcastleScenario.onSupportPrintingRequest.Add(onSupportPrintingRequest);
 
+            // Setup animations
             setupAnimation();
+
+            // Setup spawn transform
+            if (!string.IsNullOrEmpty(spawnTransformName))
+                spawnTransform = part.FindModelTransform(spawnTransformName);
         }
 
         public override void OnAwake()

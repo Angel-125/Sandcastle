@@ -264,7 +264,8 @@ namespace Sandcastle.PrintShop
             mass = availablePart.partPrefab.mass;
 
             // Get the materials list
-            MaterialsList materialsList = MaterialsList.GetListForCategory(availablePart.category.ToString());
+            string categoryName = getCategoryName(availablePart.category, availablePart.tags);
+            MaterialsList materialsList = MaterialsList.GetListForCategory(categoryName);
             ModuleResource[] resources = materialsList.materials.ToArray();
             ModuleResource resource;
             ConfigNode node;
@@ -373,6 +374,10 @@ namespace Sandcastle.PrintShop
                     requiredComponents.Add(component);
                 }
             }
+
+            // Also add any components required by the materials list.
+            if (materialsList.requiredComponents.Count > 0)
+                requiredComponents.AddRange(materialsList.requiredComponents);
 
             // Get minimum gravity requirements
             if (availablePart.partConfig.HasValue(kMinimumGravity))
@@ -734,6 +739,26 @@ namespace Sandcastle.PrintShop
         double calculateRequiredAmount(double partMass, double resourceDensity, double rate)
         {
             return (partMass / resourceDensity) * rate;
+        }
+
+        string getCategoryName(PartCategories category, string tags)
+        {
+            // If we have a community category tag then use the first one found as the category.
+            if (category == PartCategories.none)
+            {
+                string[] tagsArray = tags.Split(new char[] { ' ' });
+                for (int index = 0; index < tagsArray.Length; index++)
+                {
+                    if (tagsArray.Contains("cck-"))
+                        return tagsArray[index];
+                }
+                return category.ToString();
+            }
+
+            else
+            {
+                return category.ToString();
+            }
         }
         #endregion
     }

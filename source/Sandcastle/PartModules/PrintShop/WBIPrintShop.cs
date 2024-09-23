@@ -50,12 +50,6 @@ namespace Sandcastle.PrintShop
         public bool enablePartSpawn = false;
 
         /// <summary>
-        /// Where to spawn the printed part.
-        /// </summary>
-        [KSPField]
-        public string spawnTransformName;
-
-        /// <summary>
         /// Axis upon which to displace the part during spawn in. X, Y, Z
         /// </summary>
         [KSPField]
@@ -65,7 +59,6 @@ namespace Sandcastle.PrintShop
         PrintShopUI shopUI = null;
         List<string> whitelistedCategories;
         BuildItem buildItemToSpawn = null;
-        Transform spawnTransform = null;
         #endregion
 
         #region Overrides
@@ -77,9 +70,6 @@ namespace Sandcastle.PrintShop
 
             // Update the filtered list of cargo parts
             updateFilteredParts();
-
-            if (!string.IsNullOrEmpty(spawnTransformName))
-                spawnTransform = part.FindModelTransform(spawnTransformName);
         }
 
         public override void OnUpdate()

@@ -632,9 +632,9 @@
             Name of the animation to play during printing.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recyclingEnabled">
+        <member name="F:Sandcastle.PrintShop.SCShipbreaker.vesselCaptureEnabled">
             <summary>
-            Flag to indicate if recycling is enabled.
+            Flag to indicate if vessel capture is enabled.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.SCShipbreaker.maxBuildingDistance">
@@ -896,6 +896,11 @@
             List of resource materials required.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.MaterialsList.requiredComponents">
+            <summary>
+            List of components required by the materials list.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.MaterialsList.LoadLists">
             <summary>
             Loads the materials lists that specify what materials are required to produce an item from a particular category.
@@ -950,11 +955,6 @@
             Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.spawnTransformName">
-            <summary>
-            Where to spawn the printed part.
-            </summary>
-        </member>
         <member name="F:Sandcastle.PrintShop.WBIPrintShop.offsetAxis">
             <summary>
             Axis upon which to displace the part during spawn in. X, Y, Z
@@ -975,11 +975,6 @@
         <member name="F:Sandcastle.PrintShop.SCShipwright.printStateString">
             <summary>
             Current printer state.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.PrintShop.SCShipwright.spawnTransformName">
-            <summary>
-            Where to spawn the printed part.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.SCShipwright.maxCraftDimensions">
@@ -1047,6 +1042,11 @@
         <member name="F:Sandcastle.PrintShop.SCBasePrinter.runningEffect">
             <summary>
             Name of the effect to play from the part's EFFECTS node when the printer is running.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCBasePrinter.spawnTransformName">
+            <summary>
+            Where to spawn the printed part.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.SCBasePrinter.printQueue">

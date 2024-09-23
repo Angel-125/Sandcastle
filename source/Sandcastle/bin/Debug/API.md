@@ -484,8 +484,8 @@ Name of the effect to play from the part's EFFECTS node when the printer is runn
 What percentage of resources will be recycled.
 ### animationName
 Name of the animation to play during printing.
-### recyclingEnabled
-Flag to indicate if recycling is enabled.
+### vesselCaptureEnabled
+Flag to indicate if vessel capture is enabled.
 ### maxBuildingDistance
 Maximum distance allowed for other shipbreakers to help break up a vessel.
 ### recycleQueue
@@ -614,6 +614,8 @@ Represents a resource node.
 Name of the materials list. This should correspond to one of the part categories.
 ### materials
 List of resource materials required.
+### requiredComponents
+List of components required by the materials list.
 ### materialsLists
 A map of all materials lists, keyed by part category name.
 ## Methods
@@ -653,8 +655,6 @@ Title to use for the print shop dialog
 Current print state.
 ### enablePartSpawn
 Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
-### spawnTransformName
-Where to spawn the printed part.
 ### offsetAxis
 Axis upon which to displace the part during spawn in. X, Y, Z
 
@@ -671,8 +671,6 @@ Prints entire vessels
 
 ### printStateString
 Current printer state.
-### spawnTransformName
-Where to spawn the printed part.
 ### maxCraftDimensions
 Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
 

@@ -59,6 +59,7 @@
     <Publicize Include="Assembly-CSharp:Vessel.PhysicsHoldExpired" />
     <Publicize Include="Assembly-CSharp:Vessel.useFramesAtStartupOverride" />
     <Publicize Include="Assembly-CSharp:Vessel.SetPhysicsHoldExpiryOverride" />
+    <Publicize Include="Assembly-CSharp:Vessel.ignoreCollisionsFrames" />
     <Publicize Include="Assembly-CSharp:ModuleResource._cachedResourceDef" />
     <Publicize Include="Assembly-CSharp:FlightGlobals.ToggleVesselEaseIn" />
     <Publicize Include="Assembly-CSharp:ShipConstruct.vesselType" />
@@ -133,7 +134,10 @@
     <Compile Include="PartModules\PrintShop\GUI\ShipwrightUI.cs" />
     <Compile Include="PartModules\PrintShop\GUI\RecyclerUI.cs" />
     <Compile Include="PartModules\PrintShop\GUI\PrintShopUI.cs" />
+    <Compile Include="PartModules\PrintShop\SCModuleBoundingBox.cs" />
     <Compile Include="PartModules\PrintShop\SCShipbreaker.cs" />
+    <Compile Include="PartModules\PrintShop\SupportClasses\VectorLine.cs" />
+    <Compile Include="PartModules\PrintShop\SupportClasses\WireframeBox.cs" />
     <Compile Include="PartModules\PrintShop\WBICargoRecycler.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\BuildItem.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\MaterialsList.cs" />

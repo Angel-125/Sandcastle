@@ -832,50 +832,65 @@ namespace Sandcastle.Inventory
 
             Part rootPart = shipConstruct.parts[0].localRoot;
 
-            /*
-            // This attempt to rotate the dropTransform hasn't been successful. Keep this code for future experimentation.
-            Vector3 centerOfMass = parentPart.vessel.CoMD;
-            Vector3 upVector = (centerOfMass - parentPart.vessel.mainBody.position).normalized;
-            Vector3 northVector = Vector3.ProjectOnPlane((parentPart.vessel.mainBody.position + parentPart.vessel.mainBody.transform.up * (float)parentPart.vessel.mainBody.Radius) - centerOfMass, upVector).normalized;
-            Quaternion surfaceRotation = Quaternion.Inverse(Quaternion.Euler(90.0f, 0.0f, 0.0f) * Quaternion.Inverse(parentPart.vessel.transform.rotation) * Quaternion.LookRotation(northVector, upVector));
-            double pitch = surfaceRotation.eulerAngles.x > 180 ? 360 - surfaceRotation.eulerAngles.x : -surfaceRotation.eulerAngles.x;
-            double roll = surfaceRotation.eulerAngles.z > 180 ? 360 - surfaceRotation.eulerAngles.z : -surfaceRotation.eulerAngles.z;
-            Debug.Log("[Sandcastle] - parentPart.vessel: pitch: " + pitch + " roll: " + roll);
-
-            dropTransform.Rotate(Vector3.right, -(float)pitch);
-            dropTransform.Rotate(Vector3.up, -(float)roll);
-            */
-
             // Setup launch clamps
             setupLaunchClamps(shipConstruct);
 
-            // Calculate craft size so that we can offset the dropTransform and avoid colliding with the printer.
-            // VAB/SPH dimensions: Height (X) Width (Y) Length (Z)
-            Vector3 craftSize = ShipConstruction.CalculateCraftSize(shipConstruct);
+            // If we're in orbit, offset the craft so it won't slam into the printer.
+            Vector3 originalPosition = dropTransform.position;
+            if (!parentPart.vessel.LandedOrSplashed)
+            {
+                // Calculate craft size so that we can offset the dropTransform and avoid colliding with the printer.
+                // VAB/SPH dimensions: Height (X) Width (Y) Length (Z)
+                Vector3 craftSize = ShipConstruction.CalculateCraftSize(shipConstruct);
 
-            // Vessel's front will be pointing towards the printhead.
-            Quaternion baseRotation = new Quaternion(0, 1, 0, 0);
-            Quaternion rotation = baseRotation * rootPart.transform.rotation;
-            rootPart.transform.rotation = dropTransform.rotation * rotation;
+                // Vessel's front will be pointing towards the printhead.
+                Quaternion baseRotation = new Quaternion(0, 1, 0, 0);
+                Quaternion rotation = baseRotation * rootPart.transform.rotation;
+                rootPart.transform.rotation = dropTransform.rotation * rotation;
 
-            // Get the bounds
-            Bounds printerBounds = getBounds(parentPart, new List<Part>() { parentPart });
-            printerBounds.Expand(printerBounds.size.magnitude);
-            Debug.Log("[Sandcastle] - Printer Bounds: " + printerBounds.ToString());
-            Bounds craftBounds = getBounds(rootPart, shipConstruct.parts);
-            Debug.Log("[Sandcastle] - Craft Bounds: " + craftBounds.ToString());
+                // Get the bounds
+                Bounds printerBounds = getBounds(parentPart, new List<Part>() { parentPart });
+                //printerBounds.Expand(printerBounds.size.magnitude / 3);
+                Bounds craftBounds = getBounds(rootPart, shipConstruct.parts);
+                if (SandcastleScenario.debugMode)
+                {
+                    Debug.Log("[Sandcastle] - Printer Bounds: " + printerBounds.ToString());
+                    Debug.Log("[Sandcastle] - Craft Bounds: " + craftBounds.ToString());
+                }
 
-            // Offset the craft so it won't slam into the printer.
-            float length = rootPart.transform.position.z - craftBounds.min.z;
-            Vector3 offset = new Vector3(0, 0, length);
-            Vector3 pos = dropTransform.TransformPoint(offset);
-            rootPart.transform.position = pos;
+                // Move the craft away from the printer
+                int count = 0;
+                while (craftBounds.Intersects(printerBounds) && count < 50)
+                {
+                    //dropTransform.Translate(-rootPart.transform.up);
+                    //rootPart.transform.position = dropTransform.position;
+                    rootPart.transform.Translate(-10 * rootPart.transform.up.normalized);
+                    craftBounds = getBounds(rootPart, shipConstruct.parts);
+                    count += 1;
+                }
+
+                // Safety check: If we're still colliding with the printer, then move way back.
+                if (craftBounds.Intersects(printerBounds))
+                {
+                    dropTransform.Translate(dropTransform.forward * craftBounds.extents.z);
+                    rootPart.transform.position = dropTransform.position;
+                }
+            }
+            else
+            {
+                // Put the craft to the ground.
+                ShipConstruction.PutShipToGround(shipConstruct, dropTransform);
+            }
+
+            // Reset drop transform.
+            dropTransform.position = originalPosition;
 
             // Spawn the vessel into the game.
             ShipConstruction.AssembleForLaunch(shipConstruct, "", "", parentPart.flagURL, FlightDriver.FlightStateCache, new VesselCrewManifest());
             Vessel vessel = shipConstruct.parts[0].localRoot.GetComponent<Vessel>();
             vessel.launchedFrom = parentPart.vessel.launchedFrom;
             vessel.vesselType = VesselType.Probe;
+            vessel.ignoreCollisionsFrames = 60;
 
             // Update highlighters
             rootPart.highlighter.UpdateHighlighting(true);
@@ -898,7 +913,7 @@ namespace Sandcastle.Inventory
             {
                 vessel.UpdateLandedSplashed();
 
-                // Register the vessel to be repositioned after it goes off rails.
+                // Register the vessel to be repositioned after it goes off rails. This is to prevent ground collisions.
                 SandcastleScenario.shared.addSpawnedVessel(vessel);
             }
 
@@ -912,6 +927,8 @@ namespace Sandcastle.Inventory
                 // Couple the vessel to the printer for later release.
                 parentPart.StartCoroutine(coupleVessel(vessel, parentPart, onVesselCoupled));
             }
+
+            // Go for launch!
             StageManager.BeginFlight();
         }
 
@@ -1019,7 +1036,29 @@ namespace Sandcastle.Inventory
                 return new Bounds();
 
             return PartGeometryUtil.MergeBounds(boundsList.ToArray(), rootPart.transform.root);
+        }
 
+        public static bool allPartsStarted(Vessel vessel)
+        {
+            int count = vessel.Parts.Count;
+            Part part;
+            bool allPartsStarted = false;
+            while (!allPartsStarted)
+            {
+                allPartsStarted = true;
+                for (int index = 0; index < count; index++)
+                {
+                    part = vessel.Parts[index];
+                    if (!part.started)
+                    {
+                        return false;
+                    }
+                }
+
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+            }
+
+            return true;
         }
 
         public static IEnumerator<YieldInstruction> coupleVessel(Vessel vessel, Part parentPart, Callback<DockedVesselInfo> onVesselCoupled)
@@ -1051,6 +1090,7 @@ namespace Sandcastle.Inventory
             }
 
             // Create docked vessel info
+            Debug.Log("[Sandcastle] - " + vessel.vesselName + " going off rails.");
             vessel.GoOffRails();
             DockedVesselInfo dockedVesselInfo = new DockedVesselInfo();
             dockedVesselInfo.name = vessel.name;
@@ -1061,13 +1101,17 @@ namespace Sandcastle.Inventory
             // NOTE: Doing this will cause the vessel object to be destroyed and it will become null.
             // But you can get the docked root part via its flightID (rootPartUId in docked vessel info).
             vessel.rootPart.Couple(parentPart);
+            Debug.Log("[Sandcastle] - " + vessel.vesselName + " root part" + vessel.rootPart.partInfo.name + " coupled to " + parentPart.partInfo.name);
 
             // Reset active vessel to the printer.
             if (parentPart.vessel != FlightGlobals.ActiveVessel)
                 FlightGlobals.SetActiveVessel(parentPart.vessel);
 
             // Signal that we're done.
+            Debug.Log("[Sandcastle] - calling onVesselCoupled");
             onVesselCoupled(dockedVesselInfo);
+
+            yield return null;
         }
 
         public static IEnumerator<YieldInstruction> decoupleVessel(Part rootPart, DockedVesselInfo dockedVesselInfo, bool switchToVessel = false)

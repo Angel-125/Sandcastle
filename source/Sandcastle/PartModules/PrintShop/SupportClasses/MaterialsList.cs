@@ -33,6 +33,9 @@ namespace Sandcastle.PrintShop
         const string kDefaultResource = "Ore";
         const string kDefaultRate = "5";
         const string kDefaultFlowMode = "STAGE_PRIORITY_FLOW";
+        const string kRequiredComponentNode = "REQUIRED_COMPONENT";
+        const string kRequiredComponentName = "name";
+        const string kRequriedComponentAmount = "amount";
         #endregion
 
         #region Housekeeping
@@ -45,6 +48,11 @@ namespace Sandcastle.PrintShop
         /// List of resource materials required.
         /// </summary>
         public List<ModuleResource> materials;
+
+        /// <summary>
+        /// List of components required by the materials list.
+        /// </summary>
+        public List<PartRequiredComponent> requiredComponents;
         #endregion
 
         #region Constructors
@@ -69,6 +77,12 @@ namespace Sandcastle.PrintShop
             }
 
             return materialsLists;
+        }
+
+        MaterialsList()
+        {
+            materials = new List<ModuleResource>();
+            requiredComponents = new List<PartRequiredComponent>();
         }
         #endregion
 
@@ -136,12 +150,13 @@ namespace Sandcastle.PrintShop
             // Load the config nodes.
             for (int index = 0; index < nodes.Length; index++)
             {
+                materialsList = new MaterialsList();
+
                 node = nodes[index];
+
+                // Load the resources
                 if (node.HasValue(kListName) && node.HasNode(kResourceNode))
                 {
-                    materialsList = new MaterialsList();
-                    materialsList.materials = new List<ModuleResource>();
-
                     materialsList.name = node.GetValue(kListName);
 
                     resourceNodes = node.GetNodes(kResourceNode);
@@ -153,6 +168,28 @@ namespace Sandcastle.PrintShop
                     }
 
                     materialsLists.Add(materialsList.name, materialsList);
+                }
+
+                // Now load the requrired components, if any.
+                if (node.HasNode(kRequiredComponentNode))
+                {
+                    PartRequiredComponent component;
+                    ConfigNode[] componentNodes = node.GetNodes(kRequiredComponentNode);
+                    ConfigNode componentNode;
+
+                    for (int nodeIndex = 0; nodeIndex < componentNodes.Length; nodeIndex++)
+                    {
+                        componentNode = componentNodes[index];
+                        if (!componentNode.HasValue(kRequiredComponentName) || !componentNode.HasValue(kRequriedComponentAmount))
+                            continue;
+
+                        component = new PartRequiredComponent();
+                        component.name = componentNode.GetValue(kRequiredComponentName);
+                        if (!int.TryParse(componentNode.GetValue(kRequriedComponentAmount), out component.amount))
+                            component.amount = 1;
+
+                        materialsList.requiredComponents.Add(component);
+                    }
                 }
             }
         }

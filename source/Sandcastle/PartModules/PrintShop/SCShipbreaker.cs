@@ -74,10 +74,10 @@ namespace Sandcastle.PrintShop
         public string animationName = string.Empty;
 
         /// <summary>
-        /// Flag to indicate if recycling is enabled.
+        /// Flag to indicate if vessel capture is enabled.
         /// </summary>
         [KSPField(isPersistant = true)]
-        public bool recyclingEnabled;
+        public bool vesselCaptureEnabled;
 
         /// <summary>
         /// Maximum distance allowed for other shipbreakers to help break up a vessel.
@@ -214,11 +214,11 @@ namespace Sandcastle.PrintShop
             // Setup animation
             setupAnimation();
 
-            // Setup recycle toggle button
-            if (recyclingEnabled)
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_shipbreakerOff");
+            // Setup vessel capture toggle button
+            if (vesselCaptureEnabled)
+                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOff");
             else
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_shipbreakerOn");
+                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
         }
 
         public override void OnAwake()
@@ -376,15 +376,15 @@ namespace Sandcastle.PrintShop
             recyclerUI.SetVisible(true);
         }
 
-        [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_shipbreakerGroupName", groupDisplayName = "#LOC_SANDCASTLE_shipbreakerGroupName", guiName = "#LOC_SANDCASTLE_shipbreakerOn")]
+        [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_shipbreakerGroupName", groupDisplayName = "#LOC_SANDCASTLE_shipbreakerGroupName", guiName = "#LOC_SANDCASTLE_vesselCaptureOn")]
         public void ToggleActiveState()
         {
-            recyclingEnabled = !recyclingEnabled;
+            vesselCaptureEnabled = !vesselCaptureEnabled;
 
-            if (recyclingEnabled)
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_shipbreakerOff");
+            if (vesselCaptureEnabled)
+                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOff");
             else
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_shipbreakerOn");
+                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
         }
         #endregion
 
@@ -392,9 +392,9 @@ namespace Sandcastle.PrintShop
 
         public void DisableRecycler()
         {
-            recyclingEnabled = false;
+            vesselCaptureEnabled = false;
             recycleState = WBIPrintStates.Idle;
-            Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_shipbreakerOn");
+            Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
         }
 
         protected void updateUIStatus()
@@ -435,7 +435,7 @@ namespace Sandcastle.PrintShop
             {
                 return;
             }
-            if (!recyclingEnabled)
+            if (!vesselCaptureEnabled)
             {
                 return;
             }
@@ -475,7 +475,10 @@ namespace Sandcastle.PrintShop
 
             // Check to make sure we're not already recycling the vessel.
             if (collidedPart.vessel == vesselToRecycle)
+            {
+                Debug.Log(formatPartID() + " - Exiting OnTriggerEnter, we already have a vessel to recycle.");
                 return;
+            }
 
             // Set vessel to recycle
             vesselToRecycle = collidedPart.vessel;
@@ -525,6 +528,10 @@ namespace Sandcastle.PrintShop
         {
             dockedVesselInfo = dockedVessel;
             Debug.Log(formatPartID() + " - onVesselCoupled");
+
+            // Disable vessel capture.
+            vesselCaptureEnabled = false;
+            Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
 
             if (recycleQueue.Count <= 0)
                 processVesselToRecycle();
@@ -834,6 +841,9 @@ namespace Sandcastle.PrintShop
 
         private void handleRecycleJob(double elapsedTime)
         {
+            if (recycleQueue == null || recycleQueue.Count <= 0)
+                return;
+
             // Update states
             missingRequirements = false;
 

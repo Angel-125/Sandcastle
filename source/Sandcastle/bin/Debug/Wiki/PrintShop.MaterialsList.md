@@ -15,6 +15,8 @@ Represents a resource node.
 Name of the materials list. This should correspond to one of the part categories.
 ### materials
 List of resource materials required.
+### requiredComponents
+List of components required by the materials list.
 ### materialsLists
 A map of all materials lists, keyed by part category name.
 ## Methods

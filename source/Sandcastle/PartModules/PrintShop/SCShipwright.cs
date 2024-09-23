@@ -24,12 +24,6 @@ namespace Sandcastle.PrintShop
         public string printStateString;
 
         /// <summary>
-        /// Where to spawn the printed part.
-        /// </summary>
-        [KSPField]
-        public string spawnTransformName;
-
-        /// <summary>
         /// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
         /// Leave empty for unlimited printing.
         /// </summary>
@@ -37,7 +31,6 @@ namespace Sandcastle.PrintShop
         public string maxCraftDimensions;
 
         CraftBrowserDialog craftBrowserDialog = null;
-        Transform spawnTransform = null;
         string editorFacility;
         string craftFilePath;
         string shipName;
@@ -51,6 +44,8 @@ namespace Sandcastle.PrintShop
         ShipwrightUI shipwrightUI = null;
         bool spawnCraftAfterLoading;
         uint alarmID;
+        Vector3 shipSize;
+        SCModuleBoundingBox moduleBoundingBox;
         #endregion
 
         #region Events
@@ -91,6 +86,12 @@ namespace Sandcastle.PrintShop
 
             part.StartCoroutine(InventoryUtils.decoupleVessel(dockedVesselRootPart, dockedVesselInfo, true));
         }
+
+        [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_shipwrightGroupName", groupDisplayName = "#LOC_SANDCASTLE_shipwrightGroupName", guiName = "(Debug) Spawn Vessel")]
+        public void SpawnVessel()
+        {
+            onSpawnShip();
+        }
         #endregion
 
         #region Overrides
@@ -98,8 +99,11 @@ namespace Sandcastle.PrintShop
         {
             base.OnStart(state);
 
+            moduleBoundingBox = part.FindModuleImplementing<SCModuleBoundingBox>();
+
             Events["LoadCraft"].active = debugMode;
             Events["DecoupleCraft"].active = debugMode;
+            Events["SpawnVessel"].active = false; // Only needed once we load a vessel.
 
             if (!string.IsNullOrEmpty(spawnTransformName))
                 spawnTransform = part.FindModelTransform(spawnTransformName);
@@ -120,6 +124,10 @@ namespace Sandcastle.PrintShop
             {
                 // If craft was coupled, show decouple button. Otherwise show finalize button.
                 shipwrightUI.showSpawnButton = true;
+
+                // Show bounding box
+                if (part.vessel.LandedOrSplashed)
+                    showVesselBoundingBox();
             }
         }
 
@@ -174,6 +182,10 @@ namespace Sandcastle.PrintShop
                 return;
             }
 
+            // Show bounding box
+            showVesselBoundingBox();
+
+            // Show spawn button
             shipwrightUI.showSpawnButton = true;
 
             // Edge case: user could go away from the vessel and come back to it. Make sure that we know to show the finalize button
@@ -223,6 +235,53 @@ namespace Sandcastle.PrintShop
             }
 
             base.handlePrintJob(elapsedTime);
+        }
+
+        void showVesselBoundingBox()
+        {
+            if (moduleBoundingBox != null && spawnTransform != null)
+            {
+                ShipConstruct shipConstruct = ShipConstruction.LoadShip(craftFilePath);
+
+                // Get the vessel bounds. The center will be relative to the root part.
+                Bounds bounds = InventoryUtils.getBounds(shipConstruct.parts[0].localRoot, shipConstruct.parts);
+                Vector3 offset = shipConstruct.shipFacility == EditorFacility.VAB ? new Vector3(0, bounds.center.y - spawnTransform.position.y, 0) : new Vector3(0, 0, bounds.center.z - spawnTransform.position.z);
+
+                // Reset the bounds so that it is centered on the spawnTransform. We'll apply the offset shortly.
+                bounds = new Bounds(spawnTransform.position, shipSize);
+
+                // Now set up the bounding box.
+                moduleBoundingBox.originTransform = spawnTransform;
+                moduleBoundingBox.SetupWireframe(spawnTransform, bounds, offset);
+                moduleBoundingBox.wireframeIsVisible = true;
+                moduleBoundingBox.moveGizmoIsVisible = true;
+
+                // Delete the parts
+                // This will get rid of the unusable craft parts that we currently don't need.
+                List<Part> doomed = new List<Part>();
+                for (int index = 0; index < shipConstruct.parts.Count; index++)
+                {
+                    if (shipConstruct.parts[index].gameObject != null)
+                        doomed.Add(shipConstruct.parts[index]);
+                }
+                for (int index = 0; index < doomed.Count; index++)
+                {
+                    shipConstruct.Remove(doomed[index]);
+                    doomed[index].OnDelete();
+                    Destroy(doomed[index].gameObject);
+                }
+                FlightGlobals.PersistentVesselIds.Remove(shipConstruct.persistentId);
+            }
+        }
+
+        void hideVesselBoundingBox()
+        {
+            return;
+            if (moduleBoundingBox != null)
+            {
+                moduleBoundingBox.wireframeIsVisible = false;
+                moduleBoundingBox.moveGizmoIsVisible = false;
+            }
         }
 
         bool supportPrinterIsPrinting(BuildItem buildItem)
@@ -400,6 +459,9 @@ namespace Sandcastle.PrintShop
             if (node.HasValue("alarmID"))
                 uint.TryParse(node.GetValue("alarmID"), out alarmID);
 
+            if (node.HasValue("shipSize"))
+                shipSize = KSPUtil.ParseVector3(node.GetValue("shipSize"));
+
             if (node.HasNode("DOCKED_VESSEL_INFO"))
             {
                 ConfigNode dockedVesselNode = node.GetNode("DOCKED_VESSEL_INFO");
@@ -430,6 +492,8 @@ namespace Sandcastle.PrintShop
             node.AddValue("totalPartsPrinted", totalPartsPrinted);
 
             node.AddValue("alarmID", alarmID);
+
+            node.AddValue("shipSize", string.Format("{0},{1},{2}", shipSize.x, shipSize.y, shipSize.z));
 
             if (finalizeVesselAtStartup)
                 node.AddValue("finalizeVesselAtStartup", finalizeVesselAtStartup);
@@ -524,7 +588,7 @@ namespace Sandcastle.PrintShop
 
             if (shipNode.HasValue("size"))
             {
-                Vector3 shipSize = KSPUtil.ParseVector3(shipNode.GetValue("size"));
+                shipSize = KSPUtil.ParseVector3(shipNode.GetValue("size"));
                 if (debugMode)
                     Debug.Log("[Sandcastle] - Size (Width, Height, Length): " + shipSize.ToString());
 
@@ -594,7 +658,20 @@ namespace Sandcastle.PrintShop
             if (spawnCraftAfterLoading)
             {
                 spawnCraftAfterLoading = false;
-                onSpawnShip();
+                if (moduleBoundingBox != null && part.vessel.LandedOrSplashed)
+                {
+                    // Show vessel bounding box.
+                    showVesselBoundingBox();
+
+                    // Enable finalize button.
+                    shipwrightUI.showSpawnButton = true;
+
+                    Events["SpawnVessel"].active = true;
+                }
+                else
+                {
+                    onSpawnShip();
+                }
                 return;
             }
 
@@ -724,6 +801,11 @@ namespace Sandcastle.PrintShop
             shipwrightUI.clearUI();
             if (AlarmClockScenario.AlarmExists(alarmID))
                 AlarmClockScenario.DeleteAlarm(alarmID);
+            if (moduleBoundingBox != null)
+            {
+                hideVesselBoundingBox();
+                Events["SpawnVessel"].active = false;
+            }
         }
 
         private void onSpawnShip()
