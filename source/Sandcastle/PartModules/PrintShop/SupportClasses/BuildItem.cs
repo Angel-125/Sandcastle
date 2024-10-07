@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Sandcastle.PrintShop
 {
@@ -41,6 +42,8 @@ namespace Sandcastle.PrintShop
         const string kUnpackedInfo = "UNPACKED_INFO";
         const string kUnpackedVolume = "unpackedVolume";
         const string kIsUnpacked = "isUnpacked";
+        const double kDefaultMass = 0.1;
+        const double kDefaultMassResourcePercent = 0.05;
         #endregion
 
         #region Housekeeping
@@ -261,7 +264,7 @@ namespace Sandcastle.PrintShop
         {
             partName = availablePart.name;
             this.availablePart = availablePart;
-            mass = availablePart.partPrefab.mass;
+            mass = getPrefabPartMass();
 
             // Get the materials list
             string categoryName = getCategoryName(availablePart.category, availablePart.tags);
@@ -270,6 +273,7 @@ namespace Sandcastle.PrintShop
             ModuleResource resource;
             ConfigNode node;
             PartResourceDefinitionList definitions = PartResourceLibrary.Instance.resourceDefinitions;
+
             // Copy the required materials and tally the total units required.
             Dictionary<string, ModuleResource> buildMaterials = new Dictionary<string, ModuleResource>();
             for (int index = 0; index < resources.Length; index++)
@@ -288,7 +292,7 @@ namespace Sandcastle.PrintShop
                 }
             }
 
-            // If the part requires special resources, add them too.
+            // If the part requires special resources, then add them too.
             if (availablePart.partConfig.HasNode(kPrintResource))
             {
                 ConfigNode[] nodes = availablePart.partConfig.GetNodes(kPrintResource);
@@ -500,9 +504,16 @@ namespace Sandcastle.PrintShop
             PartResourceDefinition resourceDef;
 
             // Get the adjusted part mass.
-            double partMass = availablePart.partPrefab.mass;
+            double partMass = getPrefabPartMass();
+            double variantMass;
             if (availablePart.Variants != null && availablePart.Variants.Count > 0 && variantIndex >= 0 && variantIndex <= availablePart.Variants.Count - 1)
-                partMass += availablePart.Variants[variantIndex].Mass;
+            {
+                variantMass = availablePart.Variants[variantIndex].Mass;
+                if (partMass + variantMass > 0)
+                    partMass += variantMass;
+                else if (SandcastleScenario.debugMode)
+                    Debug.Log("[Sandcastle] - UpdateResourceRequirements: For part " + availablePart.name + ", skipping variant part mass adjustment, partMass would be < 0! Variant: " + availablePart.Variants[variantIndex].DisplayName + ", partMass: " + partMass + ", variant mass: " + variantMass + ", partMass + mass: " + partMass + variantMass);
+            }
 
             // Now tally up the total units required and each indivdual resources required amounts.
             totalUnitsRequired = 0;
@@ -511,6 +522,8 @@ namespace Sandcastle.PrintShop
             {
                 resource = materials[index];
                 resourceDef = definitions[resource.name];
+                if (SandcastleScenario.debugMode)
+                    Debug.Log("[Sandcastle] - Calculating required amount of " + resource.name + " for " + availablePart.name);
                 resource.amount = calculateRequiredAmount(partMass, resourceDef.density, resource.rate);
                 totalUnitsRequired += resource.amount;
             }
@@ -518,15 +531,24 @@ namespace Sandcastle.PrintShop
 
         public void UpdateResourceRequirements(Part part)
         {
-            double partMass = availablePart.partPrefab.mass;
+            double partMass = getPrefabPartMass();
 
             // Check for variant mass
             ModulePartVariants partVariant = part.FindModuleImplementing<ModulePartVariants>();
             if (partVariant != null && partVariant.useVariantMass)
             {
                 PartVariant selectedVariant = partVariant.SelectedVariant;
+                double variantMass;
                 if (selectedVariant != null)
-                    partMass += selectedVariant.Mass;
+                {
+                    variantMass = selectedVariant.Mass;
+
+                    if (partMass + variantMass > 0)
+                        partMass += variantMass;
+
+                    else if (SandcastleScenario.debugMode)
+                        Debug.Log("[Sandcastle] - UpdateResourceRequirements: For part " + availablePart.name + ", skipping variant part mass adjustment, partMass would be < 0! Variant: " + selectedVariant.DisplayName + ", partMass: " + partMass + ", variant mass: " + variantMass + ", partMass + mass: " + partMass + variantMass);
+                }
             }
 
             // Check for unpacked mass
@@ -598,7 +620,7 @@ namespace Sandcastle.PrintShop
 
         public void UpdateResourceRequirements(ConfigNode partNode)
         {
-            double partMass = availablePart.partPrefab.mass;
+            double partMass = getPrefabPartMass();
 
             ConfigNode[] moduleNodes = partNode.GetNodes("MODULE");
             ConfigNode moduleNode;
@@ -631,6 +653,32 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Helpers
+        double getPrefabPartMass()
+        {
+            double partMass = availablePart.partPrefab.mass;
+
+            // Check for negative mass. If this happens, then somebody didn't do their math, as it's usually a problem between dry mass and resource mass.
+            if (partMass <= 0)
+            {
+                // If the prefab has no resources then return a default amount.
+                if (availablePart.partPrefab.resourceMass <= 0)
+                {
+                    if (SandcastleScenario.debugMode)
+                        Debug.Log("[Sandcastle] - part " + partName + " mass is <0! Seting to default: " + kDefaultMass);
+                    return kDefaultMass;
+                }
+                else
+                {
+                    double resourcePercentMass = availablePart.partPrefab.resourceMass * kDefaultMassResourcePercent;
+                    if (SandcastleScenario.debugMode)
+                        Debug.Log("[Sandcastle] - part " + partName + " mass is <0! Seting to resource %: " + kDefaultMassResourcePercent + " new mass: " + resourcePercentMass);
+                    return resourcePercentMass;
+                }
+            }
+
+            return partMass;
+        }
+
         double updateAssembledPartMass(ConfigNode moduleNode)
         {
             if (!moduleNode.HasValue("isDeployed"))
@@ -689,14 +737,14 @@ namespace Sandcastle.PrintShop
 
             if (!moduleNode.HasValue("isEnabled"))
                 return 0;
-            bool enabled = false;
+            bool enabled;
             bool.TryParse(moduleNode.GetValue("isEnabled"), out enabled);
             if (!enabled)
                 return 0;
 
             if (!moduleNode.HasValue("useVariantMass"))
                 return 0;
-            bool useVariantMass = false;
+            bool useVariantMass;
             bool.TryParse(moduleNode.GetValue("useVariantMass"), out useVariantMass);
             if (!useVariantMass)
                 return 0;
@@ -731,6 +779,8 @@ namespace Sandcastle.PrintShop
             {
                 resource = materials[index];
                 resourceDef = definitions[resource.name];
+                if (SandcastleScenario.debugMode)
+                    Debug.Log("[Sandcastle] - Calculating required amount of " + resource.name + " for " + availablePart.name);
                 resource.amount = calculateRequiredAmount(adjustedPartMass, resourceDef.density, resource.rate);
                 totalUnitsRequired += resource.amount;
             }
@@ -738,7 +788,14 @@ namespace Sandcastle.PrintShop
 
         double calculateRequiredAmount(double partMass, double resourceDensity, double rate)
         {
-            return (partMass / resourceDensity) * rate;
+            double requiredAmount = (partMass / resourceDensity) * rate;
+
+            if (SandcastleScenario.debugMode)
+            {
+                Debug.Log("[Sandcastle] - partMass: " + partMass + ", resourceDensity: " + resourceDensity + ", rate: " + rate + ", requiredAmount: " + requiredAmount);
+            }
+
+            return requiredAmount;
         }
 
         string getCategoryName(PartCategories category, string tags)
@@ -752,13 +809,9 @@ namespace Sandcastle.PrintShop
                     if (tagsArray.Contains("cck-"))
                         return tagsArray[index];
                 }
-                return category.ToString();
             }
 
-            else
-            {
-                return category.ToString();
-            }
+            return category.ToString();
         }
         #endregion
     }

@@ -66,7 +66,7 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
                     continue;
 
                 // Check mass
@@ -164,7 +164,7 @@ namespace Sandcastle.Inventory
             bool volRequirementMet = false;
             double partMass = availablePart.partPrefab.mass + availablePart.partPrefab.resourceMass;
 
-            if (inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
+            if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
                 return false;
 
             // Check mass
@@ -231,7 +231,7 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
                     continue;
 
                 // Check mass
@@ -841,16 +841,18 @@ namespace Sandcastle.Inventory
             {
                 // Calculate craft size so that we can offset the dropTransform and avoid colliding with the printer.
                 // VAB/SPH dimensions: Height (X) Width (Y) Length (Z)
-                Vector3 craftSize = ShipConstruction.CalculateCraftSize(shipConstruct);
+                //Vector3 craftSize = ShipConstruction.CalculateCraftSize(shipConstruct);
 
                 // Vessel's front will be pointing towards the printhead.
                 Quaternion baseRotation = new Quaternion(0, 1, 0, 0);
                 Quaternion rotation = baseRotation * rootPart.transform.rotation;
                 rootPart.transform.rotation = dropTransform.rotation * rotation;
 
+                // Set the initial position
+                rootPart.transform.position = dropTransform.position;
+
                 // Get the bounds
                 Bounds printerBounds = getBounds(parentPart, new List<Part>() { parentPart });
-                //printerBounds.Expand(printerBounds.size.magnitude / 3);
                 Bounds craftBounds = getBounds(rootPart, shipConstruct.parts);
                 if (SandcastleScenario.debugMode)
                 {
@@ -860,11 +862,11 @@ namespace Sandcastle.Inventory
 
                 // Move the craft away from the printer
                 int count = 0;
+                Vector3 offset = new Vector3(0, 0, 1);
                 while (craftBounds.Intersects(printerBounds) && count < 50)
                 {
-                    //dropTransform.Translate(-rootPart.transform.up);
-                    //rootPart.transform.position = dropTransform.position;
-                    rootPart.transform.Translate(-10 * rootPart.transform.up.normalized);
+                    dropTransform.position += offset;
+                    rootPart.transform.position = dropTransform.position;
                     craftBounds = getBounds(rootPart, shipConstruct.parts);
                     count += 1;
                 }
@@ -872,7 +874,7 @@ namespace Sandcastle.Inventory
                 // Safety check: If we're still colliding with the printer, then move way back.
                 if (craftBounds.Intersects(printerBounds))
                 {
-                    dropTransform.Translate(dropTransform.forward * craftBounds.extents.z);
+                    dropTransform.position += offset * craftBounds.extents.z;
                     rootPart.transform.position = dropTransform.position;
                 }
             }

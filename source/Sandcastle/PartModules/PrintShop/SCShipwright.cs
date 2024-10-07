@@ -158,7 +158,7 @@ namespace Sandcastle.PrintShop
                 Vector3 maxDimensions = KSPUtil.ParseVector3(maxCraftDimensions);
                 info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxDimensionsLength", new string[1] { string.Format("{0:n1}", maxDimensions.z) }));
                 info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxDimensionsWidth", new string[1] { string.Format("{0:n1}", maxDimensions.y) }));
-                info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxDimensionsHeigh", new string[1] { string.Format("{0:n1}", maxDimensions.x) }));
+                info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxDimensionsHeight", new string[1] { string.Format("{0:n1}", maxDimensions.x) }));
             }
             info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_printSpeed", new string[1] { string.Format("{0:n1}", printSpeedUSec) }));
             info.Append(base.GetInfo());
@@ -276,7 +276,6 @@ namespace Sandcastle.PrintShop
 
         void hideVesselBoundingBox()
         {
-            return;
             if (moduleBoundingBox != null)
             {
                 moduleBoundingBox.wireframeIsVisible = false;

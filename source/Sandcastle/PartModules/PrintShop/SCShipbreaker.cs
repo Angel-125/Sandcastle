@@ -143,7 +143,8 @@ namespace Sandcastle.PrintShop
             if (vesselToRecycle != null && dockedVesselInfo == null && tryToCoupleVessel)
             {
                 tryToCoupleVessel = false;
-                Debug.Log(formatPartID() + " - Calling coupleVessel");
+                if (debugMode)
+                    Debug.Log(formatPartID() + " - Calling coupleVessel");
                 part.StartCoroutine(InventoryUtils.coupleVessel(vesselToRecycle, part, onVesselCoupled));
                 return;
             }
@@ -209,6 +210,7 @@ namespace Sandcastle.PrintShop
 
             // Watch for game events
             GameEvents.onVesselChange.Add(onVesselChange);
+            GameEvents.onPartCoupleComplete.Add(onPartCoupleComplete);
             SandcastleScenario.onPartRecycled.Add(onPartRecycled);
 
             // Setup animation
@@ -219,6 +221,15 @@ namespace Sandcastle.PrintShop
                 Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOff");
             else
                 Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
+
+            // Make the sure the printer didn't get stuck with an unprocessed vessel.
+            if (dockedVesselInfo != null)
+            {
+                if (debugMode)
+                {
+                    Debug.Log(formatPartID() + " - Docked vessel still needs processing.");
+                }
+            }
         }
 
         public override void OnAwake()
@@ -248,6 +259,7 @@ namespace Sandcastle.PrintShop
             if (recyclerUI.IsVisible())
                 recyclerUI.SetVisible(false);
             GameEvents.onVesselChange.Remove(onVesselChange);
+            GameEvents.onPartCoupleComplete.Remove(onPartCoupleComplete);
             SandcastleScenario.onPartRecycled.Remove(onPartRecycled);
         }
 
@@ -439,6 +451,10 @@ namespace Sandcastle.PrintShop
             {
                 return;
             }
+            if (vesselToRecycle != null)
+            {
+                return;
+            }    
 
             //Get the part that collided with the trigger
             Part collidedPart = collider.attachedRigidbody.GetComponent<Part>();
@@ -516,12 +532,67 @@ namespace Sandcastle.PrintShop
             // Set flag to couple the vessel that we're about to recycle
             tryToCoupleVessel = true;
 
+            // If the vessel to recycle has items in its inventories then add them to our recycle list.
+            sendInventoryToRecycling(vesselToRecycle);
+
+            // If the vessel to recycle has printers/recyclers/inventory then disable them.
+            disableVesselStorageAndPrinters(vesselToRecycle);
+
             if (debugMode)
             {
                 Debug.Log(formatPartID() + " - Recycling " + shipName);
                 Debug.Log(formatPartID() + " - " + partsNeedingRecycling.Count + " parts to recycle");
                 Debug.Log(formatPartID() + " - shipTotalUnitsToRecycle: " + shipTotalUnitsToRecycle);
             }
+        }
+
+        void sendInventoryToRecycling(Vessel vesselToRecycle)
+        {
+            List<AvailablePart> partsToRecycle = InventoryUtils.GetPartsToRecycle(vesselToRecycle);
+            int count = partsToRecycle.Count;
+
+            BuildItem recycleItem;
+            for (int index = 0; index < count; index++)
+            {
+                recycleItem = new BuildItem(partsToRecycle[index]);
+                shipTotalUnitsToRecycle += recycleItem.totalUnitsRequired;
+                partsNeedingRecycling.Add(recycleItem);
+
+                InventoryUtils.RemoveItem(vesselToRecycle, recycleItem.partName);
+            }
+        }
+
+        void disableVesselStorageAndPrinters(Vessel vesselToRecycle)
+        {
+            List<SCBasePrinter> doomedPrinters = vesselToRecycle.FindPartModulesImplementing<SCBasePrinter>();
+            int count = doomedPrinters.Count;
+            for (int index = 0; index < count; index++)
+            {
+                doomedPrinters[index].enabled = false;
+                doomedPrinters[index].isEnabled = false;
+            }
+
+            List<SCShipbreaker> doomedBreakers = vesselToRecycle.FindPartModulesImplementing<SCShipbreaker>();
+            count = doomedBreakers.Count;
+            for (int index = 0; index < count; index++)
+            {
+                doomedBreakers[index].enabled = false;
+                doomedBreakers[index].isEnabled = false;
+            }
+
+            List<ModuleInventoryPart> doomedInventories = vesselToRecycle.FindPartModulesImplementing<ModuleInventoryPart>();
+            count = doomedInventories.Count;
+            for (int index = 0; index < count; index++)
+            {
+                doomedInventories[index].enabled = false;
+                doomedInventories[index].isEnabled = false;
+                doomedInventories[index].volumeCapacity = 0f;
+            }
+        }
+
+        void onPartCoupleComplete(GameEvents.FromToAction<Part, Part> fromToAction)
+        {
+            Debug.Log("[Sandcastle] - onPartCoupleComplete FROM: " + fromToAction.from.partInfo.name + " TO: " + fromToAction.to.partInfo.name);
         }
 
         void onVesselCoupled(DockedVesselInfo dockedVessel)
@@ -541,6 +612,10 @@ namespace Sandcastle.PrintShop
         {
             List<BuildItem> doomed = new List<BuildItem>();
             int count = partsNeedingRecycling.Count;
+            if (debugMode)
+            {
+                Debug.Log(formatPartID() + "- processVesselToRecycle called. Parts needing recycling: " + count);
+            }
 
             // Find parts that have no child parts and add them to the build queue.
             Part partToRecycle;
@@ -557,6 +632,11 @@ namespace Sandcastle.PrintShop
                 {
                     doomed.Add(recycleItem);
                     recycleQueue.Add(recycleItem);
+
+                    if (debugMode)
+                    {
+                        Debug.Log(formatPartID() + "- Recycling part: " + recycleItem.partName);
+                    }
                 }
             }
 
@@ -565,6 +645,10 @@ namespace Sandcastle.PrintShop
             for (int index = 0; index < count; index++)
             {
                 partsNeedingRecycling.Remove(doomed[index]);
+                if (debugMode)
+                {
+                    Debug.Log(formatPartID() + "- Part removed from partsNeedingRecycling: " + doomed[index].partName);
+                }
             }
 
             // Update the UI's recycle queue.
@@ -573,7 +657,13 @@ namespace Sandcastle.PrintShop
             recyclerUI.recycleQueue.AddRange(partsNeedingRecycling);
 
             if (recycleQueue.Count <= 1)
+            {
+                if (debugMode)
+                {
+                    Debug.Log(formatPartID() + "- No more parts to recycle.");
+                }
                 return;
+            }
 
             // Find support shipbreakers and ask them if they can help out.
             findShipbreakers();
@@ -654,6 +744,17 @@ namespace Sandcastle.PrintShop
             int queueCount = recycleQueue.Count;
             if (queueCount == 0 && partsToRecycleCount == 0)
             {
+                // See if we have a partially disassembled vessel to process
+                if (dockedVesselInfo != null && vessel[dockedVesselInfo.rootPartUId] != null)
+                {
+                    if (debugMode)
+                        Debug.Log(formatPartID() + " - processRecycleQueue has no more parts to recycle but there is a partially deconstructed vessel to work on.");
+
+                    return;
+                }
+
+                if (debugMode)
+                    Debug.Log(formatPartID() + " - processRecycleQueue has no more parts to recycle.");
                 lastUpdateTime = Planetarium.GetUniversalTime();
                 recycleState = WBIPrintStates.Idle;
                 recycleStatusText = "";
@@ -665,6 +766,8 @@ namespace Sandcastle.PrintShop
             // process the vessel.
             else if (partsToRecycleCount > 0 && queueCount == 0)
             {
+                if (debugMode)
+                    Debug.Log(formatPartID() + " - processRecycleQueue has no more parts to recycle in its recycleQueue but has more parts to process.");
                 processVesselToRecycle();
             }
 
@@ -768,6 +871,9 @@ namespace Sandcastle.PrintShop
             Part partToRecycle = vessel[buildItem.flightId];
             if (!buildItem.isBeingRecycled && partToRecycle != null)
             {
+                if (debugMode)
+                    Debug.Log(formatPartID() + " - Scrapping " + buildItem.availablePart.title);
+
                 // Remove part from its parent.
                 if (partToRecycle.parent != null)
                     partToRecycle.parent.removeChild(partToRecycle);
@@ -789,7 +895,11 @@ namespace Sandcastle.PrintShop
         {
             // If we're the one who fired the event or we're not the Lead Shipbreaker (the one doing the breaking), then we're done.
             if (shipbreaker == this || dockedVesselInfo == null)
+            {
+                if (debugMode)
+                    Debug.Log(formatPartID() + " - I recycled " + buildItem.partName + " so I'm skipping this event.");
                 return;
+            }
 
             if (debugMode)
                 Debug.Log(formatPartID() + " - Support Shipbreaker " + shipbreaker.part.flightID + " recycled " + buildItem.partName);
@@ -834,6 +944,11 @@ namespace Sandcastle.PrintShop
             }
 
             // Update recycler UI's queue
+            updateRecyclerUIQueue();
+        }
+
+        private void updateRecyclerUIQueue()
+        {
             recyclerUI.recycleQueue.Clear();
             recyclerUI.recycleQueue.AddRange(recycleQueue);
             recyclerUI.recycleQueue.AddRange(partsNeedingRecycling);
@@ -862,8 +977,16 @@ namespace Sandcastle.PrintShop
                 return;
             }
 
-            // Check for crew
+            // Check for duplicate parts
             Part partToRecycle = part.vessel[buildItem.flightId];
+            if (!buildItem.isBeingRecycled && partToRecycle == null && dockedVesselInfo != null)
+            {
+                recycleQueue.Remove(buildItem);
+                updateRecyclerUIQueue();
+                return;
+            }
+
+            // Check for crew
             if (SandcastleScenario.checkForKerbals && partToRecycle != null  && partToRecycle.protoModuleCrew.Count > 0)
             {
                 ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_removeCrew"), kMsgDuration, ScreenMessageStyle.UPPER_CENTER);
@@ -887,18 +1010,36 @@ namespace Sandcastle.PrintShop
 
                     // If the resource is electric charge then skip it.
                     if (resource.resourceName == "ElectricCharge")
+                    {
+                        if (debugMode)
+                            Debug.Log(formatPartID() + " - Skipping " + resource.resourceName);
+
+                        resource.amount = 0;
+                        resource.maxAmount = 0;
                         continue;
+                    }
+                    else if (resource.amount <= 0)
+                    {
+                        if (debugMode)
+                            Debug.Log(formatPartID() + " - Skipping " + resource.resourceName + "- no more resource to drain.");
+
+                        continue;
+                    }
 
                     // Get total vessel amounts
                     part.vessel.GetConnectedResourceTotals(resourceDefinition.id, out vesselAmount, out vesselTotalAmount);
-                    Debug.Log(formatPartID() + " - vesselAmount: " + vesselAmount + " vesselTotalAmount: " + vesselTotalAmount);
+                    Debug.Log(formatPartID() + " - Attempting to drain " + resource.resourceName + " from " + buildItem.partName + " vesselAmount: " + vesselAmount + " vesselTotalAmount: " + vesselTotalAmount);
 
-                    // If the resource is nearly full then skip it.
-                    if (vesselAmount / vesselTotalAmount >= 0.97)
+                    // If the resource is nearly full or we have no storage capacity then skip it.
+                    if (vesselAmount <= 0.0001f || vesselAmount / vesselTotalAmount >= 0.97)
+                    {
+                        if (debugMode)
+                            Debug.Log(formatPartID() + " - Skipping " + resource.resourceName + "- either we have no storage capacity for the resource, or our capacity is full.");
+
+                        resource.amount = 0;
+                        resource.maxAmount = 0;
                         continue;
-
-                    if (debugMode && dockedVesselInfo == null)
-                        Debug.Log(formatPartID() + " - draining " + resource.resourceName + " amount remaining: " + resource.amount);
+                    }
 
                     // Now drain the resource.
                     if (resource.amount > 0)
@@ -906,8 +1047,14 @@ namespace Sandcastle.PrintShop
                         hadResourcesToRecycle = true;
                         part.RequestResource(resourceDefinition.id, -recycleSpeedUSec, ResourceFlowMode.ALL_VESSEL);
                         resource.amount -= recycleSpeedUSec;
-                        if (resource.amount < 0)
+
+                        if (resource.amount <= 0)
+                        {
                             resource.amount = 0;
+
+                            if (debugMode)
+                                Debug.Log(formatPartID() + " - Finished draining " + resource.resourceName + " from " + buildItem.partName);
+                        }
                     }
                 }
 
@@ -940,14 +1087,21 @@ namespace Sandcastle.PrintShop
                 // Update our stats
                 shipTotalUnitsRecycled += buildItem.totalUnitsRequired;
                 totalPartsRecycled += 1;
-                recyclerUI.recycleQueue.Clear();
-                recyclerUI.recycleQueue.AddRange(recycleQueue);
-                recyclerUI.recycleQueue.AddRange(partsNeedingRecycling);
+                updateRecyclerUIQueue();
                 updateUIStatus();
                 return;
             }
 
             // Record our recycling state.
+            if (debugMode && !buildItem.isBeingRecycled)
+            {
+                Debug.Log(formatPartID() + " - " + buildItem.availablePart.title + "- totalUnitsPrinted: " + buildItem.totalUnitsPrinted + " totalUnitsRequired: " + buildItem.totalUnitsRequired);
+                Debug.Log(formatPartID() + " - " + buildItem.availablePart.title + "- recycled materials count: " + buildItem.materials.Count);
+                for (int index = 0; index < buildItem.materials.Count; index++)
+                {
+                    Debug.Log(formatPartID() + " - " + buildItem.materials[index].name + " amount: " + buildItem.materials[index].amount);
+                }
+            }
             buildItem.isBeingRecycled = true;
 
             // Recycle resources that comprise the part
@@ -990,6 +1144,11 @@ namespace Sandcastle.PrintShop
                         shipTotalUnitsRecycled += recycleRate;
                         if (shipTotalUnitsRecycled > shipTotalUnitsToRecycle)
                             shipTotalUnitsRecycled = shipTotalUnitsToRecycle;
+                    }
+                    else
+                    {
+                        if (debugMode)
+                            Debug.Log(formatPartID() + " - " + buildItem.availablePart.title + ": material " + material.name + " is 0.");
                     }
                 }
             }
@@ -1047,11 +1206,16 @@ namespace Sandcastle.PrintShop
             lastUpdateTime = Planetarium.GetUniversalTime();
             if (buildItem.requiredComponents.Count == 0)
             {
-                //ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_recycledPart", new string[1] { buildItem.availablePart.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
+                ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_recycledPart", new string[1] { buildItem.availablePart.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
                 if (debugMode)
                     Debug.Log(formatPartID() + " - Finished recycling " + buildItem.availablePart.title);
                 recycleQueue.RemoveAt(0);
                 totalPartsRecycled += 1;
+
+                recyclerUI.recycleQueue.Clear();
+                recyclerUI.recycleQueue.AddRange(recycleQueue);
+                recyclerUI.recycleQueue.AddRange(partsNeedingRecycling);
+                updateUIStatus();
 
                 SandcastleScenario.onPartRecycled.Fire(this, buildItem);
             }
@@ -1094,7 +1258,7 @@ namespace Sandcastle.PrintShop
             recycleQueue.Clear();
             partsNeedingRecycling.Clear();
 
-            // Decouple what's left of the vessel
+            // Decouple what's left of the carcass
             if (dockedVesselInfo == null)
             {
                 ScreenMessages.PostScreenMessage("dockedVesselInfo == null", kMsgDuration, ScreenMessageStyle.UPPER_CENTER);

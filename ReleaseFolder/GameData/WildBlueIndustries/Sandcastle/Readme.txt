@@ -17,31 +17,28 @@ GameData
 
 Changes
 
-- The Quicksand and Sandcastle 3D print shops now have IVA variants that let you switch between horizontal and vertical orientations.
-- In EVA Construction Mode, engineers can now switch part variants.
-- In EVA Construction Mode, engineers can now change flags, set flag sizes, and toggle them on/off.
-- If in timewarp, the print shop will now kill timewarp when all print jobs are done.
-- The Sandcaster 3D Printer and EL-OCD Konstruction Manipulator are now available even when Extraplanetary Launchpads isn't installed.
-- The Sandcaster 3D Printer and EL-OCD Konstruction Manipulator can now print a single part regardless of volume and drop it into space or onto the ground.
-- The Sandcaster 3D Printer and EL-OCD Konstruction Manipulator can now print a vessel and drop it into space or onto the ground.
-NOTE: Multiple Sandcasters/Konstruction Manipulators, whether on the same vessel or on a different vessel, can collaborate to finish the build.
-- When printing vessels, the Sandcaster/Konstruction Manipulator can use pre-printed parts to reduce print time.
-- The Sandcaster 3D Printer and EL-OCD Konstruction Manipulator can now recycle vessels. If there's room in the inventory, the recycler can store the recycled vessel's parts and if not, it will convert the part into raw resources.
-NOTE: Multiple Sandcasters/Konstruction Manipulators, whether on the same vessel or on a different vessel, can collaborate to finish the recycling.
-- Added a new Sandcastle game settings menu. It has things like a debug flag and the option to disable the check for kerbals occupying parts and vessels that are about to be recycled.
-- Fixed EC smelter config - thanks Aelfh1m! :)
+- The Sandcaster's printers will now only be available when the printer arm has been deployed.
+- Upon completion of printing, if a vessel is printed on the ground, then the printers will draw a movable box depicting where the vessel will spawn.
+Simply use the movement arrows to place the box in the desired position before pressing the Finalize Printing button.
+- The MATERIALS_LIST and TECH_NODE_MATERIALS config nodes now allow you to add REQUIRED_COMPONENT config nodes that specify what parts are required to complete parts in the part category and/or tech node, respectively.
+- You can now specify a MATERIALS_LIST for a Community Category. 
+NOTE: For a part to make use of a Community Category materials list, the part's "category" field must be set to "none" and you must properly define a Community Category in the part's "tag" field.
+NOTE: The FIRST Community Category found in the part's config will be used as the part's category for the purposes of determining its MATERIALS_LIST.
 
-Wild Blue Core
-- Added new ModuleInternalVariants - lets you switch IVA INTERNAL models.
-- Added new ModuleAnimateGenericExtended - provides options for skill checks, requiring resources, and enabling/disabling part modules.
-- Added new Settings menu, accessed through game settings.
+Bug Fixes
+- Fixed issue where Shipbreaker would get stuck if it had no storage capacity for a resource that it was trying to drain from the part being recycled.
+- Fixed issue where Shipbreaker would get stuck if the recycled part's dry mass or variant mass is negative.
+- Fixed issue where Shipbreaker wasn't emptying the inventory of stored parts from the ship being recycled.
+- Fixed issue where Shipbreaker would store recycled parts in the vessel that it was recycling.
+- Fixed issue where Shipbreaker's UI wasn't reflecting the parts that had been recycled.
+- Fixed issue with duplicated parts being added to the Shipbreaker's recycling queue.
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0
 
 Portions of this code provided courtesy of Extraplanetary Launchpads and are licensed under GPLV3.
 
-Art Assets, including .mu, .png, and .dds files are copyright 2021 by Michael Billard, All Rights Reserved.
+Art Assets, including .mu, .png, and .dds files are copyright 2024 by Michael Billard, All Rights Reserved.
 
 Wild Blue Industries is trademarked by Michael Billard. All rights reserved.
 Note that Wild Blue Industries is a ficticious entity 
