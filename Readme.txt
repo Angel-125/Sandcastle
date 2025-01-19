@@ -23,6 +23,11 @@ Changes
 - Fixed odd coloration on deployed survey cones.
 - Fixed issue where resources were pulled from the entire vessel instead of stage priority flow.
 
+IN DEVELOPMENT
+The Sandcaster and OCD Konstruction Manipulator can both print and recycle vessels without the need for ExtraplanetaryLaunchpads.
+IMPORTANT NOTE: Currently, printing vessels on the ground is resulting in their orientations NOT matching the orientation of the printer, and result in the spawned vessel crashing into the ground.
+You won't likely see this at the space center, but it definitely happens on other planets. This is a source of major frustration for me right now.
+
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0
 

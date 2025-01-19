@@ -55,7 +55,20 @@ namespace Sandcastle.PrintShop
         [KSPField]
         public string offsetAxis = "0,1,1";
 
-        List <AvailablePart> filteredParts = null;
+        /// <summary>
+        /// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
+        /// Leave empty for unlimited printing.
+        /// </summary>
+        [KSPField]
+        public string maxPartDimensions;
+
+        /// <summary>
+        /// Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
+        /// </summary>
+        [KSPField]
+        public bool repositionCraftBeforeSpawning = true;
+
+        List<AvailablePart> filteredParts = null;
         PrintShopUI shopUI = null;
         List<string> whitelistedCategories;
         BuildItem buildItemToSpawn = null;
@@ -171,6 +184,13 @@ namespace Sandcastle.PrintShop
             info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_printerDesc"));
             if (maxPrintVolume > 0)
                 info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxPrintVolume", new string[1] { string.Format("{0:n1}", maxPrintVolume) }));
+            if (!string.IsNullOrEmpty(maxPartDimensions))
+            {
+                Vector3 maxDimensions = KSPUtil.ParseVector3(maxPartDimensions);
+                info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxDimensionsLength", new string[1] { string.Format("{0:n1}", maxDimensions.z) }));
+                info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxDimensionsWidth", new string[1] { string.Format("{0:n1}", maxDimensions.y) }));
+                info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_maxDimensionsHeight", new string[1] { string.Format("{0:n1}", maxDimensions.x) }));
+            }
             info.AppendLine(Localizer.Format("#LOC_SANDCASTLE_printSpeed", new string[1] { string.Format("{0:n1}", printSpeedUSec) }));
             info.Append(base.GetInfo());
             return info.ToString();
@@ -286,6 +306,8 @@ namespace Sandcastle.PrintShop
 
             // Spawn the part.
             Vector3 axis = KSPUtil.ParseVector3(offsetAxis);
+            if (!repositionCraftBeforeSpawning)
+                axis = Vector3.zero;
             InventoryUtils.SpawnPart(buildItemToSpawn.availablePart, part, spawnTransform, axis);
 
             buildItemToSpawn = null;
@@ -293,7 +315,7 @@ namespace Sandcastle.PrintShop
 
         private void updateFilteredParts()
         {
-            List<AvailablePart> availableParts = InventoryUtils.GetPrintableParts(maxPrintVolume);
+            List<AvailablePart> availableParts = InventoryUtils.GetPrintableParts(maxPrintVolume, maxPartDimensions);
             ConfigNode node = getPartConfigNode();
             PartCategories category;
             whitelistedCategories = new List<string>();

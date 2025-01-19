@@ -125,10 +125,12 @@ Adds the item to the vessel inventory if there is enough room.
 > #### Return value
 > The Part that the item was stored in, or null if no place could be found for the part.
 
-### GetPrintableParts(System.Single)
+### GetPrintableParts(System.Single,System.String)
 Retrieves a list of parts that can be printed by the specified max print volume.
 > #### Parameters
 > **maxPrintVolume:** A float containing the max possible print volume.
+
+> **maxPartDimensions:** An optional string containing the max possible print dimensions.
 
 > #### Return value
 > A List of AvailablePart objects that can be printed.
@@ -657,6 +659,10 @@ Current print state.
 Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
 ### offsetAxis
 Axis upon which to displace the part during spawn in. X, Y, Z
+### maxPartDimensions
+Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
+### repositionCraftBeforeSpawning
+Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
 
 # PrintShop.WBIPrinterRequirements
             
@@ -669,6 +675,12 @@ Prints entire vessels
         
 ## Fields
 
+### spawnTransformVABName
+Alternate transform to use for VAB craft.
+### spawnTransformSPHName
+Alternate transform to use for SPH craft.
+### repositionCraftBeforeSpawning
+Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
 ### printStateString
 Current printer state.
 ### maxCraftDimensions

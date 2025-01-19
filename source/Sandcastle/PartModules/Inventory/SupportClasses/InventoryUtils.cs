@@ -538,10 +538,18 @@ namespace Sandcastle.Inventory
         /// Retrieves a list of parts that can be printed by the specified max print volume.
         /// </summary>
         /// <param name="maxPrintVolume">A float containing the max possible print volume.</param>
+        /// <param name="maxPartDimensions">An optional string containing the max possible print dimensions.</param>
         /// <returns>A List of AvailablePart objects that can be printed.</returns>
-        public static List<AvailablePart> GetPrintableParts(float maxPrintVolume)
+        public static List<AvailablePart> GetPrintableParts(float maxPrintVolume, string maxPartDimensions = null)
         {
             List<AvailablePart> filteredParts = new List<AvailablePart>();
+            Vector3 maxDimensions = Vector3.zero;
+            Vector3 craftSize;
+            List<Part> parts;
+            Part part;
+
+            if (!string.IsNullOrEmpty(maxPartDimensions))
+                maxDimensions = KSPUtil.ParseVector3(maxPartDimensions);
 
             List<AvailablePart> cargoParts = PartLoader.Instance.GetAvailableCargoParts();
             if (cargoParts != null && cargoParts.Count > 0)
@@ -557,8 +565,23 @@ namespace Sandcastle.Inventory
                         continue;
                     cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
 
+                    // Check volume and dimensions
                     if (cargoPart.packedVolume > 0 && cargoPart.packedVolume <= maxPrintableVolume)
                     {
+                        // Check dimensions
+                        if (maxDimensions != Vector3.zero)
+                        {
+                            // Calculate craft size so we don't smack into the printer when we drop the part.
+                            part = availablePart.partPrefab;
+                            parts = new List<Part>();
+                            parts.Add(part);
+
+                            craftSize = ShipConstruction.CalculateCraftSize(parts, part);
+                            if (craftSize.x > maxDimensions.x || craftSize.y > maxDimensions.y || craftSize.z > maxDimensions.z)
+                                continue;
+                        }
+
+                        // Check tech hidden
                         if (availablePart.TechHidden == false || canPrintHiddenPart(availablePart))
                         {
                             // For some reason, flat-packed and boxed Pathfinder parts list a negative prefab mass. We need to fix that.
@@ -825,7 +848,7 @@ namespace Sandcastle.Inventory
             }
         }
 
-        public static void SpawnShip(ShipConstruct shipConstruct, Part parentPart, Transform dropTransform, Callback<DockedVesselInfo> onVesselCoupled, bool removeResources = true)
+        public static void SpawnShip(ShipConstruct shipConstruct, Part parentPart, Transform dropTransform, Callback<DockedVesselInfo> onVesselCoupled, bool removeResources = true, bool repositionCraftBeforeSpawning = true)
         {
             Debug.Log("[Sandcastle] - SpawnShip called for " + shipConstruct.shipName);
             shipConstruct.missionFlag = parentPart.flagURL;
@@ -860,22 +883,30 @@ namespace Sandcastle.Inventory
                     Debug.Log("[Sandcastle] - Craft Bounds: " + craftBounds.ToString());
                 }
 
-                // Move the craft away from the printer
-                int count = 0;
-                Vector3 offset = new Vector3(0, 0, 1);
-                while (craftBounds.Intersects(printerBounds) && count < 50)
-                {
-                    dropTransform.position += offset;
-                    rootPart.transform.position = dropTransform.position;
-                    craftBounds = getBounds(rootPart, shipConstruct.parts);
-                    count += 1;
-                }
+                Collider[] colliders = parentPart.GetPartColliders();
 
-                // Safety check: If we're still colliding with the printer, then move way back.
-                if (craftBounds.Intersects(printerBounds))
+                if (repositionCraftBeforeSpawning)
                 {
-                    dropTransform.position += offset * craftBounds.extents.z;
-                    rootPart.transform.position = dropTransform.position;
+                    int count = 0;
+                    Vector3 offset = new Vector3(0, 0, 1);
+                    if (shipConstruct.shipFacility == EditorFacility.VAB)
+                        offset = dropTransform.up.normalized;
+                    while (boundsIntersectsColliders(craftBounds, colliders) && count < 50)
+                    {
+                        if (SandcastleScenario.debugMode)
+                            Debug.Log("[Sandcastle] - Offsetting vessel to avoid collision with a collider. Attempt # " + count);
+                        dropTransform.position += offset;
+                        rootPart.transform.position = dropTransform.position;
+                        craftBounds = getBounds(rootPart, shipConstruct.parts);
+                        count += 1;
+                    }
+
+                    // Safety check: If we're still colliding with the printer, then move way back.
+                    if (craftBounds.Intersects(printerBounds))
+                    {
+                        dropTransform.position += offset * craftBounds.extents.z;
+                        rootPart.transform.position = dropTransform.position;
+                    }
                 }
             }
             else
@@ -932,6 +963,31 @@ namespace Sandcastle.Inventory
 
             // Go for launch!
             StageManager.BeginFlight();
+        }
+
+        static bool boundsIntersectsColliders(Bounds objectBounds, Collider[] colliders)
+        {
+            Collider collider;
+
+            for (int index = 0; index < colliders.Length; index++)
+            {
+                collider = colliders[index];
+
+                // Skip the collider if it is disabled or is a trigger
+                if (!collider.enabled || collider.isTrigger)
+                {
+                    continue;
+                }
+
+                if (objectBounds.Intersects(collider.bounds))
+                {
+                    if (SandcastleScenario.debugMode)
+                        Debug.Log("[Sandcastle] - objectBounds intersects with " + collider.ToString() + ". Bounds: " + collider.bounds.ToString());
+
+                    return true; // Collision found
+                }
+            }
+            return false; // No collisions found
         }
 
         public static void setupLaunchClamps(ShipConstruct ship)

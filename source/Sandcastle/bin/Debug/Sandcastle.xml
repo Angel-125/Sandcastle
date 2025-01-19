@@ -106,11 +106,12 @@
             <param name="removeResources">A bool indicating whether or not to remove resources when storing the part. Default is true.</param>
             <returns>The Part that the item was stored in, or null if no place could be found for the part.</returns>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.GetPrintableParts(System.Single)">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetPrintableParts(System.Single,System.String)">
             <summary>
             Retrieves a list of parts that can be printed by the specified max print volume.
             </summary>
             <param name="maxPrintVolume">A float containing the max possible print volume.</param>
+            <param name="maxPartDimensions">An optional string containing the max possible print dimensions.</param>
             <returns>A List of AvailablePart objects that can be printed.</returns>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.FindThumbnailPaths">
@@ -960,6 +961,17 @@
             Axis upon which to displace the part during spawn in. X, Y, Z
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.maxPartDimensions">
+            <summary>
+            Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
+            Leave empty for unlimited printing.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.repositionCraftBeforeSpawning">
+            <summary>
+            Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PrintShop.WBIPrinterRequirements">
             <summary>
             Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper.
@@ -970,6 +982,21 @@
         <member name="T:Sandcastle.PrintShop.SCShipwright">
             <summary>
             Prints entire vessels
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipwright.spawnTransformVABName">
+            <summary>
+            Alternate transform to use for VAB craft.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipwright.spawnTransformSPHName">
+            <summary>
+            Alternate transform to use for SPH craft.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.SCShipwright.repositionCraftBeforeSpawning">
+            <summary>
+            Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.SCShipwright.printStateString">

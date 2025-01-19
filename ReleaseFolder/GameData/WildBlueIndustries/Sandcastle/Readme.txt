@@ -17,6 +17,11 @@ GameData
 
 Changes
 
+IN DEVELOPMENT
+
+IMPORTANT NOTE: Currently, printing vessels on the ground is resulting in their orientations NOT matching the orientation of the printer, and result in the spawned vessel crashing into the ground.
+You won't likely see this at the space center, but it definitely happens on other planets. This is a source of major frustration for me right now.
+
 - The Sandcaster's printers will now only be available when the printer arm has been deployed.
 - Upon completion of printing, if a vessel is printed on the ground, then the printers will draw a movable box depicting where the vessel will spawn.
 Simply use the movement arrows to place the box in the desired position before pressing the Finalize Printing button.
@@ -24,6 +29,29 @@ Simply use the movement arrows to place the box in the desired position before p
 - You can now specify a MATERIALS_LIST for a Community Category. 
 NOTE: For a part to make use of a Community Category materials list, the part's "category" field must be set to "none" and you must properly define a Community Category in the part's "tag" field.
 NOTE: The FIRST Community Category found in the part's config will be used as the part's category for the purposes of determining its MATERIALS_LIST.
+- Added Sandcastle support to the Mk1 Drydock and Mk3-75 Drydock from the Mark One Laboratory Extensions mod.
+NOTE: If you see the drydock parts in the MOLE category tab, DO NOT USE THEM! They will have "Deprecated" in their title. Use the drydock parts found under the Sandcastle category tab instead.
+- SCShipwright have new configurable fields:
+
+		// Alternate transforms- these are used in place of spawnTransformName to help orient vessels properly.
+		spawnTransformVABName = VesselSpawnPointVAB
+		spawnTransformSPHName = VesselSpawnPointSPH
+
+		// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). E.G. 5,5,5
+		// Leave commented out for unlimited printing dimensions.
+		maxCraftDimensions = 11,11,20
+
+		// Flag to indicate if the printer should offset the printed vessel to avoid colliding with the printer upon spawning. Recommended to set to FALSE for printers with enclosed printing spaces.
+		repositionCraftBeforeSpawning = false
+
+- WBIPrintShop has new configurable fields:
+
+		// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). E.G. 5,5,5
+		// Leave commented out for unlimited printing dimensions.
+		maxCraftDimensions = 11,11,20
+
+		// Flag to indicate if the printer should offset the printed vessel to avoid colliding with the printer upon spawning. Recommended to set to FALSE for printers with enclosed printing spaces.
+		repositionCraftBeforeSpawning = false
 
 Bug Fixes
 - Fixed issue where Shipbreaker would get stuck if it had no storage capacity for a resource that it was trying to drain from the part being recycled.

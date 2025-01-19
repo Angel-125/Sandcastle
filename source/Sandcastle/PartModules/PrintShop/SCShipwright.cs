@@ -16,6 +16,27 @@ namespace Sandcastle.PrintShop
     [KSPModule("#LOC_SANDCASTLE_shipwrightTitle")]
     public class SCShipwright: SCBasePrinter
     {
+        #region Fields
+        /// <summary>
+        /// Alternate transform to use for VAB craft.
+        /// </summary>
+        [KSPField]
+        public string spawnTransformVABName;
+
+        /// <summary>
+        /// Alternate transform to use for SPH craft.
+        /// </summary>
+        [KSPField]
+        public string spawnTransformSPHName;
+
+        /// <summary>
+        /// Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
+        /// </summary>
+        [KSPField]
+        public bool repositionCraftBeforeSpawning = true;
+
+        #endregion
+
         #region Housekeeping
         /// <summary>
         /// Current printer state.
@@ -833,16 +854,33 @@ namespace Sandcastle.PrintShop
             if (debugMode)
                 Debug.Log("[Sandcastle] - onShipConstructCompleted called.");
 
-            if (spawnTransform == null)
+            // Use the extra spawn transforms?
+            Transform dropTransform = null;
+            if (shipConstruct.shipFacility == EditorFacility.VAB && !string.IsNullOrEmpty(spawnTransformVABName))
+            {
+                dropTransform = part.FindModelTransform(spawnTransformVABName);
+
+            }
+            else if (shipConstruct.shipFacility == EditorFacility.SPH && !string.IsNullOrEmpty(spawnTransformSPHName))
+            {
+                dropTransform = part.FindModelTransform(spawnTransformSPHName);
+            }
+
+            else
+            {
+                dropTransform = spawnTransform;
+            }
+
+            if (dropTransform == null)
             {
                 if (debugMode)
-                    Debug.Log("[Sandcastle] - spawnTransform is null! Exiting.");
+                    Debug.Log("[Sandcastle] - dropTransform is null! Exiting.");
                 return;
             }
 
             clearStats();
 
-            InventoryUtils.SpawnShip(shipConstruct, part, spawnTransform, new Callback<DockedVesselInfo>(onVesselCoupled));
+            InventoryUtils.SpawnShip(shipConstruct, part, dropTransform, new Callback<DockedVesselInfo>(onVesselCoupled), true, repositionCraftBeforeSpawning);
         }
         #endregion
     }

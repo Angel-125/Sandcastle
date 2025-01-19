@@ -108,10 +108,12 @@ Adds the item to the vessel inventory if there is enough room.
 > #### Return value
 > The Part that the item was stored in, or null if no place could be found for the part.
 
-### GetPrintableParts(System.Single)
+### GetPrintableParts(System.Single,System.String)
 Retrieves a list of parts that can be printed by the specified max print volume.
 > #### Parameters
 > **maxPrintVolume:** A float containing the max possible print volume.
+
+> **maxPartDimensions:** An optional string containing the max possible print dimensions.
 
 > #### Return value
 > A List of AvailablePart objects that can be printed.

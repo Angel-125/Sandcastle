@@ -1,0 +1,19 @@
+// Removes EPL
+@PART[wbiMOLEDrydockV2,wbiMk375DrydockV2]:NEEDS[MOLE]:AFTER[Sandcastle]
+{
+	!MODULE[ELLaunchpad] {}
+	!MODULE[ELTarget] {}
+}
+
+@PART[konstructionManipulator]:NEEDS[MOLE]:AFTER[Sandcastle]
+{
+	!MODULE[ELLaunchpad] {}
+	!MODULE[ELTarget] {}
+}
+
+@PART[wbiELSandcaster]:NEEDS[MOLE]:AFTER[Sandcastle]
+{
+	!MODULE[ELSurveyStation] {}
+	!MODULE[ELWorkshop] {}
+	!MODULE[ELConverter] {}
+}
