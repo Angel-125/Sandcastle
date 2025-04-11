@@ -36,7 +36,7 @@ namespace Sandcastle.Inventory
     /// This part module gets around the problem. Add this part module AFTER ModuleInventoryPart
     /// and part stacks will be filled out to their max stack size in the editor.
     /// </summary>
-    public class ModuleDefaultInventoryStack: BasePartModule
+    public class ModuleDefaultInventoryStack: WBIBasePartModule
     {
         /// <summary>
         /// Flag to indicate that the part's stackable inventory items has been initialized.

@@ -13,7 +13,7 @@ namespace Sandcastle.PrintShop
     /// Represents a shop that is capable of printing items and placing them in an available inventory.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_shipbreakerTitle")]
-    public class SCShipbreaker: BasePartModule
+    public class WBIShipbreaker: WBIBasePartModule
     {
         #region Constants
         const double kCatchupTime = 3600;
@@ -130,7 +130,7 @@ namespace Sandcastle.PrintShop
         DockedVesselInfo dockedVesselInfo = null;
         bool tryToCoupleVessel = false;
         List<BuildItem> partsNeedingRecycling = null;
-        List<SCShipbreaker> supportShipbreakers = null;
+        List<WBIShipbreaker> supportShipbreakers = null;
         #endregion
 
         #region FixedUpdate
@@ -237,7 +237,7 @@ namespace Sandcastle.PrintShop
             base.OnAwake();
             unHighlightList = new Dictionary<double, Part>();
             recycleQueue = new List<BuildItem>();
-            supportShipbreakers = new List<SCShipbreaker>();
+            supportShipbreakers = new List<WBIShipbreaker>();
             recyclerUI = new ShipbreakerUI();
             recyclerUI.part = part;
             recyclerUI.onRecycleStatusUpdate = onRecycleStatusUpdate;
@@ -501,14 +501,31 @@ namespace Sandcastle.PrintShop
             if (debugMode)
                 Debug.Log(formatPartID() + " - Found vessel to recycle");
 
-            // Get parts to recycle
-            int count = vesselToRecycle.Parts.Count;
+            shipName = vesselToRecycle.vesselName;
+            tryToCoupleVessel = true;
+
+            setupPartsToRecycle(vesselToRecycle.parts);
+            sendInventoryToRecycling(vesselToRecycle);
+            disableVesselStorageAndPrinters(vesselToRecycle);
+
+            if (debugMode)
+            {
+                Debug.Log(formatPartID() + " - Recycling " + shipName);
+                Debug.Log(formatPartID() + " - " + partsNeedingRecycling.Count + " parts to recycle");
+                Debug.Log(formatPartID() + " - shipTotalUnitsToRecycle: " + shipTotalUnitsToRecycle);
+            }
+        }
+
+        void setupPartsToRecycle(List<Part> vesselParts)
+        {
+            partsNeedingRecycling.Clear();
+            int count = vesselParts.Count;
             Part partToRecycle;
             BuildItem recycleItem;
             shipTotalUnitsToRecycle = 0;
             for (int index = 0; index < count; index++)
             {
-                partToRecycle = vesselToRecycle.Parts[index];
+                partToRecycle = vesselParts[index];
 
                 recycleItem = new BuildItem(partToRecycle.partInfo);
                 recycleItem.flightId = partToRecycle.flightID;
@@ -527,16 +544,6 @@ namespace Sandcastle.PrintShop
             totalPartsToRecycle = partsNeedingRecycling.Count;
             totalPartsRecycled = 0;
             shipTotalUnitsRecycled = 0;
-            shipName = vesselToRecycle.vesselName;
-
-            // Set flag to couple the vessel that we're about to recycle
-            tryToCoupleVessel = true;
-
-            // If the vessel to recycle has items in its inventories then add them to our recycle list.
-            sendInventoryToRecycling(vesselToRecycle);
-
-            // If the vessel to recycle has printers/recyclers/inventory then disable them.
-            disableVesselStorageAndPrinters(vesselToRecycle);
 
             if (debugMode)
             {
@@ -564,7 +571,7 @@ namespace Sandcastle.PrintShop
 
         void disableVesselStorageAndPrinters(Vessel vesselToRecycle)
         {
-            List<SCBasePrinter> doomedPrinters = vesselToRecycle.FindPartModulesImplementing<SCBasePrinter>();
+            List<WBIBasePrinter> doomedPrinters = vesselToRecycle.FindPartModulesImplementing<WBIBasePrinter>();
             int count = doomedPrinters.Count;
             for (int index = 0; index < count; index++)
             {
@@ -572,7 +579,7 @@ namespace Sandcastle.PrintShop
                 doomedPrinters[index].isEnabled = false;
             }
 
-            List<SCShipbreaker> doomedBreakers = vesselToRecycle.FindPartModulesImplementing<SCShipbreaker>();
+            List<WBIShipbreaker> doomedBreakers = vesselToRecycle.FindPartModulesImplementing<WBIShipbreaker>();
             count = doomedBreakers.Count;
             for (int index = 0; index < count; index++)
             {
@@ -701,8 +708,8 @@ namespace Sandcastle.PrintShop
             int vesselCount = FlightGlobals.VesselsLoaded.Count;
             Vessel loadedVessel;
             int count;
-            supportShipbreakers = new List<SCShipbreaker>();
-            List<SCShipbreaker> shipbreakers;
+            supportShipbreakers = new List<WBIShipbreaker>();
+            List<WBIShipbreaker> shipbreakers;
             for (int vesselIndex = 0; vesselIndex < vesselCount; vesselIndex++)
             {
                 loadedVessel = FlightGlobals.VesselsLoaded[vesselIndex];
@@ -713,7 +720,7 @@ namespace Sandcastle.PrintShop
                     continue;
 
                 // Now find shipbreaker modules
-                shipbreakers = loadedVessel.FindPartModulesImplementing<SCShipbreaker>();
+                shipbreakers = loadedVessel.FindPartModulesImplementing<WBIShipbreaker>();
                 if (shipbreakers != null)
                 {
                     count = shipbreakers.Count;
@@ -737,6 +744,39 @@ namespace Sandcastle.PrintShop
             }
         }
 
+        void rebuildPartsToRecyleList()
+        {
+            if (debugMode)
+                Debug.Log(formatPartID() + " - Rebuilding list of parts to recycle.");
+
+            Part recycleVesselRootPart = vessel[dockedVesselInfo.rootPartUId];
+            List<Part> vesselParts = new List<Part>();
+
+            if (recycleVesselRootPart.children.Count > 0)
+                addParentChildPartsToList(recycleVesselRootPart, vesselParts);
+            else
+                vesselParts.Add(recycleVesselRootPart);
+
+            setupPartsToRecycle(vesselParts);
+        }
+
+        void addParentChildPartsToList(Part parentPart, List<Part> vesselParts)
+        {
+            vesselParts.Add(parentPart);
+
+            int count = parentPart.children.Count;
+            Part childPart;
+            for (int index = 0; index < count; index++)
+            {
+                childPart = parentPart.children[index];
+
+                if (childPart.children.Count > 0)
+                    addParentChildPartsToList(childPart, vesselParts);
+                else
+                    vesselParts.Add(childPart);
+            }
+        }
+
         protected virtual void processRecycleQueue()
         {
             // Check the recycle queue again.
@@ -750,6 +790,7 @@ namespace Sandcastle.PrintShop
                     if (debugMode)
                         Debug.Log(formatPartID() + " - processRecycleQueue has no more parts to recycle but there is a partially deconstructed vessel to work on.");
 
+                    rebuildPartsToRecyleList();
                     return;
                 }
 
@@ -851,7 +892,7 @@ namespace Sandcastle.PrintShop
         private bool supportUnitStillProcessing(BuildItem buildItem)
         {
             if (supportShipbreakers == null)
-                supportShipbreakers = new List<SCShipbreaker>();
+                supportShipbreakers = new List<WBIShipbreaker>();
 
             int count = supportShipbreakers.Count;
             if (supportShipbreakers == null || count <= 0)
@@ -891,7 +932,7 @@ namespace Sandcastle.PrintShop
             }
         }
 
-        private void onPartRecycled(SCShipbreaker shipbreaker, BuildItem buildItem)
+        private void onPartRecycled(WBIShipbreaker shipbreaker, BuildItem buildItem)
         {
             // If we're the one who fired the event or we're not the Lead Shipbreaker (the one doing the breaking), then we're done.
             if (shipbreaker == this || dockedVesselInfo == null)

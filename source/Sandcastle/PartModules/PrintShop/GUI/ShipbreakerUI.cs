@@ -73,7 +73,7 @@ namespace Sandcastle.PrintShop
         /// <summary>
         /// List of support shipbreakers
         /// </summary>
-        public List<SCShipbreaker> supportShipbreakers = null;
+        public List<WBIShipbreaker> supportShipbreakers = null;
         #endregion
 
         #region Housekeeping
@@ -290,7 +290,7 @@ namespace Sandcastle.PrintShop
                 supportShipbreakersScrollPos = GUILayout.BeginScrollView(supportShipbreakersScrollPos);
 
                 count = supportShipbreakers.Count;
-                SCShipbreaker shipbreaker;
+                WBIShipbreaker shipbreaker;
                 StringBuilder builder;
                 for (int index = 0; index < count; index++)
                 {

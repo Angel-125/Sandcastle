@@ -13,7 +13,7 @@ namespace Sandcastle.PrintShop
     /// Represents a shop that is capable of printing items and placing them in an available inventory.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_printShopTitle")]
-    public class WBIPrintShop : SCBasePrinter
+    public class WBIPrintShop : WBIBasePrinter
     {
         #region Fields
         #endregion
@@ -206,7 +206,7 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Helpers
-        protected override void onSupportPrintingRequest(SCShipwright sender, List<BuildItem> buildList)
+        protected override void onSupportPrintingRequest(WBIShipwright sender, List<BuildItem> buildList)
         {
             if (sender.part.flightID == part.flightID)
             {
@@ -216,7 +216,7 @@ namespace Sandcastle.PrintShop
             }
 
             // If this is a part printer, and there is a Shipwright in the part, then we defer to it.
-            if (enablePartSpawn && part.FindModuleImplementing<SCShipwright>() != null)
+            if (enablePartSpawn && part.FindModuleImplementing<WBIShipwright>() != null)
                 return;
 
             // Let the base class handle it.
@@ -288,7 +288,7 @@ namespace Sandcastle.PrintShop
             shopUI.whitelistedCategories = whitelistedCategories;
             shopUI.SetVisible(true);
 
-            SCShipbreaker shipbreaker = part.FindModuleImplementing<SCShipbreaker>();
+            WBIShipbreaker shipbreaker = part.FindModuleImplementing<WBIShipbreaker>();
             if (shipbreaker != null)
             {
                 shipbreaker.DisableRecycler();

@@ -44,15 +44,15 @@ namespace Sandcastle
                 if (availablePart == null || availablePart.partPrefab == null)
                     return;
 
-                if (availablePart.partPrefab.HasModuleImplementing<FlagDecalBackground>() || availablePart.partPrefab.HasModuleImplementing<FlagDecal>() || availablePart.partPrefab.HasModuleImplementing<ModuleDecal>())
+                if (availablePart.partPrefab.HasModuleImplementing<FlagDecalBackground>() || availablePart.partPrefab.HasModuleImplementing<FlagDecal>() || availablePart.partPrefab.HasModuleImplementing<WBIModuleDecal>())
                 {
                     try
                     {
-                        availablePart.partPrefab.AddModule("SCModuleEVAVariants", true);
+                        availablePart.partPrefab.AddModule("WBIModuleEVAVariants", true);
                     }
                     catch (Exception ex)
                     {
-                        Debug.Log("[SandcastleLoader] - Exception while trying to add SCModuleEVAVariants: " + ex);
+                        Debug.Log("[SandcastleLoader] - Exception while trying to add WBIModuleEVAVariants: " + ex);
                     }
                 }
             }
@@ -64,16 +64,16 @@ namespace Sandcastle
 
                 if (!availablePart.partPrefab.HasModuleImplementing<ModulePartVariants>())
                     return;
-                if (availablePart.partPrefab.HasModuleImplementing<SCModuleEVAVariants>())
+                if (availablePart.partPrefab.HasModuleImplementing<WBIModuleEVAVariants>())
                     return;
 
                 try
                 {
-                    availablePart.partPrefab.AddModule("SCModuleEVAFlagSwitch", true);
+                    availablePart.partPrefab.AddModule("WBIModuleEVAFlagSwitch", true);
                 }
                 catch (Exception ex)
                 {
-                    Debug.Log("[SandcastleLoader] - Exception while trying to add SCModuleEVAFlagSwitch: " + ex);
+                    Debug.Log("[SandcastleLoader] - Exception while trying to add WBIModuleEVAFlagSwitch: " + ex);
                 }
             }
 

@@ -35,7 +35,7 @@ namespace Sandcastle.Inventory
     /// Catches and stores cargo items into the part's inventory as long as they fit. Does not require a kerbal. This only works on single-part vessels.
     /// Note that you'll need a trigger collider set up in the part containing this part module in order to trigger the catch and store operation.
     /// </summary>
-    public class ModuleCargoCatcher: BasePartModule
+    public class ModuleCargoCatcher: WBIBasePartModule
     {
         enum CargoCatcherStates
         {

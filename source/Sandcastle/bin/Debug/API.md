@@ -1,7 +1,7 @@
 ﻿# Sandcastle
 
 
-# PartModules.SCModuleEVAVariants
+# PartModules.WBIModuleEVAVariants
             
 This helper part module makes it possible to change part variants during EVA Construction.
         
@@ -464,7 +464,7 @@ Draws the window
 > **windowId:** An int representing the window ID.
 
 
-# PrintShop.SCShipbreaker
+# PrintShop.WBIShipbreaker
             
 Represents a shop that is capable of printing items and placing them in an available inventory.
         
@@ -669,7 +669,7 @@ Flag to indicate if it should offset the printed vessel to avoid collisions. Rec
 Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper. We have to do this because GetInfo is called during game start, we rely on PartLoader to get information about other parts that are needed to 3D print this part, and not all of the parts will be loaded when GetInfo is called.
         
 
-# PrintShop.SCShipwright
+# PrintShop.WBIShipwright
             
 Prints entire vessels
         

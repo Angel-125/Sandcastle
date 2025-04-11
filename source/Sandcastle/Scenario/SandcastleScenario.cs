@@ -19,17 +19,17 @@ namespace Sandcastle
         /// <summary>
         /// A vessel printer has requested a list of parts to be printed.
         /// </summary>
-        public static EventData<SCShipwright, List<BuildItem>> onSupportPrintingRequest = new EventData<SCShipwright, List<BuildItem>>("onSupportPrintingRequest");
+        public static EventData<WBIShipwright, List<BuildItem>> onSupportPrintingRequest = new EventData<WBIShipwright, List<BuildItem>>("onSupportPrintingRequest");
 
         /// <summary>
         /// A part has been printed.
         /// </summary>
-        public static EventData<SCBasePrinter, BuildItem> onPartPrinted = new EventData<SCBasePrinter, BuildItem>("onPartPrinted");
+        public static EventData<WBIBasePrinter, BuildItem> onPartPrinted = new EventData<WBIBasePrinter, BuildItem>("onPartPrinted");
 
         /// <summary>
         /// A part has been recycled.
         /// </summary>
-        public static EventData<SCShipbreaker, BuildItem> onPartRecycled = new EventData<SCShipbreaker, BuildItem>("onPartRecycled");
+        public static EventData<WBIShipbreaker, BuildItem> onPartRecycled = new EventData<WBIShipbreaker, BuildItem>("onPartRecycled");
         #endregion
 
         internal struct SnapshotRequest

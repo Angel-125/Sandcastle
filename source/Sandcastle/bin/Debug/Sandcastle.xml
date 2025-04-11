@@ -4,17 +4,17 @@
         <name>Sandcastle</name>
     </assembly>
     <members>
-        <member name="T:Sandcastle.PartModules.SCModuleEVAVariants">
+        <member name="T:Sandcastle.PartModules.WBIModuleEVAVariants">
             <summary>
             This helper part module makes it possible to change part variants during EVA Construction.
             </summary>
         </member>
-        <member name="M:Sandcastle.PartModules.SCModuleEVAVariants.enableVariantSwitching">
+        <member name="M:Sandcastle.PartModules.WBIModuleEVAVariants.enableVariantSwitching">
             <summary>
             Enables in-flight variant switching
             </summary>
         </member>
-        <member name="M:Sandcastle.PartModules.SCModuleEVAVariants.disableVariantSwitching">
+        <member name="M:Sandcastle.PartModules.WBIModuleEVAVariants.disableVariantSwitching">
             <summary>
             Disables in-flight variant switching
             </summary>
@@ -587,83 +587,83 @@
             </summary>
             <param name="windowId">An int representing the window ID.</param>
         </member>
-        <member name="T:Sandcastle.PrintShop.SCShipbreaker">
+        <member name="T:Sandcastle.PrintShop.WBIShipbreaker">
             <summary>
             Represents a shop that is capable of printing items and placing them in an available inventory.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.debugMode">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.debugMode">
             <summary>
             A flag to enable/disable debug mode.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleSpeedUSec">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.recycleSpeedUSec">
             <summary>
             The number of resource units per second that the recycler can recycle.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.UseSpecialistBonus">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.UseSpecialistBonus">
             <summary>
             Flag to indicate whether or not to allow specialists to improve the recycle speed. Exactly how the specialist(s) does that is a trade secret.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.SpecialistBonus">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.SpecialistBonus">
             <summary>
             Per experience rating, how much to improve the recycle speed by.
             The print shop part must have crew capacity.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.ExperienceEffect">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.ExperienceEffect">
             <summary>
             The skill required to improve the recycle speed.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.runningEffect">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.runningEffect">
             <summary>
             Name of the effect to play from the part's EFFECTS node when the printer is running.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recyclePercentage">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.recyclePercentage">
             <summary>
             What percentage of resources will be recycled.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.animationName">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.animationName">
             <summary>
             Name of the animation to play during printing.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.vesselCaptureEnabled">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.vesselCaptureEnabled">
             <summary>
             Flag to indicate if vessel capture is enabled.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.maxBuildingDistance">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.maxBuildingDistance">
             <summary>
             Maximum distance allowed for other shipbreakers to help break up a vessel.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleQueue">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.recycleQueue">
             <summary>
             Represents the list of build items to recycle.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleState">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.recycleState">
             <summary>
             Current state of the recycler.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.recycleStatusText">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.recycleStatusText">
             <summary>
             status text.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.lastUpdateTime">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.lastUpdateTime">
             <summary>
             Describes when the recycler was last updated.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipbreaker.currentJob">
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.currentJob">
             <summary>
             Current job being recycled.
             </summary>
@@ -979,32 +979,32 @@
             and not all of the parts will be loaded when GetInfo is called.
             </summary>
         </member>
-        <member name="T:Sandcastle.PrintShop.SCShipwright">
+        <member name="T:Sandcastle.PrintShop.WBIShipwright">
             <summary>
             Prints entire vessels
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipwright.spawnTransformVABName">
+        <member name="F:Sandcastle.PrintShop.WBIShipwright.spawnTransformVABName">
             <summary>
             Alternate transform to use for VAB craft.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipwright.spawnTransformSPHName">
+        <member name="F:Sandcastle.PrintShop.WBIShipwright.spawnTransformSPHName">
             <summary>
             Alternate transform to use for SPH craft.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipwright.repositionCraftBeforeSpawning">
+        <member name="F:Sandcastle.PrintShop.WBIShipwright.repositionCraftBeforeSpawning">
             <summary>
             Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipwright.printStateString">
+        <member name="F:Sandcastle.PrintShop.WBIShipwright.printStateString">
             <summary>
             Current printer state.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCShipwright.maxCraftDimensions">
+        <member name="F:Sandcastle.PrintShop.WBIShipwright.maxCraftDimensions">
             <summary>
             Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
             Leave empty for unlimited printing.
@@ -1035,68 +1035,68 @@
             The recycler is recycling something.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.debugMode">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.debugMode">
             <summary>
             A flag to enable/disable debug mode.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.maxPrintVolume">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.maxPrintVolume">
             <summary>
             The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.printSpeedUSec">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.printSpeedUSec">
             <summary>
             The number of resource units per second that the printer can print.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.UseSpecialistBonus">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.UseSpecialistBonus">
             <summary>
             Flag to indicate whether or not to allow specialists to improve the print speed. Exactly how the specialist(s) does that is a trade secret.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.SpecialistBonus">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.SpecialistBonus">
             <summary>
             Per experience rating, how much to improve the print speed by.
             The print shop part must have crew capacity.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.ExperienceEffect">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.ExperienceEffect">
             <summary>
             The skill required to improve the print speed.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.runningEffect">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.runningEffect">
             <summary>
             Name of the effect to play from the part's EFFECTS node when the printer is running.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.spawnTransformName">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.spawnTransformName">
             <summary>
             Where to spawn the printed part.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.printQueue">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.printQueue">
             <summary>
             Represents the list of build items to print.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.printState">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.printState">
             <summary>
             Current state of the printer.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.lastUpdateTime">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.lastUpdateTime">
             <summary>
             Describes when the printer was last updated.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.currentJob">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.currentJob">
             <summary>
             Current job being printed.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.SCBasePrinter.animationName">
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.animationName">
             <summary>
             Name of the animation to play during printing.
             </summary>

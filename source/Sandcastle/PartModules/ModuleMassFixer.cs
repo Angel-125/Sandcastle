@@ -8,7 +8,7 @@ using WildBlueCore;
 
 namespace Sandcastle
 {
-    public class ModuleMassFixer : BasePartModule
+    public class ModuleMassFixer : WBIBasePartModule
     {
         public override void OnUpdate()
         {

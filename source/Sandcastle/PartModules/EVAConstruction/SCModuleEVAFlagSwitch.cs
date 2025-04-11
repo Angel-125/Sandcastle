@@ -10,13 +10,13 @@ using WildBlueCore.PartModules.Decals;
 
 namespace Sandcastle.PartModules
 {
-    public class SCModuleEVAFlagSwitch: BasePartModule
+    public class WBIModuleEVAFlagSwitch: WBIBasePartModule
     {
         const float kInteractionRange = 10.0f;
 
         FlagDecalBackground flagDecalBackground;
         FlagDecal flagDecal;
-        ModuleDecal decalModule;
+        WBIModuleDecal decalModule;
         FlagBrowser flagBrowser;
 
         #region Lifecycle Methods
@@ -30,7 +30,7 @@ namespace Sandcastle.PartModules
 
             flagDecalBackground = part.FindModuleImplementing<FlagDecalBackground>();
             flagDecal = part.FindModuleImplementing<FlagDecal>();
-            decalModule = part.FindModuleImplementing<ModuleDecal>();
+            decalModule = part.FindModuleImplementing<WBIModuleDecal>();
         }
 
         public void OnDestroy()
@@ -52,7 +52,7 @@ namespace Sandcastle.PartModules
         #region Helpers
         private void onFlagSelected(FlagBrowser.FlagEntry selected)
         {
-            // DO NOT set ModuleDecal! Let it handle flag switching.
+            // DO NOT set WBIModuleDecal! Let it handle flag switching.
 
             string flagURL = selected.textureInfo.name;
             part.flagURL = flagURL;
@@ -88,7 +88,7 @@ namespace Sandcastle.PartModules
             // Enable/disable our events
             Events["EVASetFlag"].guiActiveUnfocused = inConstructionMode;
 
-            // Enable/disable ModuleDecal event.
+            // Enable/disable WBIModuleDecal event.
             if (decalModule != null)
             {
                 decalModule.Events["SelectDecal"].guiActiveUnfocused = inConstructionMode;

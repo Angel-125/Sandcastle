@@ -37,7 +37,7 @@ namespace Sandcastle.PrintShop
     }
     #endregion
 
-    public class SCBasePrinter: BasePartModule
+    public class WBIBasePrinter: WBIBasePartModule
     {
         #region Constants
         public const double kCatchupTime = 3600;
@@ -280,7 +280,7 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Helpers
-        protected virtual void onSupportPrintingRequest(SCShipwright sender, List<BuildItem> buildList)
+        protected virtual void onSupportPrintingRequest(WBIShipwright sender, List<BuildItem> buildList)
         {
             if (sender.part.flightID == part.flightID)
             {

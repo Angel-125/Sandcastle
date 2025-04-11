@@ -13,7 +13,7 @@ namespace Sandcastle.PrintShop
     /// Represents a shop that is capable of printing items and placing them in an available inventory.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_recyclerTitle")]
-    public class WBICargoRecycler: BasePartModule
+    public class WBICargoRecycler: WBIBasePartModule
     {
         #region Constants
         const double kCatchupTime = 3600;

@@ -147,7 +147,6 @@
     <Compile Include="PartModules\EVAConstruction\SCModuleEVAFlagSwitch.cs" />
     <Compile Include="PartModules\PrintShop\SCShipwright.cs" />
     <Compile Include="PartModules\PrintShop\SCBasePrinter.cs" />
-    <Compile Include="PartModules\TestRotate.cs" />
     <Compile Include="Scenario\SandcastleScenario.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\PrinterInfoHelper.cs" />

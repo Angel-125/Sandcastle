@@ -14,7 +14,7 @@ namespace Sandcastle.PrintShop
     /// Prints entire vessels
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_shipwrightTitle")]
-    public class SCShipwright: SCBasePrinter
+    public class WBIShipwright: WBIBasePrinter
     {
         #region Fields
         /// <summary>
@@ -66,7 +66,7 @@ namespace Sandcastle.PrintShop
         bool spawnCraftAfterLoading;
         uint alarmID;
         Vector3 shipSize;
-        SCModuleBoundingBox moduleBoundingBox;
+        WBIModuleBoundingBox moduleBoundingBox;
         #endregion
 
         #region Events
@@ -74,7 +74,7 @@ namespace Sandcastle.PrintShop
         public void ShowPrinterDialog()
         {
             shipwrightUI.SetVisible(true);
-            SCShipbreaker shipbreaker = part.FindModuleImplementing<SCShipbreaker>();
+            WBIShipbreaker shipbreaker = part.FindModuleImplementing<WBIShipbreaker>();
             if (shipbreaker != null)
             {
                 shipbreaker.DisableRecycler();
@@ -120,7 +120,7 @@ namespace Sandcastle.PrintShop
         {
             base.OnStart(state);
 
-            moduleBoundingBox = part.FindModuleImplementing<SCModuleBoundingBox>();
+            moduleBoundingBox = part.FindModuleImplementing<WBIModuleBoundingBox>();
 
             Events["LoadCraft"].active = debugMode;
             Events["DecoupleCraft"].active = debugMode;
@@ -309,14 +309,14 @@ namespace Sandcastle.PrintShop
             // Find all loaded vessels with printers and see if any of them are printing the build item.
             int count = FlightGlobals.VesselsLoaded.Count;
             Vessel loadedVessel;
-            List<SCBasePrinter> printers;
-            SCBasePrinter printer;
+            List<WBIBasePrinter> printers;
+            WBIBasePrinter printer;
             BuildItem doomed = null;
             for (int index = 0; index < count; index++)
             {
                 loadedVessel = FlightGlobals.VesselsLoaded[index];
 
-                printers = loadedVessel.FindPartModulesImplementing<SCBasePrinter>();
+                printers = loadedVessel.FindPartModulesImplementing<WBIBasePrinter>();
                 if (printers == null || printers.Count == 0)
                     continue;
 
@@ -541,7 +541,7 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Helpers
-        protected override void onSupportPrintingRequest(SCShipwright sender, List<BuildItem> buildList)
+        protected override void onSupportPrintingRequest(WBIShipwright sender, List<BuildItem> buildList)
         {
             if (sender.part.flightID == part.flightID)
             {
@@ -734,13 +734,13 @@ namespace Sandcastle.PrintShop
             printState = WBIPrintStates.Printing;
         }
 
-        private void onPartPrinted(SCBasePrinter sender, BuildItem buildItem)
+        private void onPartPrinted(WBIBasePrinter sender, BuildItem buildItem)
         {
             if (sender == this || printState != WBIPrintStates.Printing)
                 return;
 
             if (debugMode)
-                Debug.Log("[SCShipwright " + part.flightID + "] - " + "Support printer " + sender.part.flightID + " has completed printing " + buildItem.partName);
+                Debug.Log("[WBIShipwright " + part.flightID + "] - " + "Support printer " + sender.part.flightID + " has completed printing " + buildItem.partName);
 
             // Find the item in our print queue
             int count = printQueue.Count;
@@ -774,7 +774,7 @@ namespace Sandcastle.PrintShop
                 item.skipInventoryAdd = true;
 
                 if (debugMode)
-                    Debug.Log("[SCShipwright " + part.flightID + "] - " + "Asking support printer " + sender.part.flightID + " to print " + item.partName);
+                    Debug.Log("[WBIShipwright " + part.flightID + "] - " + "Asking support printer " + sender.part.flightID + " to print " + item.partName);
             }
 
             // If queue is empty, kick out of timewarp and signal that we've completed our print jobs.

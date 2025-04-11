@@ -12,7 +12,7 @@ namespace Sandcastle.PartModules
     /// <summary>
     /// This helper part module makes it possible to change part variants during EVA Construction.
     /// </summary>
-    public class SCModuleEVAVariants: BasePartModule
+    public class WBIModuleEVAVariants: WBIBasePartModule
     {
         const float kInteractionRange = 10.0f;
 
@@ -38,7 +38,7 @@ namespace Sandcastle.PartModules
         {
             if (partVariants == null)
             {
-                Debug.Log("[SCModuleEVAVariants] - onEVAConstructionMode: partVariants == null for part " + part.partInfo.title);
+                Debug.Log("[WBIModuleEVAVariants] - onEVAConstructionMode: partVariants == null for part " + part.partInfo.title);
                 return;
             }
 
@@ -56,7 +56,7 @@ namespace Sandcastle.PartModules
             UI_VariantSelector variantSelector = partVariants.Fields["variantIndex"].uiControlEditor as UI_VariantSelector;
             if (variantSelector == null)
             {
-                Debug.Log("[SCModuleEVAVariants] - Unable to find variant selector control for part " + part.partInfo.title);
+                Debug.Log("[WBIModuleEVAVariants] - Unable to find variant selector control for part " + part.partInfo.title);
                 return;
             }
             variantSelector.SetSceneVisibility(UI_Scene.Flight, true);
@@ -80,7 +80,7 @@ namespace Sandcastle.PartModules
             UI_VariantSelector variantSelector = partVariants.Fields["variantIndex"].uiControlEditor as UI_VariantSelector;
             if (variantSelector == null)
             {
-                Debug.Log("[SCModuleEVAVariants] - Unable to find variant selector control for part " + part.partInfo.title);
+                Debug.Log("[WBIModuleEVAVariants] - Unable to find variant selector control for part " + part.partInfo.title);
                 return;
             }
             variantSelector.SetSceneVisibility(UI_Scene.Flight, false);

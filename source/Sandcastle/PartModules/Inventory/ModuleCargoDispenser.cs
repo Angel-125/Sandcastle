@@ -36,7 +36,7 @@ namespace Sandcastle.Inventory
     /// enables non-kerbal parts to remove items from the part's inventory and drop them onto the ground.
     /// This code is based on vessel creation code from Extraplanetary Launchpads by Taniwha and is used under the GNU General Public License.
     /// </summary>
-    public class ModuleCargoDispenser: BasePartModule
+    public class ModuleCargoDispenser: WBIBasePartModule
     {
         enum CargoDispenserStates
         {

@@ -15,7 +15,7 @@ namespace Sandcastle.PrintShop
     /// and not all of the parts will be loaded when GetInfo is called.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_printRequirementsTitle")]
-    public class WBIPrinterRequirements: BasePartModule
+    public class WBIPrinterRequirements: WBIBasePartModule
     {
         [KSPField]
         public string requirementsInfo = "Placeholder. Filled out via PrinterInfoHelper.";

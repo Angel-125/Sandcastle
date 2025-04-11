@@ -15,9 +15,11 @@ GameData
 		Sandcastle
 		WildBlueCore
 
-Changes
+HOW TO FIX MISSING PART MODULES ERROR
+This update renames a number of Wild Blue Industries' part modules and may cause KSP to complain when you try to load your craft files.
+To fix this issue, follow the steps here: https://github.com/Angel-125/WildBlueCore/wiki/How-To-Fix-Missing-Part-Modules-Warning
 
-IN DEVELOPMENT
+Changes
 
 IMPORTANT NOTE: Currently, printing vessels on the ground is resulting in their orientations NOT matching the orientation of the printer, and result in the spawned vessel crashing into the ground.
 You won't likely see this at the space center, but it definitely happens on other planets. This is a source of major frustration for me right now.
@@ -31,7 +33,7 @@ NOTE: For a part to make use of a Community Category materials list, the part's 
 NOTE: The FIRST Community Category found in the part's config will be used as the part's category for the purposes of determining its MATERIALS_LIST.
 - Added Sandcastle support to the Mk1 Drydock and Mk3-75 Drydock from the Mark One Laboratory Extensions mod.
 NOTE: If you see the drydock parts in the MOLE category tab, DO NOT USE THEM! They will have "Deprecated" in their title. Use the drydock parts found under the Sandcastle category tab instead.
-- SCShipwright have new configurable fields:
+- WBIShipwright have new configurable fields:
 
 		// Alternate transforms- these are used in place of spawnTransformName to help orient vessels properly.
 		spawnTransformVABName = VesselSpawnPointVAB

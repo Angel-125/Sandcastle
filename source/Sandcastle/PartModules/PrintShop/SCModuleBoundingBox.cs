@@ -10,7 +10,7 @@ using EditorGizmos;
 
 namespace Sandcastle.PrintShop
 {
-    public class SCModuleBoundingBox: BasePartModule
+    public class WBIModuleBoundingBox: WBIBasePartModule
     {
         #region Fields
         public Bounds wireframeBounds

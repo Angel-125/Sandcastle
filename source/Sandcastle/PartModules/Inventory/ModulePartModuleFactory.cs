@@ -33,7 +33,7 @@ using WildBlueCore;
 
 namespace Sandcastle.PartModules.Inventory
 {
-    public class ModulePartModuleFactory: BasePartModule
+    public class ModulePartModuleFactory: WBIBasePartModule
     {
         #region Fields
         [KSPField]
