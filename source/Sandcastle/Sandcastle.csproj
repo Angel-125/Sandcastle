@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.props" Condition="Exists('..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.props')" />
   <Import Project="..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.props" Condition="Exists('..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -179,7 +180,6 @@
       <Name>WildBlueCore</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /Y "$(TargetPath)" "C:\KSPDev\GameData\WildBlueIndustries\Sandcastle\Plugin\"﻿
@@ -195,6 +195,9 @@ $(TargetDir)MarkdownSeparator.exe $(TargetDir)API.md Wiki</PostBuildEvent>
     </PropertyGroup>
     <Error Condition="!Exists('..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.props'))" />
     <Error Condition="!Exists('..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.targets'))" />
+    <Error Condition="!Exists('..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.props'))" />
+    <Error Condition="!Exists('..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.targets'))" />
   </Target>
   <Import Project="..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.targets" Condition="Exists('..\..\..\WildBlueTools\packages\Krafs.Publicizer.2.2.1\build\Krafs.Publicizer.targets')" />
+  <Import Project="..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.targets" Condition="Exists('..\..\..\WildBlueCore\source\WildBlueCore\packages\Krafs.Publicizer.2.3.0\build\Krafs.Publicizer.targets')" />
 </Project>
