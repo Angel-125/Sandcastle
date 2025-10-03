@@ -141,9 +141,17 @@ namespace Sandcastle.PrintShop
                 shipwrightUI.craftName = shipName;
             }
 
-            if (finalizeVesselAtStartup)
+            // Restore coupled vessel UI state after reload
+            if (dockedVesselInfo != null)
             {
-                // If craft was coupled, show decouple button. Otherwise show finalize button.
+                shipwrightUI.showSpawnButton = false;
+                shipwrightUI.showDecoupleButton = true;
+                if (debugMode)
+                    Debug.Log("[Sandcastle] - Restored coupled vessel UI state on load");
+            }
+            else if (finalizeVesselAtStartup)
+            {
+                // Vessel is printed but not yet coupled, show spawn button
                 shipwrightUI.showSpawnButton = true;
 
                 // Show bounding box
