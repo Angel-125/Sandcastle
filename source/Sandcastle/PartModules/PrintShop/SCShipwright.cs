@@ -106,6 +106,12 @@ namespace Sandcastle.PrintShop
             }
 
             part.StartCoroutine(InventoryUtils.decoupleVessel(dockedVesselRootPart, dockedVesselInfo, true));
+
+            // Clear the docked vessel info and update UI after decoupling
+            dockedVesselInfo = null;
+            shipwrightUI.showDecoupleButton = false;
+            shipwrightUI.showSpawnButton = false;
+            clearStats();
         }
 
         [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_shipwrightGroupName", groupDisplayName = "#LOC_SANDCASTLE_shipwrightGroupName", guiName = "(Debug) Spawn Vessel")]
