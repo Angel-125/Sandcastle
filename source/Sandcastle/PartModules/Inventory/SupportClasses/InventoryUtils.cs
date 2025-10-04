@@ -515,7 +515,8 @@ namespace Sandcastle.Inventory
                     int count = storedPart.snapshot.resources.Count;
                     for (int resourceIndex = 0; resourceIndex < count; resourceIndex++)
                     {
-                        if (storedPart.snapshot.resources[resourceIndex].resourceName == "ElectricCharge")
+                        if (storedPart.snapshot.resources[resourceIndex].resourceName == "ElectricCharge" ||
+                            storedPart.snapshot.resources[resourceIndex].resourceName == "Ablator")
                             continue;
                         storedPart.snapshot.resources[resourceIndex].amount = 0;
                     }
@@ -1204,7 +1205,7 @@ namespace Sandcastle.Inventory
                     for (int index = 0; index < resourceCount; index++)
                     {
                         resource = part.Resources[index];
-                        if (resource.resourceName != "ElectricCharge")
+                        if (resource.resourceName != "ElectricCharge" && resource.resourceName != "Ablator")
                             resource.amount = 0f;
                     }
                 }
@@ -1222,7 +1223,7 @@ namespace Sandcastle.Inventory
                     for (int index = 0; index < resourceCount; index++)
                     {
                         resourceSnapshot = protoPart.resources[index];
-                        if (resourceSnapshot.resourceName != "ElectricCharge")
+                        if (resourceSnapshot.resourceName != "ElectricCharge" && resourceSnapshot.resourceName != "Ablator")
                             resourceSnapshot.amount = 0;
                     }
                 }
