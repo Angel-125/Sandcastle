@@ -21,7 +21,6 @@ namespace Sandcastle.Inventory
         #endregion
 
         #region Housekeeping
-        static List<string> thumbnailFilePaths = null;
         static Dictionary<string, Texture2D> thumbnails = null;
         #endregion
 
@@ -596,36 +595,6 @@ namespace Sandcastle.Inventory
             }
 
             return filteredParts;
-        }
-
-        /// <summary>
-        /// Searches the game folder for thumbnail images.
-        /// </summary>
-        public static void FindThumbnailPaths()
-        {
-            string gameDataPath = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"));
-            string[] files = Directory.GetFiles(gameDataPath, "*_icon*.png", SearchOption.AllDirectories);
-
-            thumbnailFilePaths = new List<string>();
-
-            for (int index = 0; index < files.Length; index++)
-            {
-                if (files[index].Contains("@thumbs"))
-                {
-                    thumbnailFilePaths.Add(files[index]);
-                }
-            }
-
-            // Don't forget the root path
-            gameDataPath = Path.GetFullPath(KSPUtil.ApplicationRootPath);
-            files = Directory.GetFiles(gameDataPath, "*_icon*.png", SearchOption.AllDirectories);
-            for (int index = 0; index < files.Length; index++)
-            {
-                if (files[index].Contains("@thumbs"))
-                {
-                    thumbnailFilePaths.Add(files[index]);
-                }
-            }
         }
 
         /// <summary>
