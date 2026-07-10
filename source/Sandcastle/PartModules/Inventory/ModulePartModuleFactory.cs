@@ -69,8 +69,10 @@ namespace Sandcastle.PartModules.Inventory
                 addedPartModules.Add(moduleAdded);
                 loadModuleSettings(moduleAdded, 0);
             }
-            if (Vessel.IsValidVesselName(part.vessel.name))
-                GameEvents.onVesselRename.Fire(new GameEvents.HostedFromToAction<Vessel, string>(part.vessel, part.vessel.name, part.vessel.name));
+            // vessel.name is Unity's object name (for example, "partName (vesselName)").
+            string vesselName = part.vessel.vesselName;
+            if (Vessel.IsValidVesselName(vesselName))
+                GameEvents.onVesselRename.Fire(new GameEvents.HostedFromToAction<Vessel, string>(part.vessel, vesselName, vesselName));
         }
 
         public override void OnLoad(ConfigNode node)
