@@ -66,7 +66,7 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
                     continue;
 
                 // Check mass
@@ -164,7 +164,7 @@ namespace Sandcastle.Inventory
             bool volRequirementMet = false;
             double partMass = availablePart.partPrefab.mass + availablePart.partPrefab.resourceMass;
 
-            if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
+            if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
                 return false;
 
             // Check mass
@@ -231,7 +231,7 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
                     continue;
 
                 // Check mass
