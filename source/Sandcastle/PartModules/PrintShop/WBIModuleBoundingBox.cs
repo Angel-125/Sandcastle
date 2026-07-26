@@ -166,6 +166,17 @@ namespace Sandcastle.PrintShop
         {
             movementBoundary = boundary;
             movementBoundaryInterior = interior;
+
+            // Apply the same boundary and terrain constraints used by the move
+            // gizmo as soon as the preview is created. This pre-positions a
+            // landed craft at its minimum safe placement without requiring the
+            // player to move the gizmo first.
+            if (_originTransform != null)
+            {
+                _originTransform.position = constrainToMovementBoundary(_originTransform.position);
+                _originTransform.position = positionAtTerrainClearance(
+                    _originTransform.position, false);
+            }
         }
 
         public void ClearMovementBoundary()
@@ -246,6 +257,11 @@ namespace Sandcastle.PrintShop
 
         Vector3 constrainToTerrainClearance(Vector3 candidatePosition)
         {
+            return positionAtTerrainClearance(candidatePosition, true);
+        }
+
+        Vector3 positionAtTerrainClearance(Vector3 candidatePosition, bool onlyRaise)
+        {
             CelestialBody body = part.vessel.mainBody;
             if (body == null)
                 return candidatePosition;
@@ -263,7 +279,7 @@ namespace Sandcastle.PrintShop
             double bottomAltitude = body.GetAltitude(bottomPosition);
             double requiredLift = terrainAltitude + kTerrainClearance - bottomAltitude;
 
-            if (requiredLift > 0)
+            if (!onlyRaise || requiredLift > 0)
                 candidatePosition += groundNormal * (float)requiredLift;
 
             return candidatePosition;
