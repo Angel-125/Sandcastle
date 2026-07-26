@@ -127,7 +127,6 @@ namespace Sandcastle.PrintShop
         string currentCategory = PartCategories.Pods.ToString();
         string selectedCategory = PartCategories.Pods.ToString();
         Texture2D[] partImages;
-        int selectedIndex;
         int currentIndex;
         Color selectedColor = Color.yellow;
         Color backgroundColor;
@@ -258,6 +257,13 @@ namespace Sandcastle.PrintShop
             // Job status
             GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_jobStatus", new string[1] { jobStatus } ));
             GUILayout.EndVertical();
+
+            // Cancel all print jobs button
+            if (GUILayout.Button(iconSet["Trash"], buttonDimensions))
+            {
+                // We always work from the first item in the queue.
+                printQueue.Clear();
+            }
 
             GUILayout.EndHorizontal();
         }
@@ -670,7 +676,6 @@ namespace Sandcastle.PrintShop
             }
 
             partImages = thumbnails.ToArray();
-            selectedIndex = 0;
             currentIndex = 0;
             partsScrollPos = Vector2.zero;
         }
@@ -681,7 +686,7 @@ namespace Sandcastle.PrintShop
             cckTags = new Dictionary<string, string>();
 
             if (!iconSet.ContainsKey(PartCategories.Aero.ToString()))
-                iconSet.Add(PartCategories.Aero.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_advaerodynamics"));
+                iconSet.Add(PartCategories.Aero.ToString(), loadTexture("Squad/PartList/SimpleIcons/R&D_node_icon_highaltitudeflight"));
 
             if (!iconSet.ContainsKey(PartCategories.Cargo.ToString()))
                 iconSet.Add(PartCategories.Cargo.ToString(), loadTexture("Squad/PartList/SimpleIcons/deployed_science_part"));

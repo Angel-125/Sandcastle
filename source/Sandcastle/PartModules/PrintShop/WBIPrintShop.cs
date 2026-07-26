@@ -140,44 +140,6 @@ namespace Sandcastle.PrintShop
                 shopUI.SetVisible(false);
         }
 
-        public override void OnLoad(ConfigNode node)
-        {
-            base.OnLoad(node);
-
-            // Print state
-            if (node.HasValue(kPrintState))
-                printState = (WBIPrintStates)Enum.Parse(typeof(WBIPrintStates), node.GetValue(kPrintState));
-
-            // Print Queue
-            if (node.HasNode(BuildItem.kBuildItemNode))
-            {
-                BuildItem buildItem;
-                ConfigNode[] nodes = node.GetNodes(BuildItem.kBuildItemNode);
-                for (int index = 0; index < nodes.Length; index++)
-                {
-                    buildItem = new BuildItem(nodes[index]);
-                    printQueue.Add(buildItem);
-                }
-            }
-        }
-
-        public override void OnSave(ConfigNode node)
-        {
-            base.OnSave(node);
-
-            // Print state
-            node.AddValue(kPrintState, printState.ToString());
-
-            // Print queue
-            ConfigNode buildItemNode;
-            int count = printQueue.Count;
-            for (int index = 0; index < count; index++)
-            {
-                buildItemNode = printQueue[index].Save();
-                node.AddNode(buildItemNode);
-            }
-        }
-
         public override string GetInfo()
         {
             StringBuilder info = new StringBuilder();

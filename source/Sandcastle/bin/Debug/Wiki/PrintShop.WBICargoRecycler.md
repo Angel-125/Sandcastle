@@ -3,8 +3,6 @@ Represents a shop that is capable of printing items and placing them in an avail
         
 ## Fields
 
-### debugMode
-A flag to enable/disable debug mode.
 ### recycleSpeedUSec
 The number of resource units per second that the recycler can recycle.
 ### UseSpecialistBonus

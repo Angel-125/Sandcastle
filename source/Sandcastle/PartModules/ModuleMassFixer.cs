@@ -33,7 +33,7 @@ namespace Sandcastle
                 Debug.Log("[ModuleMassFixer OnUpdate] - " + part.partInfo.name + " has vessel mass after fix: " + part.vessel.GetTotalMass());
                 Debug.Log("[ModuleMassFixer OnUpdate] - " + part.partInfo.name + " has new rb mass: " + part.rb.mass);
             }
-            catch (Exception ex)
+            catch (Exception)
             { }
         }
     }

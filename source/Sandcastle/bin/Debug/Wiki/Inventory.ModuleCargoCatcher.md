@@ -3,8 +3,6 @@ Catches and stores cargo items into the part's inventory as long as they fit. Do
         
 ## Fields
 
-### debugMode
-Flag to indicate that we're in debug mode.
 ### deployAnimationName
 Optional name of the animation to play when preparing the catcher to catch cargo parts.
 ### canCatchParts

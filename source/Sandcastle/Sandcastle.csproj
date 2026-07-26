@@ -25,6 +25,10 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <!-- KSP PartModules expose configuration and lifecycle members publicly for
+         reflection. Only intentionally documented consumer APIs are included in
+         the generated XML documentation. -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
     <DocumentationFile>bin\Debug\Sandcastle.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -135,8 +139,8 @@
     <Compile Include="PartModules\PrintShop\GUI\ShipwrightUI.cs" />
     <Compile Include="PartModules\PrintShop\GUI\RecyclerUI.cs" />
     <Compile Include="PartModules\PrintShop\GUI\PrintShopUI.cs" />
-    <Compile Include="PartModules\PrintShop\SCModuleBoundingBox.cs" />
-    <Compile Include="PartModules\PrintShop\SCShipbreaker.cs" />
+    <Compile Include="PartModules\PrintShop\WBIModuleBoundingBox.cs" />
+    <Compile Include="PartModules\PrintShop\WBIShipbreaker.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\VectorLine.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\WireframeBox.cs" />
     <Compile Include="PartModules\PrintShop\WBICargoRecycler.cs" />
@@ -146,8 +150,8 @@
     <Compile Include="PartModules\PrintShop\WBIPrinterRequirements.cs" />
     <Compile Include="PartModules\EVAConstruction\SCModuleEVAVariants.cs" />
     <Compile Include="PartModules\EVAConstruction\SCModuleEVAFlagSwitch.cs" />
-    <Compile Include="PartModules\PrintShop\SCShipwright.cs" />
-    <Compile Include="PartModules\PrintShop\SCBasePrinter.cs" />
+    <Compile Include="PartModules\PrintShop\WBIShipwright.cs" />
+    <Compile Include="PartModules\PrintShop\WBIBasePrinter.cs" />
     <Compile Include="Scenario\SandcastleScenario.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\PrinterInfoHelper.cs" />

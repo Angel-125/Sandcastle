@@ -78,13 +78,9 @@ namespace Sandcastle.PrintShop
         GUILayoutOption[] recycleQueueHeight = new GUILayoutOption[] { GUILayout.Height(165) };
         GUILayoutOption[] partInfoWidth = new GUILayoutOption[] { GUILayout.Width(335) };
         Texture2D[] partImages;
-        int selectedIndex;
-        int currentIndex;
         Color selectedColor = Color.yellow;
         Color backgroundColor;
         string categoryName = PartCategories.Pods.ToString();
-        bool categoryMousedOver;
-        double categoryUpdateTime;
         #endregion
 
         #region Constructors
@@ -381,8 +377,6 @@ namespace Sandcastle.PrintShop
             }
 
             partImages = thumbnails.ToArray();
-            selectedIndex = 0;
-            currentIndex = 0;
             partsScrollPos = Vector2.zero;
         }
 

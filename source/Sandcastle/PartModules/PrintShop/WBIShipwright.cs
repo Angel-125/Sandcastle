@@ -67,6 +67,10 @@ namespace Sandcastle.PrintShop
         uint alarmID;
         Vector3 shipSize;
         WBIModuleBoundingBox moduleBoundingBox;
+        bool previewPlacementIsValid;
+        EditorFacility previewPlacementFacility;
+        Vector3 previewRelativePosition;
+        Quaternion previewRelativeRotation;
         #endregion
 
         #region Events
@@ -260,39 +264,85 @@ namespace Sandcastle.PrintShop
 
         void showVesselBoundingBox()
         {
-            if (moduleBoundingBox != null && spawnTransform != null)
+            if (moduleBoundingBox == null)
+                return;
+
+            ShipConstruct shipConstruct = null;
+            try
             {
-                ShipConstruct shipConstruct = ShipConstruction.LoadShip(craftFilePath);
+                shipConstruct = ShipConstruction.LoadShip(craftFilePath);
+                if (shipConstruct == null || shipConstruct.parts == null || shipConstruct.parts.Count == 0)
+                {
+                    Debug.LogError("[Sandcastle] - Unable to load craft for the vessel bounding box: " + craftFilePath);
+                    return;
+                }
 
-                // Get the vessel bounds. The center will be relative to the root part.
-                Bounds bounds = InventoryUtils.getBounds(shipConstruct.parts[0].localRoot, shipConstruct.parts);
-                Vector3 offset = shipConstruct.shipFacility == EditorFacility.VAB ? new Vector3(0, bounds.center.y - spawnTransform.position.y, 0) : new Vector3(0, 0, bounds.center.z - spawnTransform.position.z);
+                Transform placementTransform = getSpawnTransform(shipConstruct.shipFacility);
+                if (placementTransform == null)
+                {
+                    Debug.LogError("[Sandcastle] - Unable to find the spawn transform for " + shipConstruct.shipName);
+                    return;
+                }
 
-                // Reset the bounds so that it is centered on the spawnTransform. We'll apply the offset shortly.
-                bounds = new Bounds(spawnTransform.position, shipSize);
+                Bounds constructBounds;
+                if (!part.vessel.LandedOrSplashed)
+                {
+                    previewPlacementIsValid = InventoryUtils.TryPositionShipConstruct(
+                        shipConstruct, part, placementTransform, repositionCraftBeforeSpawning,
+                        out previewRelativePosition, out previewRelativeRotation, out constructBounds);
+                    previewPlacementFacility = shipConstruct.shipFacility;
+                }
+                else
+                {
+                    previewPlacementIsValid = false;
+                    InventoryUtils.TryGetConstructBounds(shipConstruct, out constructBounds);
+                }
 
-                // Now set up the bounding box.
-                moduleBoundingBox.originTransform = spawnTransform;
-                moduleBoundingBox.SetupWireframe(spawnTransform, bounds, offset);
+                if (constructBounds.size == Vector3.zero)
+                {
+                    Debug.LogError("[Sandcastle] - Unable to calculate vessel bounding box for " + shipConstruct.shipName);
+                    return;
+                }
+
+                // The construct has not been assembled into a Vessel, so calculate its
+                // center relative to its root transform instead of accessing Part.vessel.
+                Part rootPart = shipConstruct.parts[0].localRoot;
+                Vector3 localCenter = rootPart.transform.InverseTransformPoint(constructBounds.center);
+                Vector3 offset = shipConstruct.shipFacility == EditorFacility.VAB
+                    ? new Vector3(0, localCenter.y, 0)
+                    : new Vector3(0, 0, localCenter.z);
+
+                Vector3 placementCenter = part.vessel.LandedOrSplashed
+                    ? offset
+                    : placementTransform.InverseTransformPoint(constructBounds.center);
+                Bounds bounds = new Bounds(placementTransform.position, shipSize);
+
+                moduleBoundingBox.originTransform = placementTransform;
+                moduleBoundingBox.SetupWireframe(placementTransform, bounds, placementCenter);
                 moduleBoundingBox.wireframeIsVisible = true;
-                moduleBoundingBox.moveGizmoIsVisible = true;
-
-                // Delete the parts
-                // This will get rid of the unusable craft parts that we currently don't need.
-                List<Part> doomed = new List<Part>();
-                for (int index = 0; index < shipConstruct.parts.Count; index++)
-                {
-                    if (shipConstruct.parts[index].gameObject != null)
-                        doomed.Add(shipConstruct.parts[index]);
-                }
-                for (int index = 0; index < doomed.Count; index++)
-                {
-                    shipConstruct.Remove(doomed[index]);
-                    doomed[index].OnDelete();
-                    Destroy(doomed[index].gameObject);
-                }
-                FlightGlobals.PersistentVesselIds.Remove(shipConstruct.persistentId);
+                moduleBoundingBox.moveGizmoIsVisible = part.vessel.LandedOrSplashed;
             }
+            finally
+            {
+                cleanupPreviewConstruct(shipConstruct);
+            }
+        }
+
+        void cleanupPreviewConstruct(ShipConstruct shipConstruct)
+        {
+            if (shipConstruct == null)
+                return;
+
+            List<Part> doomed = new List<Part>(shipConstruct.parts);
+            for (int index = 0; index < doomed.Count; index++)
+            {
+                Part doomedPart = doomed[index];
+                shipConstruct.Remove(doomedPart);
+                doomedPart.OnDelete();
+                if (doomedPart.gameObject != null)
+                    Destroy(doomedPart.gameObject);
+            }
+            FlightGlobals.PersistentVesselIds.Remove(shipConstruct.persistentId);
         }
 
         void hideVesselBoundingBox()
@@ -587,6 +637,7 @@ namespace Sandcastle.PrintShop
 
         private void onShipSelected(string filePath, CraftBrowserDialog.LoadType loadType)
         {
+            previewPlacementIsValid = false;
             craftFilePath = filePath;
             if (debugMode)
                 Debug.Log("[Sandcastle] - Ship file selected: " + filePath);
@@ -854,22 +905,7 @@ namespace Sandcastle.PrintShop
             if (debugMode)
                 Debug.Log("[Sandcastle] - onShipConstructCompleted called.");
 
-            // Use the extra spawn transforms?
-            Transform dropTransform = null;
-            if (shipConstruct.shipFacility == EditorFacility.VAB && !string.IsNullOrEmpty(spawnTransformVABName))
-            {
-                dropTransform = part.FindModelTransform(spawnTransformVABName);
-
-            }
-            else if (shipConstruct.shipFacility == EditorFacility.SPH && !string.IsNullOrEmpty(spawnTransformSPHName))
-            {
-                dropTransform = part.FindModelTransform(spawnTransformSPHName);
-            }
-
-            else
-            {
-                dropTransform = spawnTransform;
-            }
+            Transform dropTransform = getSpawnTransform(shipConstruct.shipFacility);
 
             if (dropTransform == null)
             {
@@ -880,7 +916,23 @@ namespace Sandcastle.PrintShop
 
             clearStats();
 
-            InventoryUtils.SpawnShip(shipConstruct, part, dropTransform, new Callback<DockedVesselInfo>(onVesselCoupled), true, repositionCraftBeforeSpawning);
+            bool usePreviewPlacement = !part.vessel.LandedOrSplashed &&
+                previewPlacementIsValid && previewPlacementFacility == shipConstruct.shipFacility;
+            InventoryUtils.SpawnShip(shipConstruct, part, dropTransform,
+                new Callback<DockedVesselInfo>(onVesselCoupled), true,
+                repositionCraftBeforeSpawning, usePreviewPlacement,
+                previewRelativePosition, previewRelativeRotation);
+        }
+
+        Transform getSpawnTransform(EditorFacility facility)
+        {
+            if (facility == EditorFacility.VAB && !string.IsNullOrEmpty(spawnTransformVABName))
+                return part.FindModelTransform(spawnTransformVABName);
+
+            if (facility == EditorFacility.SPH && !string.IsNullOrEmpty(spawnTransformSPHName))
+                return part.FindModelTransform(spawnTransformSPHName);
+
+            return spawnTransform;
         }
         #endregion
     }

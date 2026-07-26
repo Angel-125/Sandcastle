@@ -24,12 +24,6 @@ namespace Sandcastle.PrintShop
 
         #region Fields
         /// <summary>
-        /// A flag to enable/disable debug mode.
-        /// </summary>
-        [KSPField]
-        public bool debugMode = false;
-
-        /// <summary>
         /// The number of resource units per second that the recycler can recycle.
         /// </summary>
         [KSPField]

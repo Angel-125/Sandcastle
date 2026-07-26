@@ -423,7 +423,7 @@ namespace Sandcastle.PrintShop
             isUnpacked = copyFrom.isUnpacked;
             flightId = copyFrom.flightId;
             waitForSupportCompletion = copyFrom.waitForSupportCompletion;
-            skipInventoryAdd = skipInventoryAdd;
+            skipInventoryAdd = copyFrom.skipInventoryAdd;
 
             PartRequiredComponent component;
             int count = copyFrom.requiredComponents.Count;

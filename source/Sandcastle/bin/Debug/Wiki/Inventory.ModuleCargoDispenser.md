@@ -3,8 +3,6 @@ The stock EVA Construction system lets you drag and drop inventory parts onto th
         
 ## Fields
 
-### debugMode
-Debug flag.
 ### dropTransformName
 Name of the transform where dropped cargo items will appear.
 ### animationName

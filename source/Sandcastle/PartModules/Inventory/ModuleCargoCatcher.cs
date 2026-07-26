@@ -46,12 +46,6 @@ namespace Sandcastle.Inventory
 
         #region Fields
         /// <summary>
-        /// Flag to indicate that we're in debug mode.
-        /// </summary>
-        [KSPField]
-        public bool debugMode;
-
-        /// <summary>
         /// Optional name of the animation to play when preparing the catcher to catch cargo parts.
         /// </summary>
         [KSPField]

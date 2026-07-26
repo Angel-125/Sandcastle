@@ -49,6 +49,10 @@ Determines whether or not the vessel has enough storage space.
 
 > **amount:** The number of parts that need space. Default is 1.
 
+> **partMassOverride:** Optional mass, in metric tons, to use instead of the part's configured mass.
+
+> **volumeOverride:** Optional packed volume, in liters, to use instead of the part's configured volume.
+
 > #### Return value
 > true if there is enough space, false if not.
 
@@ -129,6 +133,16 @@ Retrieves the thumbnail texture that depicts the specified part name.
 > #### Return value
 > A Texture2D if the texture exists, or a blank texture if not.
 
+### GetTexture(System.String,System.Int32)
+Retrieves the thumbnail texture that depicts the specified part name.
+> #### Parameters
+> **partName:** A string containing the name of the part.
+
+> **variantIndex:** An int containing the index of the desired part variant image.
+
+> #### Return value
+> A Texture2D if the texture exists, or a blank texture if not.
+
 ### GetFilePathForThumbnail(AvailablePart,System.Int32,System.Boolean)
 Returns the full path to the part's thumbnail image.
 > #### Parameters
@@ -140,4 +154,26 @@ Returns the full path to the part's thumbnail image.
 
 > #### Return value
 > 
+
+### TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)
+Positions an unassembled craft relative to a printer and optionally moves it along the printer's local launch axis until its bounds no longer intersect the printer's colliders.
+
+### TryGetConstructBounds(ShipConstruct,UnityEngine.Bounds@)
+Calculates world-space bounds for a ShipConstruct before it has been assembled into a Vessel. Collider bounds are preferred because they match the coordinate space used by the spawn collision checks.
+
+### GetBounds(Part)
+Courtesy of MechJeb by Sarbian Licensed under GPLV3 Computes the Bounds of the supplied part. This works both in the editor and flight. EX: Bounds partBounds = FlightGlobals.ActiveVessel.rootPart.GetBounds();
+> #### Parameters
+> **part:** A Part object to compute the Bounds for.
+
+> #### Return value
+> A Bounds object containing the part's bounds.
+
+### GetBounds(Vessel)
+Courtesy of MechJeb by Sarbian Licensed under GPLV3 Computes the Bounds of the supplied vessel. This works both in the editor and in flight. EX: Bounds vesselBounds = FlightGlobals.ActiveVessel.GetBounds();
+> #### Parameters
+> **vessel:** A Vessel object to compute the bounds for.
+
+> #### Return value
+> A Bounds object containing the vessel's bounds.
 

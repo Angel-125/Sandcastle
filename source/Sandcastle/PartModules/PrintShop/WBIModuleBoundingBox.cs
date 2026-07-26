@@ -122,6 +122,12 @@ namespace Sandcastle.PrintShop
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
 
+            // The flight scene origin and the vessel transform both move during
+            // orbital flight. Rebuild world-space vertices from the live origin
+            // so the preview remains attached to the printer.
+            if (wireframeIsVisible && _originTransform != null)
+                wireframeBox.SetupWireframe(_originTransform, wireframeBox.bounds, offset);
+
             upVectorLine.Draw();
             fwdVectorLine.Draw();
             rightVectorLine.Draw();

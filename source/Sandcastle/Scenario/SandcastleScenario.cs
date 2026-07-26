@@ -7,7 +7,6 @@ using KSP.UI.Screens;
 using Sandcastle.PrintShop;
 using Sandcastle.Inventory;
 using KSP.Localization;
-using Sandcastle.PrintShop;
 
 namespace Sandcastle
 {

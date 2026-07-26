@@ -53,12 +53,6 @@ namespace Sandcastle.PrintShop
 
         #region Fields
         /// <summary>
-        /// A flag to enable/disable debug mode.
-        /// </summary>
-        [KSPField]
-        public bool debugMode = false;
-
-        /// <summary>
         /// The maximum volume that the printer can print, in liters. Set to less than 0 for no restrictions.
         /// </summary>
         [KSPField]
@@ -235,6 +229,13 @@ namespace Sandcastle.PrintShop
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
+
+            // OnLoad can be called more than once on the same module instance.
+            // Replace the queue contents instead of appending duplicate items.
+            if (printQueue == null)
+                printQueue = new List<BuildItem>();
+            else
+                printQueue.Clear();
 
             // Print state
             if (node.HasValue(kPrintState))

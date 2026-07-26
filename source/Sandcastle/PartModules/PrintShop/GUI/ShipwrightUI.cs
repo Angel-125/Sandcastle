@@ -127,7 +127,6 @@ namespace Sandcastle.PrintShop
         Vector2 resourcesScrollPos;
         Vector2 partsScrollPos;
         Vector2 partInfoScrollPos;
-        Vector2 partQueueScrollPos;
         Vector2 partDescriptionScrollPos;
         GUILayoutOption[] buttonDimensions = new GUILayoutOption[] { GUILayout.Width(32), GUILayout.Height(32) };
         GUILayoutOption[] previewImageDimensions = new GUILayoutOption[] { GUILayout.Width(100), GUILayout.Height(100) };

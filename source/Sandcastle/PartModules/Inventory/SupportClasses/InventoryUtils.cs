@@ -66,7 +66,7 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.packedVolumeLimit <= 0)
                     continue;
 
                 // Check mass
@@ -164,7 +164,7 @@ namespace Sandcastle.Inventory
             bool volRequirementMet = false;
             double partMass = availablePart.partPrefab.mass + availablePart.partPrefab.resourceMass;
 
-            if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
+            if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.packedVolumeLimit <= 0)
                 return false;
 
             // Check mass
@@ -205,12 +205,16 @@ namespace Sandcastle.Inventory
         /// <param name="vessel">The vessel to query</param>
         /// <param name="availablePart">The AvailablePart to check for space.</param>
         /// <param name="amount">The number of parts that need space. Default is 1.</param>
+        /// <param name="partMassOverride">Optional mass, in metric tons, to use instead of the part's configured mass.</param>
+        /// <param name="volumeOverride">Optional packed volume, in liters, to use instead of the part's configured volume.</param>
         /// <returns>true if there is enough space, false if not.</returns>
         public static bool HasEnoughSpace(Vessel vessel, AvailablePart availablePart, int amount = 1, double partMassOverride = -1, float volumeOverride = -1)
         {
             ModuleCargoPart cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
             if (cargoPart == null)
+            {
                 return false;
+            }
 
             List<ModuleInventoryPart> inventories = vessel.FindPartModulesImplementing<ModuleInventoryPart>();
             ModuleInventoryPart inventory;
@@ -231,8 +235,17 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.volumeCapacity <= 0)
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.packedVolumeLimit <= 0)
+                {
+                    Debug.Log("[FRED] inventory.isEnabled: " + inventory.isEnabled);
+                    Debug.Log("[FRED] inventory.InventoryIsFull: " + inventory.InventoryIsFull);
+                    Debug.Log("[FRED] inventory.massCapacityReached: " + inventory.massCapacityReached);
+                    Debug.Log("[FRED] inventory.volumeCapacityReached: " + inventory.volumeCapacityReached);
+                    Debug.Log("[FRED] inventory.volumeCapacity: " + inventory.volumeCapacity);
+                    Debug.Log("[FRED] inventory.HasPackedVolumeLimit: " + inventory.HasPackedVolumeLimit);
+                    Debug.Log("[FRED] inventory.packedVolumeLimit: " + inventory.packedVolumeLimit);
                     continue;
+                }
 
                 // Check mass
                 if (inventory.HasMassLimit)
@@ -399,7 +412,10 @@ namespace Sandcastle.Inventory
         {
             ModuleCargoPart cargoPart = availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
             if (cargoPart == null)
+            {
+
                 return null;
+            }
 
             PartVariant partVariant = null;
             PartVariant prevVariant = null;
@@ -644,7 +660,7 @@ namespace Sandcastle.Inventory
         /// Retrieves the thumbnail texture that depicts the specified part name.
         /// </summary>
         /// <param name="partName">A string containing the name of the part.</param>
-        /// <param name="variantIndex">An int containing the index of the desired part variant image.
+        /// <param name="variantIndex">An int containing the index of the desired part variant image.</param>
         /// <returns>A Texture2D if the texture exists, or a blank texture if not.</returns>
         public static Texture2D GetTexture(string partName, int variantIndex)
         {
@@ -848,7 +864,11 @@ namespace Sandcastle.Inventory
             }
         }
 
-        public static void SpawnShip(ShipConstruct shipConstruct, Part parentPart, Transform dropTransform, Callback<DockedVesselInfo> onVesselCoupled, bool removeResources = true, bool repositionCraftBeforeSpawning = true)
+        public static void SpawnShip(ShipConstruct shipConstruct, Part parentPart, Transform dropTransform,
+            Callback<DockedVesselInfo> onVesselCoupled, bool removeResources = true,
+            bool repositionCraftBeforeSpawning = true, bool useProvidedPlacement = false,
+            Vector3 providedRelativePosition = default(Vector3),
+            Quaternion providedRelativeRotation = default(Quaternion))
         {
             Debug.Log("[Sandcastle] - SpawnShip called for " + shipConstruct.shipName);
             shipConstruct.missionFlag = parentPart.flagURL;
@@ -858,54 +878,23 @@ namespace Sandcastle.Inventory
             // Setup launch clamps
             setupLaunchClamps(shipConstruct);
 
-            // If we're in orbit, offset the craft so it won't slam into the printer.
-            Vector3 originalPosition = dropTransform.position;
             if (!parentPart.vessel.LandedOrSplashed)
             {
-                // Calculate craft size so that we can offset the dropTransform and avoid colliding with the printer.
-                // VAB/SPH dimensions: Height (X) Width (Y) Length (Z)
-                //Vector3 craftSize = ShipConstruction.CalculateCraftSize(shipConstruct);
-
-                // Vessel's front will be pointing towards the printhead.
-                Quaternion baseRotation = new Quaternion(0, 1, 0, 0);
-                Quaternion rotation = baseRotation * rootPart.transform.rotation;
-                rootPart.transform.rotation = dropTransform.rotation * rotation;
-
-                // Set the initial position
-                rootPart.transform.position = dropTransform.position;
-
-                // Get the bounds
-                Bounds printerBounds = getBounds(parentPart, new List<Part>() { parentPart });
-                Bounds craftBounds = getBounds(rootPart, shipConstruct.parts);
-                if (SandcastleScenario.debugMode)
+                if (useProvidedPlacement)
                 {
-                    Debug.Log("[Sandcastle] - Printer Bounds: " + printerBounds.ToString());
-                    Debug.Log("[Sandcastle] - Craft Bounds: " + craftBounds.ToString());
+                    rootPart.transform.rotation = dropTransform.rotation * providedRelativeRotation;
+                    rootPart.transform.position = dropTransform.TransformPoint(providedRelativePosition);
                 }
-
-                Collider[] colliders = parentPart.GetPartColliders();
-
-                if (repositionCraftBeforeSpawning)
+                else
                 {
-                    int count = 0;
-                    Vector3 offset = new Vector3(0, 0, 1);
-                    if (shipConstruct.shipFacility == EditorFacility.VAB)
-                        offset = dropTransform.up.normalized;
-                    while (boundsIntersectsColliders(craftBounds, colliders) && count < 50)
+                    Bounds craftBounds;
+                    if (!TryPositionShipConstruct(shipConstruct, parentPart, dropTransform,
+                        repositionCraftBeforeSpawning, out providedRelativePosition,
+                        out providedRelativeRotation, out craftBounds))
                     {
-                        if (SandcastleScenario.debugMode)
-                            Debug.Log("[Sandcastle] - Offsetting vessel to avoid collision with a collider. Attempt # " + count);
-                        dropTransform.position += offset;
-                        rootPart.transform.position = dropTransform.position;
-                        craftBounds = getBounds(rootPart, shipConstruct.parts);
-                        count += 1;
-                    }
-
-                    // Safety check: If we're still colliding with the printer, then move way back.
-                    if (craftBounds.Intersects(printerBounds))
-                    {
-                        dropTransform.position += offset * craftBounds.extents.z;
-                        rootPart.transform.position = dropTransform.position;
+                        Debug.LogError("[Sandcastle] - Unable to find a collision-free placement for "
+                            + shipConstruct.shipName + ". Vessel spawn aborted.");
+                        return;
                     }
                 }
             }
@@ -915,8 +904,11 @@ namespace Sandcastle.Inventory
                 ShipConstruction.PutShipToGround(shipConstruct, dropTransform);
             }
 
-            // Reset drop transform.
-            dropTransform.position = originalPosition;
+            // Preserve the craft's placement relative to the printer. KSP can move
+            // the flight scene's reference frame while the new vessel initializes,
+            // so world-space coordinates captured here cannot be treated as stable.
+            Vector3 relativePosition = dropTransform.InverseTransformPoint(rootPart.transform.position);
+            Quaternion relativeRotation = Quaternion.Inverse(dropTransform.rotation) * rootPart.transform.rotation;
 
             // Spawn the vessel into the game.
             ShipConstruction.AssembleForLaunch(shipConstruct, "", "", parentPart.flagURL, FlightDriver.FlightStateCache, new VesselCrewManifest());
@@ -953,12 +945,10 @@ namespace Sandcastle.Inventory
             // We're flying, orbiting, suborbital, or escaping. Couple the new craft to the printer.
             else
             {
-                FlightGlobals.overrideOrbit = true;
-                setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
-                FlightGlobals.overrideOrbit = false;
-
-                // Couple the vessel to the printer for later release.
-                parentPart.StartCoroutine(coupleVessel(vessel, parentPart, onVesselCoupled));
+                // Keep the vessel anchored to the live spawn transform while its
+                // parts initialize, then couple it to the printer.
+                parentPart.StartCoroutine(coupleVessel(vessel, parentPart, onVesselCoupled,
+                    dropTransform, relativePosition, relativeRotation));
             }
 
             // Go for launch!
@@ -988,6 +978,139 @@ namespace Sandcastle.Inventory
                 }
             }
             return false; // No collisions found
+        }
+
+        /// <summary>
+        /// Positions an unassembled craft relative to a printer and optionally
+        /// moves it along the printer's local launch axis until its bounds no
+        /// longer intersect the printer's colliders.
+        /// </summary>
+        internal static bool TryPositionShipConstruct(ShipConstruct shipConstruct, Part parentPart,
+            Transform dropTransform, bool avoidCollisions, out Vector3 relativePosition,
+            out Quaternion relativeRotation, out Bounds craftBounds)
+        {
+            relativePosition = Vector3.zero;
+            relativeRotation = Quaternion.identity;
+            craftBounds = new Bounds();
+
+            if (shipConstruct == null || shipConstruct.parts == null ||
+                shipConstruct.parts.Count == 0 || parentPart == null || dropTransform == null)
+                return false;
+
+            Part rootPart = shipConstruct.parts[0].localRoot;
+
+            // Vessel's front will be pointing towards the printhead.
+            Quaternion baseRotation = new Quaternion(0, 1, 0, 0);
+            relativeRotation = baseRotation * rootPart.transform.rotation;
+            rootPart.transform.rotation = dropTransform.rotation * relativeRotation;
+            rootPart.transform.position = dropTransform.position;
+
+            if (!TryGetConstructBounds(shipConstruct, out craftBounds))
+                return false;
+
+            if (avoidCollisions)
+            {
+                Collider[] colliders = parentPart.GetPartColliders();
+                Vector3 displacementAxis = shipConstruct.shipFacility == EditorFacility.VAB
+                    ? dropTransform.up.normalized
+                    : dropTransform.forward.normalized;
+                int attempt = 0;
+
+                while (boundsIntersectsColliders(craftBounds, colliders) && attempt < 50)
+                {
+                    if (SandcastleScenario.debugMode)
+                        Debug.Log("[Sandcastle] - Offsetting vessel to avoid collision with a collider. Attempt # " + attempt);
+
+                    rootPart.transform.position += displacementAxis;
+                    if (!TryGetConstructBounds(shipConstruct, out craftBounds))
+                        return false;
+                    attempt += 1;
+                }
+
+                if (boundsIntersectsColliders(craftBounds, colliders))
+                    return false;
+            }
+
+            relativePosition = dropTransform.InverseTransformPoint(rootPart.transform.position);
+            relativeRotation = Quaternion.Inverse(dropTransform.rotation) * rootPart.transform.rotation;
+
+            if (SandcastleScenario.debugMode)
+            {
+                Debug.Log("[Sandcastle] - Craft Bounds: " + craftBounds);
+                Debug.Log("[Sandcastle] - Craft placement relative position: " + relativePosition);
+                Debug.Log("[Sandcastle] - Craft placement relative rotation: " + relativeRotation.eulerAngles);
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Calculates world-space bounds for a ShipConstruct before it has been
+        /// assembled into a Vessel. Collider bounds are preferred because they
+        /// match the coordinate space used by the spawn collision checks.
+        /// </summary>
+        internal static bool TryGetConstructBounds(ShipConstruct shipConstruct, out Bounds constructBounds)
+        {
+            constructBounds = new Bounds();
+            bool boundsInitialized = false;
+
+            if (shipConstruct == null || shipConstruct.parts == null || shipConstruct.parts.Count == 0)
+                return false;
+
+            int partCount = shipConstruct.parts.Count;
+            for (int partIndex = 0; partIndex < partCount; partIndex++)
+            {
+                Part craftPart = shipConstruct.parts[partIndex];
+                Transform modelTransform = craftPart.transform.Find("model");
+                if (modelTransform == null)
+                    continue;
+
+                Collider[] colliders = modelTransform.GetComponentsInChildren<Collider>();
+                for (int colliderIndex = 0; colliderIndex < colliders.Length; colliderIndex++)
+                {
+                    Collider collider = colliders[colliderIndex];
+                    if (collider == null || !collider.enabled || collider.isTrigger || collider.gameObject.layer == 21)
+                        continue;
+
+                    if (!boundsInitialized)
+                    {
+                        constructBounds = collider.bounds;
+                        boundsInitialized = true;
+                    }
+                    else
+                    {
+                        constructBounds.Encapsulate(collider.bounds);
+                    }
+                }
+            }
+
+            // Some parts have no usable colliders. Fall back to visible renderers,
+            // whose bounds are also expressed in world space and require no Vessel.
+            if (!boundsInitialized)
+            {
+                for (int partIndex = 0; partIndex < partCount; partIndex++)
+                {
+                    Renderer[] renderers = shipConstruct.parts[partIndex].GetComponentsInChildren<Renderer>();
+                    for (int rendererIndex = 0; rendererIndex < renderers.Length; rendererIndex++)
+                    {
+                        Renderer renderer = renderers[rendererIndex];
+                        if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy)
+                            continue;
+
+                        if (!boundsInitialized)
+                        {
+                            constructBounds = renderer.bounds;
+                            boundsInitialized = true;
+                        }
+                        else
+                        {
+                            constructBounds.Encapsulate(renderer.bounds);
+                        }
+                    }
+                }
+            }
+
+            return boundsInitialized;
         }
 
         public static void setupLaunchClamps(ShipConstruct ship)
@@ -1025,40 +1148,95 @@ namespace Sandcastle.Inventory
             }
         }
 
-        public static Bounds getVesselBounds(Vessel vessel)
+        /// <summary>
+        /// Courtesy of MechJeb by Sarbian
+        /// Licensed under GPLV3
+        /// Computes the Bounds of the supplied part.
+        /// This works both in the editor and flight.
+        /// EX: Bounds partBounds = FlightGlobals.ActiveVessel.rootPart.GetBounds();
+        /// </summary>
+        /// <param name="part">A Part object to compute the Bounds for.</param>
+        /// <returns>A Bounds object containing the part's bounds.</returns>
+        internal static Bounds GetBounds(Part part)
         {
-            int count = vessel.Parts.Count;
-            if (count == 0 || vessel.rootPart == null)
-                return new Bounds();
+            Bounds partBounds = new Bounds();
+            bool boundsInitialized = false;
 
-            //Bounds bounds1 = new Bounds();
-            List<Bounds> boundsList = new List<Bounds>();
-            Part part;
-            Bounds[] partRendererBounds;
-            Bounds partRendererBound;
-            Bounds localBounds;
-            Vector3 boundsSize;
-            for (int index = 0; index < count; index++)
+            foreach (Transform t in part.FindModelComponents<Transform>())
             {
-                part = vessel.Parts[index];
-                if (part.Modules.GetModule<LaunchClamp>() != null)
+                // Check for inactive object. If inactive it's likely a part variant that's not active, so skip it.
+                if (t.gameObject.activeSelf == false)
                     continue;
 
-                partRendererBounds = PartGeometryUtil.GetPartRendererBounds(part);
-                for (int renderBoundsIndex = 0; renderBoundsIndex < partRendererBounds.Length; renderBoundsIndex++)
+                // Check for disabled or non-existent colliders
+                Collider collider = t.GetComponent<Collider>();
+                if (collider == null || collider.enabled == false)
+                    continue;
+
+                // Check for disabled mesh renderers. Accounts for part variants.
+                MeshRenderer renderer = t.GetComponent<MeshRenderer>();
+                if (renderer != null && renderer.enabled == false)
+                    continue;
+
+                MeshFilter mf = t.GetComponent<MeshFilter>();
+                if (mf == null)
+                    continue;
+
+                Mesh m = mf.mesh;
+                if (m == null)
+                    continue;
+
+                Matrix4x4 matrix = part.vessel.transform.worldToLocalMatrix * t.localToWorldMatrix;
+
+                foreach (Vector3 vertex in m.vertices)
                 {
-                    partRendererBound = partRendererBounds[renderBoundsIndex];
-                    localBounds = partRendererBound;
-                    localBounds.size = localBounds.size * part.boundsMultiplier;
-                    boundsSize = partRendererBound.size;
-                    partRendererBound.Expand(part.GetModuleSize(boundsSize));
-                    boundsList.Add(partRendererBound);
+                    Vector3 worldSpaceVertex = matrix.MultiplyPoint3x4(vertex);
+
+                    if (!boundsInitialized)
+                    {
+                        partBounds = new Bounds(worldSpaceVertex, Vector3.zero);
+                        boundsInitialized = true;
+                    }
+                    else
+                    {
+                        partBounds.Encapsulate(worldSpaceVertex);
+                    }
                 }
             }
-            if (boundsList.Count < 1)
-                return new Bounds();
 
-            return PartGeometryUtil.MergeBounds(boundsList.ToArray(), vessel.rootPart.transform.root);
+            return partBounds;
+        }
+        /// <summary>
+        /// Courtesy of MechJeb by Sarbian
+        /// Licensed under GPLV3
+        /// Computes the Bounds of the supplied vessel.
+        /// This works both in the editor and in flight.
+        /// EX: Bounds vesselBounds = FlightGlobals.ActiveVessel.GetBounds();
+        /// </summary>
+        /// <param name="vessel">A Vessel object to compute the bounds for.</param>
+        /// <returns>A Bounds object containing the vessel's bounds.</returns>
+        internal static Bounds GetBounds(Vessel vessel)
+        {
+            Bounds vesselBounds = new Bounds();
+            bool boundsInitialized = false;
+
+            for (int i = 0; i < vessel.parts.Count; i++)
+            {
+                Part p = vessel.parts[i];
+                Bounds partBounds = GetBounds(p);
+
+                if (!boundsInitialized)
+                {
+                    vesselBounds = partBounds;
+                    boundsInitialized = true;
+                }
+                else
+                {
+                    vesselBounds.Encapsulate(partBounds);
+                }
+            }
+
+            return vesselBounds;
         }
 
         public static Bounds getBounds(Part rootPart, List<Part> parts)
@@ -1066,34 +1244,26 @@ namespace Sandcastle.Inventory
             if (rootPart == null || parts.Count == 0)
                 return new Bounds();
 
-            List<Bounds> boundsList = new List<Bounds>();
-            Part part;
-            Bounds[] partRendererBounds;
-            Bounds partRendererBound;
-            Bounds localBounds;
-            Vector3 boundsSize;
-            int count = parts.Count;
-            for (int index = 0; index < count; index++)
-            {
-                part = parts[index];
-                if (part.Modules.GetModule<LaunchClamp>() != null)
-                    continue;
+            Bounds vesselBounds = new Bounds();
+            bool boundsInitialized = false;
 
-                partRendererBounds = PartGeometryUtil.GetPartRendererBounds(part);
-                for (int renderBoundsIndex = 0; renderBoundsIndex < partRendererBounds.Length; renderBoundsIndex++)
+            for (int i = 0; i < parts.Count; i++)
+            {
+                Part p = parts[i];
+                Bounds partBounds = GetBounds(p);
+
+                if (!boundsInitialized)
                 {
-                    partRendererBound = partRendererBounds[renderBoundsIndex];
-                    localBounds = partRendererBound;
-                    localBounds.size = localBounds.size * part.boundsMultiplier;
-                    boundsSize = partRendererBound.size;
-                    partRendererBound.Expand(part.GetModuleSize(boundsSize));
-                    boundsList.Add(partRendererBound);
+                    vesselBounds = partBounds;
+                    boundsInitialized = true;
+                }
+                else
+                {
+                    vesselBounds.Encapsulate(partBounds);
                 }
             }
-            if (boundsList.Count < 1)
-                return new Bounds();
 
-            return PartGeometryUtil.MergeBounds(boundsList.ToArray(), rootPart.transform.root);
+            return vesselBounds;
         }
 
         public static bool allPartsStarted(Vessel vessel)
@@ -1119,7 +1289,9 @@ namespace Sandcastle.Inventory
             return true;
         }
 
-        public static IEnumerator<YieldInstruction> coupleVessel(Vessel vessel, Part parentPart, Callback<DockedVesselInfo> onVesselCoupled)
+        public static IEnumerator<YieldInstruction> coupleVessel(Vessel vessel, Part parentPart,
+            Callback<DockedVesselInfo> onVesselCoupled, Transform anchorTransform = null,
+            Vector3 relativePosition = default(Vector3), Quaternion relativeRotation = default(Quaternion))
         {
             // Wait for all part to be initialized.
             Debug.Log("[Sandcastle] - coupleVessel called");
@@ -1127,6 +1299,10 @@ namespace Sandcastle.Inventory
             int count = vessel.Parts.Count;
             Part part;
             bool allPartsStarted = false;
+            bool anchorVessel = anchorTransform != null;
+            if (anchorVessel)
+                FlightGlobals.overrideOrbit = true;
+
             while (!allPartsStarted)
             {
                 allPartsStarted = true;
@@ -1140,11 +1316,26 @@ namespace Sandcastle.Inventory
                     }
                 }
 
-                OrbitPhysicsManager.HoldVesselUnpack(2);
-                yield return new WaitForFixedUpdate();
+                if (anchorVessel)
+                {
+                    repositionVessel(vessel, anchorTransform, relativePosition, relativeRotation);
+                    setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
+                }
 
                 if (allPartsStarted)
                     break;
+
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+                yield return new WaitForFixedUpdate();
+            }
+
+            // Perform one last synchronization using the current printer transform
+            // and orbit before switching the craft to physics.
+            if (anchorVessel)
+            {
+                FlightGlobals.overrideOrbit = false;
+                repositionVessel(vessel, anchorTransform, relativePosition, relativeRotation);
+                setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
             }
 
             // Create docked vessel info
@@ -1170,6 +1361,15 @@ namespace Sandcastle.Inventory
             onVesselCoupled(dockedVesselInfo);
 
             yield return null;
+        }
+
+        static void repositionVessel(Vessel vessel, Transform anchorTransform,
+            Vector3 relativePosition, Quaternion relativeRotation)
+        {
+            Quaternion rotation = anchorTransform.rotation * relativeRotation;
+            Vector3 position = anchorTransform.TransformPoint(relativePosition);
+            vessel.SetRotation(rotation, false);
+            vessel.SetPosition(position, true);
         }
 
         public static IEnumerator<YieldInstruction> decoupleVessel(Part rootPart, DockedVesselInfo dockedVesselInfo, bool switchToVessel = false)

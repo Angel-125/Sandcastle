@@ -61,6 +61,8 @@
             <param name="vessel">The vessel to query</param>
             <param name="availablePart">The AvailablePart to check for space.</param>
             <param name="amount">The number of parts that need space. Default is 1.</param>
+            <param name="partMassOverride">Optional mass, in metric tons, to use instead of the part's configured mass.</param>
+            <param name="volumeOverride">Optional packed volume, in liters, to use instead of the part's configured volume.</param>
             <returns>true if there is enough space, false if not.</returns>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.HasItem(Vessel,System.String)">
@@ -126,7 +128,14 @@
             <param name="partName">A string containing the name of the part.</param>
             <returns>A Texture2D if the texture exists, or a blank texture if not.</returns>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:Sandcastle.Inventory.InventoryUtils.GetTexture(System.String,System.Int32)" -->
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetTexture(System.String,System.Int32)">
+            <summary>
+            Retrieves the thumbnail texture that depicts the specified part name.
+            </summary>
+            <param name="partName">A string containing the name of the part.</param>
+            <param name="variantIndex">An int containing the index of the desired part variant image.</param>
+            <returns>A Texture2D if the texture exists, or a blank texture if not.</returns>
+        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.GetFilePathForThumbnail(AvailablePart,System.Int32,System.Boolean)">
             <summary>
             Returns the full path to the part's thumbnail image.
@@ -136,15 +145,46 @@
             <param name="useDefaultPath">A bool indicating whether or not to use the default thumbnails path.</param>
             <returns></returns>
         </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)">
+            <summary>
+            Positions an unassembled craft relative to a printer and optionally
+            moves it along the printer's local launch axis until its bounds no
+            longer intersect the printer's colliders.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.TryGetConstructBounds(ShipConstruct,UnityEngine.Bounds@)">
+            <summary>
+            Calculates world-space bounds for a ShipConstruct before it has been
+            assembled into a Vessel. Collider bounds are preferred because they
+            match the coordinate space used by the spawn collision checks.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetBounds(Part)">
+            <summary>
+            Courtesy of MechJeb by Sarbian
+            Licensed under GPLV3
+            Computes the Bounds of the supplied part.
+            This works both in the editor and flight.
+            EX: Bounds partBounds = FlightGlobals.ActiveVessel.rootPart.GetBounds();
+            </summary>
+            <param name="part">A Part object to compute the Bounds for.</param>
+            <returns>A Bounds object containing the part's bounds.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetBounds(Vessel)">
+            <summary>
+            Courtesy of MechJeb by Sarbian
+            Licensed under GPLV3
+            Computes the Bounds of the supplied vessel.
+            This works both in the editor and in flight.
+            EX: Bounds vesselBounds = FlightGlobals.ActiveVessel.GetBounds();
+            </summary>
+            <param name="vessel">A Vessel object to compute the bounds for.</param>
+            <returns>A Bounds object containing the vessel's bounds.</returns>
+        </member>
         <member name="T:Sandcastle.Inventory.ModuleCargoCatcher">
             <summary>
             Catches and stores cargo items into the part's inventory as long as they fit. Does not require a kerbal. This only works on single-part vessels.
             Note that you'll need a trigger collider set up in the part containing this part module in order to trigger the catch and store operation.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.Inventory.ModuleCargoCatcher.debugMode">
-            <summary>
-            Flag to indicate that we're in debug mode.
             </summary>
         </member>
         <member name="F:Sandcastle.Inventory.ModuleCargoCatcher.deployAnimationName">
@@ -184,11 +224,6 @@
             The stock EVA Construction system lets you drag and drop inventory parts onto the ground, but it requires a kerbal to do so. This part module
             enables non-kerbal parts to remove items from the part's inventory and drop them onto the ground.
             This code is based on vessel creation code from Extraplanetary Launchpads by Taniwha and is used under the GNU General Public License.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.Inventory.ModuleCargoDispenser.debugMode">
-            <summary>
-            Debug flag.
             </summary>
         </member>
         <member name="F:Sandcastle.Inventory.ModuleCargoDispenser.dropTransformName">
@@ -592,11 +627,6 @@
             Represents a shop that is capable of printing items and placing them in an available inventory.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.debugMode">
-            <summary>
-            A flag to enable/disable debug mode.
-            </summary>
-        </member>
         <member name="F:Sandcastle.PrintShop.WBIShipbreaker.recycleSpeedUSec">
             <summary>
             The number of resource units per second that the recycler can recycle.
@@ -671,11 +701,6 @@
         <member name="T:Sandcastle.PrintShop.WBICargoRecycler">
             <summary>
             Represents a shop that is capable of printing items and placing them in an available inventory.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.PrintShop.WBICargoRecycler.debugMode">
-            <summary>
-            A flag to enable/disable debug mode.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.WBICargoRecycler.recycleSpeedUSec">
@@ -1033,11 +1058,6 @@
         <member name="F:Sandcastle.PrintShop.WBIPrintStates.Recycling">
             <summary>
             The recycler is recycling something.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.debugMode">
-            <summary>
-            A flag to enable/disable debug mode.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.WBIBasePrinter.maxPrintVolume">

@@ -48,12 +48,6 @@ namespace Sandcastle.Inventory
 
         #region Fields
         /// <summary>
-        /// Debug flag.
-        /// </summary>
-        [KSPField]
-        public bool debugMode;
-
-        /// <summary>
         /// Name of the transform where dropped cargo items will appear.
         /// </summary>
         [KSPField]

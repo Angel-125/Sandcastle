@@ -76,6 +76,6 @@ C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\WildBl
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\bin\Debug\KSPAssets.XmlSerializers.dll
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.AssemblyReference.cache
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.CoreCompileInputs.cache
-C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.CopyComplete
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.dll
 C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.pdb
+C:\Projects\KSP\WildBlueIndustries\Sandcastle\source\Sandcastle\obj\Debug\Sandcastle.csproj.Up2Date
