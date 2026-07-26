@@ -1498,10 +1498,12 @@ namespace Sandcastle.Inventory
             vessel.loaded = wasLoaded;
             vessel.packed = wasPacked;
 
-            vessel.GoOffRails();
             FlightLogger.IgnoreGeeForces(20f);
             vessel.ignoreCollisionsFrames = 60;
             vessel.skipGroundPositioning = true;
+            vessel.GoOffRails();
+            yield return new WaitForFixedUpdate();
+            vessel.skipGroundPositioning = false;
         }
 
         public static IEnumerator<YieldInstruction> decoupleVessel(Part rootPart, DockedVesselInfo dockedVesselInfo, bool switchToVessel = false)

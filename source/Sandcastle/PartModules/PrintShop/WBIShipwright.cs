@@ -929,6 +929,8 @@ namespace Sandcastle.PrintShop
                 return;
             }
 
+            capturePreviewPlacement();
+
             ConfigNode shipNode = ConfigNode.Load(craftFilePath);
 
             shipTemplate = new ShipTemplate();
@@ -955,16 +957,6 @@ namespace Sandcastle.PrintShop
                 return;
             }
 
-            if (previewPlacementIsValid && previewPlacementTransform != null &&
-                previewBaseTransform == dropTransform)
-            {
-                Vector3 rootPosition = previewPlacementTransform.TransformPoint(
-                    previewRootOffsetFromGizmo);
-                previewRelativePosition = dropTransform.InverseTransformPoint(rootPosition);
-                previewRelativeRotation = Quaternion.Inverse(dropTransform.rotation) *
-                    previewPlacementTransform.rotation;
-            }
-
             clearStats();
 
             bool usePreviewPlacement = previewPlacementIsValid &&
@@ -973,6 +965,24 @@ namespace Sandcastle.PrintShop
                 new Callback<DockedVesselInfo>(onVesselCoupled), true,
                 repositionCraftBeforeSpawning, usePreviewPlacement,
                 previewRelativePosition, previewRelativeRotation);
+        }
+
+        void capturePreviewPlacement()
+        {
+            if (!previewPlacementIsValid || previewPlacementTransform == null ||
+                previewBaseTransform == null)
+                return;
+
+            Vector3 rootPosition = previewPlacementTransform.TransformPoint(
+                previewRootOffsetFromGizmo);
+            previewRelativePosition = previewBaseTransform.InverseTransformPoint(rootPosition);
+            previewRelativeRotation = Quaternion.Inverse(previewBaseTransform.rotation) *
+                previewPlacementTransform.rotation;
+
+            if (debugMode)
+                Debug.Log("[Sandcastle] - Captured preview placement: "
+                    + previewRelativePosition + " rotation: "
+                    + previewRelativeRotation.eulerAngles);
         }
 
         Transform getSpawnTransform(EditorFacility facility)
