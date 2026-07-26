@@ -14,6 +14,7 @@ namespace Sandcastle.Inventory
     {
         #region Constants
         const int kTextureSize = 64;
+        const float kLandedSpawnClearance = 1f;
         public static bool debugMode = false;
         #endregion
 
@@ -878,30 +879,34 @@ namespace Sandcastle.Inventory
             // Setup launch clamps
             setupLaunchClamps(shipConstruct);
 
-            if (!parentPart.vessel.LandedOrSplashed)
+            if (useProvidedPlacement)
             {
-                if (useProvidedPlacement)
+                rootPart.transform.rotation = dropTransform.rotation * providedRelativeRotation;
+                rootPart.transform.position = dropTransform.TransformPoint(providedRelativePosition);
+            }
+            else if (!parentPart.vessel.LandedOrSplashed)
+            {
+                Bounds craftBounds;
+                if (!TryPositionShipConstruct(shipConstruct, parentPart, dropTransform,
+                    repositionCraftBeforeSpawning, out providedRelativePosition,
+                    out providedRelativeRotation, out craftBounds))
                 {
-                    rootPart.transform.rotation = dropTransform.rotation * providedRelativeRotation;
-                    rootPart.transform.position = dropTransform.TransformPoint(providedRelativePosition);
-                }
-                else
-                {
-                    Bounds craftBounds;
-                    if (!TryPositionShipConstruct(shipConstruct, parentPart, dropTransform,
-                        repositionCraftBeforeSpawning, out providedRelativePosition,
-                        out providedRelativeRotation, out craftBounds))
-                    {
-                        Debug.LogError("[Sandcastle] - Unable to find a collision-free placement for "
-                            + shipConstruct.shipName + ". Vessel spawn aborted.");
-                        return;
-                    }
+                    Debug.LogError("[Sandcastle] - Unable to calculate a boundary-safe placement for "
+                        + shipConstruct.shipName + ". Vessel spawn aborted.");
+                    return;
                 }
             }
             else
             {
-                // Put the craft to the ground.
-                ShipConstruction.PutShipToGround(shipConstruct, dropTransform);
+                Bounds craftBounds;
+                if (!TryPositionLandedShipConstruct(shipConstruct, parentPart, dropTransform,
+                    repositionCraftBeforeSpawning, out providedRelativePosition,
+                    out providedRelativeRotation, out craftBounds))
+                {
+                    Debug.LogError("[Sandcastle] - Unable to calculate landed placement for "
+                        + shipConstruct.shipName + ". Vessel spawn aborted.");
+                    return;
+                }
             }
 
             // Preserve the craft's placement relative to the printer. KSP can move
@@ -936,10 +941,10 @@ namespace Sandcastle.Inventory
             // We're landed, check for ground collisions and such
             if (parentPart.vessel.LandedOrSplashed)
             {
-                vessel.UpdateLandedSplashed();
-
-                // Register the vessel to be repositioned after it goes off rails. This is to prevent ground collisions.
-                SandcastleScenario.shared.addSpawnedVessel(vessel);
+                // Keep the craft at the previewed ground placement until all parts
+                // initialize, then explicitly finalize its landed state.
+                parentPart.StartCoroutine(finalizeLandedVessel(vessel, parentPart,
+                    dropTransform, relativePosition, relativeRotation));
             }
 
             // We're flying, orbiting, suborbital, or escaping. Couple the new craft to the printer.
@@ -955,38 +960,12 @@ namespace Sandcastle.Inventory
             StageManager.BeginFlight();
         }
 
-        static bool boundsIntersectsColliders(Bounds objectBounds, Collider[] colliders)
-        {
-            Collider collider;
-
-            for (int index = 0; index < colliders.Length; index++)
-            {
-                collider = colliders[index];
-
-                // Skip the collider if it is disabled or is a trigger
-                if (!collider.enabled || collider.isTrigger)
-                {
-                    continue;
-                }
-
-                if (objectBounds.Intersects(collider.bounds))
-                {
-                    if (SandcastleScenario.debugMode)
-                        Debug.Log("[Sandcastle] - objectBounds intersects with " + collider.ToString() + ". Bounds: " + collider.bounds.ToString());
-
-                    return true; // Collision found
-                }
-            }
-            return false; // No collisions found
-        }
-
         /// <summary>
         /// Positions an unassembled craft relative to a printer and optionally
-        /// moves it along the printer's local launch axis until its bounds no
-        /// longer intersect the printer's colliders.
+        /// keeps its complete bounds beyond the spawn transform's virtual boundary.
         /// </summary>
         internal static bool TryPositionShipConstruct(ShipConstruct shipConstruct, Part parentPart,
-            Transform dropTransform, bool avoidCollisions, out Vector3 relativePosition,
+            Transform dropTransform, bool enforceBoundary, out Vector3 relativePosition,
             out Quaternion relativeRotation, out Bounds craftBounds)
         {
             relativePosition = Vector3.zero;
@@ -1008,27 +987,11 @@ namespace Sandcastle.Inventory
             if (!TryGetConstructBounds(shipConstruct, out craftBounds))
                 return false;
 
-            if (avoidCollisions)
+            if (enforceBoundary)
             {
-                Collider[] colliders = parentPart.GetPartColliders();
-                Vector3 displacementAxis = shipConstruct.shipFacility == EditorFacility.VAB
-                    ? dropTransform.up.normalized
-                    : dropTransform.forward.normalized;
-                int attempt = 0;
-
-                while (boundsIntersectsColliders(craftBounds, colliders) && attempt < 50)
-                {
-                    if (SandcastleScenario.debugMode)
-                        Debug.Log("[Sandcastle] - Offsetting vessel to avoid collision with a collider. Attempt # " + attempt);
-
-                    rootPart.transform.position += displacementAxis;
-                    if (!TryGetConstructBounds(shipConstruct, out craftBounds))
-                        return false;
-                    attempt += 1;
-                }
-
-                if (boundsIntersectsColliders(craftBounds, colliders))
-                    return false;
+                Vector3 boundaryNormal = getPlacementBoundaryNormal(parentPart, dropTransform, false);
+                moveBoundsBeyondBoundary(rootPart.transform, ref craftBounds,
+                    dropTransform.position, boundaryNormal);
             }
 
             relativePosition = dropTransform.InverseTransformPoint(rootPart.transform.position);
@@ -1042,6 +1005,139 @@ namespace Sandcastle.Inventory
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Uses KSP's ground-placement logic on an unassembled craft and captures
+        /// the resulting transform relative to the printer's spawn transform.
+        /// </summary>
+        internal static bool TryPositionLandedShipConstruct(ShipConstruct shipConstruct,
+            Part parentPart, Transform dropTransform, bool enforceBoundary,
+            out Vector3 relativePosition, out Quaternion relativeRotation,
+            out Bounds craftBounds)
+        {
+            relativePosition = Vector3.zero;
+            relativeRotation = Quaternion.identity;
+            craftBounds = new Bounds();
+
+            if (shipConstruct == null || shipConstruct.parts == null ||
+                shipConstruct.parts.Count == 0 || parentPart == null || dropTransform == null)
+                return false;
+
+            ShipConstruction.PutShipToGround(shipConstruct, dropTransform);
+
+            Part rootPart = shipConstruct.parts[0].localRoot;
+            rootPart.transform.position += parentPart.vessel.upAxis.normalized *
+                kLandedSpawnClearance;
+            if (!TryGetConstructBounds(shipConstruct, out craftBounds))
+                return false;
+
+            if (enforceBoundary)
+            {
+                Vector3 boundaryNormal = getPlacementBoundaryNormal(parentPart, dropTransform, true);
+                moveBoundsBeyondBoundary(rootPart.transform, ref craftBounds,
+                    dropTransform.position, boundaryNormal);
+            }
+
+            relativePosition = dropTransform.InverseTransformPoint(rootPart.transform.position);
+            relativeRotation = Quaternion.Inverse(dropTransform.rotation) * rootPart.transform.rotation;
+
+            if (SandcastleScenario.debugMode)
+            {
+                Debug.Log("[Sandcastle] - Landed craft bounds: " + craftBounds);
+                Debug.Log("[Sandcastle] - Landed placement relative position: " + relativePosition);
+                Debug.Log("[Sandcastle] - Landed placement relative rotation: " + relativeRotation.eulerAngles);
+            }
+
+            return true;
+        }
+
+        static Vector3 getPlacementBoundaryNormal(Part parentPart, Transform boundaryTransform,
+            bool projectOntoGround)
+        {
+            Vector3 normal = boundaryTransform.position - parentPart.transform.position;
+            if (projectOntoGround)
+                normal = Vector3.ProjectOnPlane(normal, parentPart.vessel.upAxis.normalized);
+            return normal.normalized;
+        }
+
+        static void moveBoundsBeyondBoundary(Transform rootTransform, ref Bounds craftBounds,
+            Vector3 boundaryPoint, Vector3 boundaryNormal)
+        {
+            if (boundaryNormal == Vector3.zero)
+                return;
+
+            Vector3 extents = craftBounds.extents;
+            float supportRadius =
+                Mathf.Abs(boundaryNormal.x) * extents.x +
+                Mathf.Abs(boundaryNormal.y) * extents.y +
+                Mathf.Abs(boundaryNormal.z) * extents.z;
+            float centerDistance = Vector3.Dot(
+                craftBounds.center - boundaryPoint, boundaryNormal);
+
+            if (centerDistance < supportRadius)
+            {
+                Vector3 displacement = boundaryNormal * (supportRadius - centerDistance);
+                rootTransform.position += displacement;
+                craftBounds.center += displacement;
+
+                if (SandcastleScenario.debugMode)
+                    Debug.Log("[Sandcastle] - Moved vessel beyond virtual printer boundary by "
+                        + displacement.magnitude + "m.");
+            }
+        }
+
+        /// <summary>
+        /// Calculates construct bounds in the coordinate system of a supplied
+        /// reference transform without requiring an assembled Vessel.
+        /// </summary>
+        internal static bool TryGetConstructLocalBounds(ShipConstruct shipConstruct,
+            Transform referenceTransform, out Bounds localBounds)
+        {
+            localBounds = new Bounds();
+            bool boundsInitialized = false;
+
+            if (shipConstruct == null || shipConstruct.parts == null ||
+                shipConstruct.parts.Count == 0 || referenceTransform == null)
+                return false;
+
+            Matrix4x4 worldToReference = referenceTransform.worldToLocalMatrix;
+            for (int partIndex = 0; partIndex < shipConstruct.parts.Count; partIndex++)
+            {
+                Part craftPart = shipConstruct.parts[partIndex];
+                foreach (Transform modelTransform in craftPart.FindModelComponents<Transform>())
+                {
+                    if (!modelTransform.gameObject.activeInHierarchy)
+                        continue;
+
+                    MeshRenderer renderer = modelTransform.GetComponent<MeshRenderer>();
+                    if (renderer != null && !renderer.enabled)
+                        continue;
+
+                    MeshFilter meshFilter = modelTransform.GetComponent<MeshFilter>();
+                    if (meshFilter == null || meshFilter.sharedMesh == null)
+                        continue;
+
+                    Matrix4x4 meshToReference = worldToReference *
+                        modelTransform.localToWorldMatrix;
+                    Vector3[] vertices = meshFilter.sharedMesh.vertices;
+                    for (int vertexIndex = 0; vertexIndex < vertices.Length; vertexIndex++)
+                    {
+                        Vector3 point = meshToReference.MultiplyPoint3x4(vertices[vertexIndex]);
+                        if (!boundsInitialized)
+                        {
+                            localBounds = new Bounds(point, Vector3.zero);
+                            boundsInitialized = true;
+                        }
+                        else
+                        {
+                            localBounds.Encapsulate(point);
+                        }
+                    }
+                }
+            }
+
+            return boundsInitialized;
         }
 
         /// <summary>
@@ -1370,6 +1466,42 @@ namespace Sandcastle.Inventory
             Vector3 position = anchorTransform.TransformPoint(relativePosition);
             vessel.SetRotation(rotation, false);
             vessel.SetPosition(position, true);
+        }
+
+        static IEnumerator<YieldInstruction> finalizeLandedVessel(Vessel vessel, Part parentPart,
+            Transform anchorTransform, Vector3 relativePosition, Quaternion relativeRotation)
+        {
+            FlightGlobals.overrideOrbit = true;
+
+            while (!allPartsStarted(vessel))
+            {
+                repositionVessel(vessel, anchorTransform, relativePosition, relativeRotation);
+                setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+                yield return new WaitForFixedUpdate();
+            }
+
+            FlightGlobals.overrideOrbit = false;
+            repositionVessel(vessel, anchorTransform, relativePosition, relativeRotation);
+            setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
+
+            bool wasLoaded = vessel.loaded;
+            bool wasPacked = vessel.packed;
+            vessel.loaded = true;
+            vessel.packed = false;
+            // The craft begins above the surface and should enter physics rather
+            // than being snapped back down by KSP's landed positioning.
+            vessel.situation = Vessel.Situations.FLYING;
+            vessel.Landed = false;
+            vessel.Splashed = false;
+            vessel.GetHeightFromTerrain();
+            vessel.loaded = wasLoaded;
+            vessel.packed = wasPacked;
+
+            vessel.GoOffRails();
+            FlightLogger.IgnoreGeeForces(20f);
+            vessel.ignoreCollisionsFrames = 60;
+            vessel.skipGroundPositioning = true;
         }
 
         public static IEnumerator<YieldInstruction> decoupleVessel(Part rootPart, DockedVesselInfo dockedVesselInfo, bool switchToVessel = false)

@@ -104,19 +104,10 @@ namespace Sandcastle.PrintShop
                 vertices[i] += offset;
             }
 
-            // Convert the vertices from local space to world space by applying the Transform's position and rotation
+            // Convert root-local bounds vertices into world space.
             for (int i = 0; i < vertices.Length; i++)
             {
-                vertices[i] = transform.TransformPoint(vertices[i] - bounds.center);  // Move from bounds' local center to world space using Transform
-            }
-
-            // Create a 90-degree rotation around the Z-axis
-            Quaternion rotation = Quaternion.AngleAxis(90, transform.forward);  // Rotate around the Z-axis
-
-            // Apply the rotation to all the vertices
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                vertices[i] = rotation * (vertices[i] - transform.position) + transform.position;  // Rotate around the Transform's position
+                vertices[i] = transform.TransformPoint(vertices[i]);
             }
 
             // Define the edges of the wireframe box

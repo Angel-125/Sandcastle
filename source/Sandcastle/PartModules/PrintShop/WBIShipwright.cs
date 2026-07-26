@@ -30,7 +30,9 @@ namespace Sandcastle.PrintShop
         public string spawnTransformSPHName;
 
         /// <summary>
-        /// Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
+        /// Flag to indicate whether the printed vessel must remain beyond the
+        /// selected spawn transform's virtual boundary. Recommended to set to
+        /// FALSE for printers with enclosed printing spaces.
         /// </summary>
         [KSPField]
         public bool repositionCraftBeforeSpawning = true;
@@ -71,6 +73,9 @@ namespace Sandcastle.PrintShop
         EditorFacility previewPlacementFacility;
         Vector3 previewRelativePosition;
         Quaternion previewRelativeRotation;
+        Transform previewPlacementTransform;
+        Transform previewBaseTransform;
+        Vector3 previewRootOffsetFromGizmo;
         #endregion
 
         #region Events
@@ -294,8 +299,11 @@ namespace Sandcastle.PrintShop
                 }
                 else
                 {
-                    previewPlacementIsValid = false;
-                    InventoryUtils.TryGetConstructBounds(shipConstruct, out constructBounds);
+                    previewPlacementIsValid = InventoryUtils.TryPositionLandedShipConstruct(
+                        shipConstruct, part, placementTransform, repositionCraftBeforeSpawning,
+                        out previewRelativePosition, out previewRelativeRotation,
+                        out constructBounds);
+                    previewPlacementFacility = shipConstruct.shipFacility;
                 }
 
                 if (constructBounds.size == Vector3.zero)
@@ -304,21 +312,24 @@ namespace Sandcastle.PrintShop
                     return;
                 }
 
-                // The construct has not been assembled into a Vessel, so calculate its
-                // center relative to its root transform instead of accessing Part.vessel.
                 Part rootPart = shipConstruct.parts[0].localRoot;
-                Vector3 localCenter = rootPart.transform.InverseTransformPoint(constructBounds.center);
-                Vector3 offset = shipConstruct.shipFacility == EditorFacility.VAB
-                    ? new Vector3(0, localCenter.y, 0)
-                    : new Vector3(0, 0, localCenter.z);
+                Bounds localBounds;
+                if (!InventoryUtils.TryGetConstructLocalBounds(shipConstruct,
+                    rootPart.transform, out localBounds))
+                {
+                    Debug.LogError("[Sandcastle] - Unable to calculate root-local vessel bounds for "
+                        + shipConstruct.shipName);
+                    return;
+                }
 
-                Vector3 placementCenter = part.vessel.LandedOrSplashed
-                    ? offset
-                    : placementTransform.InverseTransformPoint(constructBounds.center);
-                Bounds bounds = new Bounds(placementTransform.position, shipSize);
-
-                moduleBoundingBox.originTransform = placementTransform;
-                moduleBoundingBox.SetupWireframe(placementTransform, bounds, placementCenter);
+                setupPreviewPlacementTransform(placementTransform, localBounds);
+                Bounds bounds = new Bounds(Vector3.zero, localBounds.size);
+                moduleBoundingBox.originTransform = previewPlacementTransform;
+                moduleBoundingBox.SetupWireframe(previewPlacementTransform, bounds);
+                if (part.vessel.LandedOrSplashed && repositionCraftBeforeSpawning)
+                    moduleBoundingBox.SetupMovementBoundary(placementTransform, part.transform);
+                else
+                    moduleBoundingBox.ClearMovementBoundary();
                 moduleBoundingBox.wireframeIsVisible = true;
                 moduleBoundingBox.moveGizmoIsVisible = part.vessel.LandedOrSplashed;
             }
@@ -351,7 +362,36 @@ namespace Sandcastle.PrintShop
             {
                 moduleBoundingBox.wireframeIsVisible = false;
                 moduleBoundingBox.moveGizmoIsVisible = false;
+                moduleBoundingBox.ClearMovementBoundary();
             }
+
+            destroyPreviewPlacementTransform();
+        }
+
+        void setupPreviewPlacementTransform(Transform placementTransform, Bounds localBounds)
+        {
+            destroyPreviewPlacementTransform();
+
+            GameObject placementObject = new GameObject("Sandcastle vessel placement");
+            previewPlacementTransform = placementObject.transform;
+            previewPlacementTransform.rotation = placementTransform.rotation * previewRelativeRotation;
+            Vector3 rootPosition = placementTransform.TransformPoint(previewRelativePosition);
+            previewPlacementTransform.position = rootPosition +
+                previewPlacementTransform.TransformVector(localBounds.center);
+            previewPlacementTransform.SetParent(placementTransform, true);
+            previewBaseTransform = placementTransform;
+            previewRootOffsetFromGizmo = -localBounds.center;
+        }
+
+        void destroyPreviewPlacementTransform()
+        {
+            if (previewPlacementTransform != null)
+            {
+                Destroy(previewPlacementTransform.gameObject);
+                previewPlacementTransform = null;
+            }
+            previewBaseTransform = null;
+            previewRootOffsetFromGizmo = Vector3.zero;
         }
 
         bool supportPrinterIsPrinting(BuildItem buildItem)
@@ -439,6 +479,7 @@ namespace Sandcastle.PrintShop
 
         public override void OnDestroy()
         {
+            destroyPreviewPlacementTransform();
             base.OnDestroy();
 
             if (shipwrightUI.IsVisible())
@@ -914,10 +955,20 @@ namespace Sandcastle.PrintShop
                 return;
             }
 
+            if (previewPlacementIsValid && previewPlacementTransform != null &&
+                previewBaseTransform == dropTransform)
+            {
+                Vector3 rootPosition = previewPlacementTransform.TransformPoint(
+                    previewRootOffsetFromGizmo);
+                previewRelativePosition = dropTransform.InverseTransformPoint(rootPosition);
+                previewRelativeRotation = Quaternion.Inverse(dropTransform.rotation) *
+                    previewPlacementTransform.rotation;
+            }
+
             clearStats();
 
-            bool usePreviewPlacement = !part.vessel.LandedOrSplashed &&
-                previewPlacementIsValid && previewPlacementFacility == shipConstruct.shipFacility;
+            bool usePreviewPlacement = previewPlacementIsValid &&
+                previewPlacementFacility == shipConstruct.shipFacility;
             InventoryUtils.SpawnShip(shipConstruct, part, dropTransform,
                 new Callback<DockedVesselInfo>(onVesselCoupled), true,
                 repositionCraftBeforeSpawning, usePreviewPlacement,

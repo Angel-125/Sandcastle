@@ -156,7 +156,13 @@ Returns the full path to the part's thumbnail image.
 > 
 
 ### TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)
-Positions an unassembled craft relative to a printer and optionally moves it along the printer's local launch axis until its bounds no longer intersect the printer's colliders.
+Positions an unassembled craft relative to a printer and optionally keeps its complete bounds beyond the spawn transform's virtual boundary.
+
+### TryPositionLandedShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)
+Uses KSP's ground-placement logic on an unassembled craft and captures the resulting transform relative to the printer's spawn transform.
+
+### TryGetConstructLocalBounds(ShipConstruct,UnityEngine.Transform,UnityEngine.Bounds@)
+Calculates construct bounds in the coordinate system of a supplied reference transform without requiring an assembled Vessel.
 
 ### TryGetConstructBounds(ShipConstruct,UnityEngine.Bounds@)
 Calculates world-space bounds for a ShipConstruct before it has been assembled into a Vessel. Collider bounds are preferred because they match the coordinate space used by the spawn collision checks.

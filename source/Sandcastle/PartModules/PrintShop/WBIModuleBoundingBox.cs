@@ -103,6 +103,8 @@ namespace Sandcastle.PrintShop
         Transform _originTransform = null;
         GizmoOffset moveGizmo;
         Vector3 offset;
+        Transform movementBoundary;
+        Transform movementBoundaryInterior;
         #endregion
 
 
@@ -158,12 +160,25 @@ namespace Sandcastle.PrintShop
             this.offset = offset;
             wireframeBox.SetupWireframe(transform, bounds, offset);
         }
+
+        public void SetupMovementBoundary(Transform boundary, Transform interior)
+        {
+            movementBoundary = boundary;
+            movementBoundaryInterior = interior;
+        }
+
+        public void ClearMovementBoundary()
+        {
+            movementBoundary = null;
+            movementBoundaryInterior = null;
+        }
         #endregion
 
         #region Helpers
         void onMoveComplete(Vector3 vector)
         {
-            _originTransform.position = moveGizmo.transform.position;
+            _originTransform.position = constrainToMovementBoundary(moveGizmo.transform.position);
+            moveGizmo.transform.position = _originTransform.position;
             if (wireframeIsVisible)
             {
                 wireframeBox.SetupWireframe(_originTransform, wireframeBox.bounds, offset);
@@ -172,7 +187,8 @@ namespace Sandcastle.PrintShop
 
         void onMove(Vector3 vector)
         {
-            _originTransform.position = moveGizmo.transform.position;
+            _originTransform.position = constrainToMovementBoundary(moveGizmo.transform.position);
+            moveGizmo.transform.position = _originTransform.position;
             if (wireframeIsVisible)
             {
                 wireframeBox.SetupWireframe(_originTransform, wireframeBox.bounds, offset);
@@ -198,6 +214,32 @@ namespace Sandcastle.PrintShop
                 transforms[i].gameObject.layer = 11;
             }
 
+        }
+
+        Vector3 constrainToMovementBoundary(Vector3 candidatePosition)
+        {
+            if (movementBoundary == null || movementBoundaryInterior == null)
+                return candidatePosition;
+
+            Vector3 groundNormal = part.vessel.upAxis.normalized;
+            Vector3 boundaryNormal = Vector3.ProjectOnPlane(
+                movementBoundary.position - movementBoundaryInterior.position,
+                groundNormal).normalized;
+            if (boundaryNormal == Vector3.zero)
+                return candidatePosition;
+
+            Vector3 extents = wireframeBox.bounds.extents;
+            float supportRadius =
+                Mathf.Abs(Vector3.Dot(boundaryNormal, _originTransform.right)) * extents.x +
+                Mathf.Abs(Vector3.Dot(boundaryNormal, _originTransform.up)) * extents.y +
+                Mathf.Abs(Vector3.Dot(boundaryNormal, _originTransform.forward)) * extents.z;
+            float centerDistance = Vector3.Dot(
+                candidatePosition - movementBoundary.position, boundaryNormal);
+
+            if (centerDistance < supportRadius)
+                candidatePosition += boundaryNormal * (supportRadius - centerDistance);
+
+            return candidatePosition;
         }
         #endregion
     }

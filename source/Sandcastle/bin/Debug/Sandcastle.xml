@@ -148,8 +148,19 @@
         <member name="M:Sandcastle.Inventory.InventoryUtils.TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)">
             <summary>
             Positions an unassembled craft relative to a printer and optionally
-            moves it along the printer's local launch axis until its bounds no
-            longer intersect the printer's colliders.
+            keeps its complete bounds beyond the spawn transform's virtual boundary.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.TryPositionLandedShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)">
+            <summary>
+            Uses KSP's ground-placement logic on an unassembled craft and captures
+            the resulting transform relative to the printer's spawn transform.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.TryGetConstructLocalBounds(ShipConstruct,UnityEngine.Transform,UnityEngine.Bounds@)">
+            <summary>
+            Calculates construct bounds in the coordinate system of a supplied
+            reference transform without requiring an assembled Vessel.
             </summary>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.TryGetConstructBounds(ShipConstruct,UnityEngine.Bounds@)">
@@ -1021,7 +1032,9 @@
         </member>
         <member name="F:Sandcastle.PrintShop.WBIShipwright.repositionCraftBeforeSpawning">
             <summary>
-            Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
+            Flag to indicate whether the printed vessel must remain beyond the
+            selected spawn transform's virtual boundary. Recommended to set to
+            FALSE for printers with enclosed printing spaces.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.WBIShipwright.printStateString">
