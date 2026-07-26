@@ -105,6 +105,7 @@ namespace Sandcastle.PrintShop
         Vector3 offset;
         Transform movementBoundary;
         Transform movementBoundaryInterior;
+        const float kTerrainClearance = 1f;
         #endregion
 
 
@@ -238,6 +239,32 @@ namespace Sandcastle.PrintShop
 
             if (centerDistance < supportRadius)
                 candidatePosition += boundaryNormal * (supportRadius - centerDistance);
+
+            candidatePosition = constrainToTerrainClearance(candidatePosition);
+            return candidatePosition;
+        }
+
+        Vector3 constrainToTerrainClearance(Vector3 candidatePosition)
+        {
+            CelestialBody body = part.vessel.mainBody;
+            if (body == null)
+                return candidatePosition;
+
+            Vector3 groundNormal = (candidatePosition - body.position).normalized;
+            Vector3 extents = wireframeBox.bounds.extents;
+            float supportRadius =
+                Mathf.Abs(Vector3.Dot(groundNormal, _originTransform.right)) * extents.x +
+                Mathf.Abs(Vector3.Dot(groundNormal, _originTransform.up)) * extents.y +
+                Mathf.Abs(Vector3.Dot(groundNormal, _originTransform.forward)) * extents.z;
+            Vector3 bottomPosition = candidatePosition - groundNormal * supportRadius;
+            double latitude = body.GetLatitude(bottomPosition);
+            double longitude = body.GetLongitude(bottomPosition);
+            double terrainAltitude = body.TerrainAltitude(latitude, longitude, true);
+            double bottomAltitude = body.GetAltitude(bottomPosition);
+            double requiredLift = terrainAltitude + kTerrainClearance - bottomAltitude;
+
+            if (requiredLift > 0)
+                candidatePosition += groundNormal * (float)requiredLift;
 
             return candidatePosition;
         }
