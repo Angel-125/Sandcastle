@@ -1304,9 +1304,18 @@ namespace Sandcastle.Inventory
                 shipConstruct.parts.Count == 0 || parentPart == null || dropTransform == null)
                 return false;
 
+            Part rootPart = shipConstruct.parts[0].localRoot;
+
+            // Apply the same construct-space orientation used for orbital
+            // spawning before asking KSP to place the craft on the ground.
+            // PutShipToGround can then perform the final alignment with the
+            // actual local terrain slope for both SPH and VAB craft.
+            Quaternion headingCorrection = new Quaternion(0, 1, 0, 0);
+            rootPart.transform.rotation = headingCorrection *
+                rootPart.transform.rotation;
+
             ShipConstruction.PutShipToGround(shipConstruct, dropTransform);
 
-            Part rootPart = shipConstruct.parts[0].localRoot;
             rootPart.transform.position += parentPart.vessel.upAxis.normalized *
                 kLandedSpawnClearance;
             if (!TryGetConstructBounds(shipConstruct, out craftBounds))
