@@ -709,10 +709,6 @@ Prints entire vessels
         
 ## Fields
 
-### spawnTransformVABName
-Alternate transform to use for VAB craft.
-### spawnTransformSPHName
-Alternate transform to use for SPH craft.
 ### repositionCraftBeforeSpawning
 Flag to indicate whether the printed vessel must remain beyond the selected spawn transform's virtual boundary. Recommended to set to FALSE for printers with enclosed printing spaces.
 ### printStateString

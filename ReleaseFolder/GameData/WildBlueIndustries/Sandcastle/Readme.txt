@@ -15,42 +15,6 @@ GameData
 		Sandcastle
 		WildBlueCore
 
-HOW TO FIX MISSING PART MODULES ERROR
-This update renames a number of Wild Blue Industries' part modules and may cause KSP to complain when you try to load your craft files.
-To fix this issue, follow the steps here: https://github.com/Angel-125/WildBlueCore/wiki/How-To-Fix-Missing-Part-Modules-Warning
-
-Changes
-
-IMPORTANT NOTE: Currently, printing vessels on the ground is resulting in their orientations NOT matching the orientation of the printer, and result in the spawned vessel crashing into the ground.
-You won't likely see this at the space center, but it definitely happens on other planets. This is a source of major frustration for me right now.
-
-- The Sandcaster's printers will now only be available when the printer arm has been deployed.
-- Upon completion of printing, if a vessel is printed on the ground, then the printers will draw a movable box depicting where the vessel will spawn.
-Simply use the movement arrows to place the box in the desired position before pressing the Finalize Printing button.
-- The MATERIALS_LIST and TECH_NODE_MATERIALS config nodes now allow you to add REQUIRED_COMPONENT config nodes that specify what parts are required to complete parts in the part category and/or tech node, respectively.
-- You can now specify a MATERIALS_LIST for a Community Category. 
-NOTE: For a part to make use of a Community Category materials list, the part's "category" field must be set to "none" and you must properly define a Community Category in the part's "tag" field.
-NOTE: The FIRST Community Category found in the part's config will be used as the part's category for the purposes of determining its MATERIALS_LIST.
-- Added Sandcastle support to the Mk1 Drydock and Mk3-75 Drydock from the Mark One Laboratory Extensions mod.
-NOTE: If you see the drydock parts in the MOLE category tab, DO NOT USE THEM! They will have "Deprecated" in their title. Use the drydock parts found under the Sandcastle category tab instead.
-- WBIShipwright have new configurable fields:
-
-		// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). E.G. 5,5,5
-		// Leave commented out for unlimited printing dimensions.
-		maxCraftDimensions = 11,11,20
-
-		// Flag to indicate if the printer should offset the printed vessel to avoid colliding with the printer upon spawning. Recommended to set to FALSE for printers with enclosed printing spaces.
-		repositionCraftBeforeSpawning = false
-
-- WBIPrintShop has new configurable fields:
-
-		// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). E.G. 5,5,5
-		// Leave commented out for unlimited printing dimensions.
-		maxCraftDimensions = 11,11,20
-
-		// Flag to indicate if the printer should offset the printed vessel to avoid colliding with the printer upon spawning. Recommended to set to FALSE for printers with enclosed printing spaces.
-		repositionCraftBeforeSpawning = false
-
 Bug Fixes
 - Fixed issue where Shipbreaker would get stuck if it had no storage capacity for a resource that it was trying to drain from the part being recycled.
 - Fixed issue where Shipbreaker would get stuck if the recycled part's dry mass or variant mass is negative.
@@ -58,6 +22,10 @@ Bug Fixes
 - Fixed issue where Shipbreaker would store recycled parts in the vessel that it was recycling.
 - Fixed issue where Shipbreaker's UI wasn't reflecting the parts that had been recycled.
 - Fixed issue with duplicated parts being added to the Shipbreaker's recycling queue.
+
+WildBlueCore
+
+- Added new Mk18 Ram Air Parachute- a steerable chute for vehicles!
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0
