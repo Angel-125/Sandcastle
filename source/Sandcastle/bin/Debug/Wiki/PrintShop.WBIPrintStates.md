@@ -11,4 +11,6 @@ Printer has an item to print but is paused.
 Printer is printing something.
 ### Recycling
 The recycler is recycling something.
+### Unavailable
+The printer cannot operate in its current situation.
 

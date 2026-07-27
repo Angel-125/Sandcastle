@@ -13,8 +13,6 @@ Title to use for the print shop dialog
 Current print state.
 ### enablePartSpawn
 Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
-### offsetAxis
-Axis upon which to displace the part during spawn in. X, Y, Z
 ### maxPartDimensions
 Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
 ### repositionCraftBeforeSpawning

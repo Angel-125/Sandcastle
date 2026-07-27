@@ -17,6 +17,8 @@ Callback to see if the part's gravity requirements are met.
 Callback to see if the part's pressure requirements are met.
 ### onSpawnPrintedPart
 Callback to let the controller to spawn the printed part.
+### onDecouplePrintedPart
+Callback to release an orbital printed part from the printer.
 ### isPrinting
 Flag indicating that the printer is printing
 ### part
@@ -25,6 +27,8 @@ The Part associated with the UI.
 Whitelisted categories that the printer can print from.
 ### showPartSpawnButton
 Flag to indicate whether or not to show the part spawn button.
+### showPartDecoupleButton
+Flag indicating whether to show the printed-part release button.
 ## Methods
 
 

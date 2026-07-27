@@ -33,7 +33,12 @@ namespace Sandcastle.PrintShop
         /// <summary>
         /// The recycler is recycling something.
         /// </summary>
-        Recycling
+        Recycling,
+
+        /// <summary>
+        /// The printer cannot operate in its current situation.
+        /// </summary>
+        Unavailable
     }
     #endregion
 

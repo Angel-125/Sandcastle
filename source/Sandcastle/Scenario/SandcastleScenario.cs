@@ -63,7 +63,6 @@ namespace Sandcastle
             if (HighLogic.LoadedSceneIsFlight)
             {
                 MaterialsList.LoadLists();
-                InventoryUtils.FindThumbnailPaths();
                 GameEvents.onAttemptEva.Add(onAttemptEVA);
                 GameEvents.OnGameSettingsApplied.Add(onGameSettingsApplied);
                 GameEvents.onVesselGoOffRails.Add(onVesselGoOffRails);

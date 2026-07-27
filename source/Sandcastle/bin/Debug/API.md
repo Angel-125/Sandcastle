@@ -139,9 +139,6 @@ Retrieves a list of parts that can be printed by the specified max print volume.
 > #### Return value
 > A List of AvailablePart objects that can be printed.
 
-### FindThumbnailPaths
-Searches the game folder for thumbnail images.
-
 ### GetTexture(System.String)
 Retrieves the thumbnail texture that depicts the specified part name.
 > #### Parameters
@@ -172,6 +169,15 @@ Returns the full path to the part's thumbnail image.
 > #### Return value
 > 
 
+### stabilizeSpawnedPart(Vessel,Part,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Callback{DockedVesselInfo})
+Keeps a newly spawned orbital part synchronized with the live printer frame until KSP has initialized it and it can safely enter physics.
+
+### TryGetPartLocalBounds(Part,UnityEngine.Transform,UnityEngine.Bounds@)
+Calculates the bounds of a part in the coordinate system of the supplied reference transform.
+
+### movePartAboveTerrain(UnityEngine.Vector3@,UnityEngine.Quaternion,UnityEngine.Bounds,CelestialBody)
+Raises a prospective part placement until its lowest bounds point is one meter above the local terrain.
+
 ### TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)
 Positions an unassembled craft relative to a printer and optionally keeps its complete bounds beyond the spawn transform's virtual boundary.
 
@@ -199,6 +205,20 @@ Courtesy of MechJeb by Sarbian Licensed under GPLV3 Computes the Bounds of the s
 
 > #### Return value
 > A Bounds object containing the vessel's bounds.
+
+### releaseOrbitalPrintedPart(Part,DockedVesselInfo,Part,UnityEngine.Transform,System.Boolean)
+Releases a printed part in orbit while preserving its position and synchronizing its orbit and velocity with the printing vessel.
+> #### Parameters
+> **rootPart:** The root part of the coupled printed part.
+
+> **dockedVesselInfo:** The information used to undock the part.
+
+> **parentPart:** A part on the printing vessel.
+
+> **anchorTransform:** The transform used to position the printed part.
+
+> **switchToVessel:** Whether to make the released part's vessel active.
+
 
 # Inventory.ModuleCargoCatcher
             
@@ -479,6 +499,8 @@ Callback to see if the part's gravity requirements are met.
 Callback to see if the part's pressure requirements are met.
 ### onSpawnPrintedPart
 Callback to let the controller to spawn the printed part.
+### onDecouplePrintedPart
+Callback to release an orbital printed part from the printer.
 ### isPrinting
 Flag indicating that the printer is printing
 ### part
@@ -487,6 +509,8 @@ The Part associated with the UI.
 Whitelisted categories that the printer can print from.
 ### showPartSpawnButton
 Flag to indicate whether or not to show the part spawn button.
+### showPartDecoupleButton
+Flag indicating whether to show the printed-part release button.
 ## Methods
 
 
@@ -691,8 +715,6 @@ Title to use for the print shop dialog
 Current print state.
 ### enablePartSpawn
 Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
-### offsetAxis
-Axis upon which to displace the part during spawn in. X, Y, Z
 ### maxPartDimensions
 Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
 ### repositionCraftBeforeSpawning
@@ -730,6 +752,8 @@ Printer has an item to print but is paused.
 Printer is printing something.
 ### Recycling
 The recycler is recycling something.
+### Unavailable
+The printer cannot operate in its current situation.
 
 # Utilities.PrinterInfoHelper
             

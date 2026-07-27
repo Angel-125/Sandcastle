@@ -116,11 +116,6 @@
             <param name="maxPartDimensions">An optional string containing the max possible print dimensions.</param>
             <returns>A List of AvailablePart objects that can be printed.</returns>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.FindThumbnailPaths">
-            <summary>
-            Searches the game folder for thumbnail images.
-            </summary>
-        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.GetTexture(System.String)">
             <summary>
             Retrieves the thumbnail texture that depicts the specified part name.
@@ -144,6 +139,24 @@
             <param name="variantIndex">An int containing the variant index to check for. Default is -1.</param>
             <param name="useDefaultPath">A bool indicating whether or not to use the default thumbnails path.</param>
             <returns></returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.stabilizeSpawnedPart(Vessel,Part,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Callback{DockedVesselInfo})">
+            <summary>
+            Keeps a newly spawned orbital part synchronized with the live printer
+            frame until KSP has initialized it and it can safely enter physics.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.TryGetPartLocalBounds(Part,UnityEngine.Transform,UnityEngine.Bounds@)">
+            <summary>
+            Calculates the bounds of a part in the coordinate system of the
+            supplied reference transform.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.movePartAboveTerrain(UnityEngine.Vector3@,UnityEngine.Quaternion,UnityEngine.Bounds,CelestialBody)">
+            <summary>
+            Raises a prospective part placement until its lowest bounds point is
+            one meter above the local terrain.
+            </summary>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)">
             <summary>
@@ -191,6 +204,19 @@
             </summary>
             <param name="vessel">A Vessel object to compute the bounds for.</param>
             <returns>A Bounds object containing the vessel's bounds.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.releaseOrbitalPrintedPart(Part,DockedVesselInfo,Part,UnityEngine.Transform,System.Boolean)">
+            <summary>
+            Releases a printed part in orbit while preserving its position and
+            synchronizing its orbit and velocity with the printing vessel.
+            </summary>
+            <param name="rootPart">The root part of the coupled printed part.</param>
+            <param name="dockedVesselInfo">The information used to undock the part.</param>
+            <param name="parentPart">A part on the printing vessel.</param>
+            <param name="anchorTransform">The transform used to position the printed part.</param>
+            <param name="switchToVessel">
+            Whether to make the released part's vessel active.
+            </param>
         </member>
         <member name="T:Sandcastle.Inventory.ModuleCargoCatcher">
             <summary>
@@ -601,6 +627,11 @@
             Callback to let the controller to spawn the printed part.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.onDecouplePrintedPart">
+            <summary>
+            Callback to release an orbital printed part from the printer.
+            </summary>
+        </member>
         <member name="F:Sandcastle.PrintShop.PrintShopUI.isPrinting">
             <summary>
             Flag indicating that the printer is printing
@@ -619,6 +650,11 @@
         <member name="F:Sandcastle.PrintShop.PrintShopUI.showPartSpawnButton">
             <summary>
             Flag to indicate whether or not to show the part spawn button.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.showPartDecoupleButton">
+            <summary>
+            Flag indicating whether to show the printed-part release button.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.PrintShopUI.SetVisible(System.Boolean)">
@@ -992,11 +1028,6 @@
             Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIPrintShop.offsetAxis">
-            <summary>
-            Axis upon which to displace the part during spawn in. X, Y, Z
-            </summary>
-        </member>
         <member name="F:Sandcastle.PrintShop.WBIPrintShop.maxPartDimensions">
             <summary>
             Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
@@ -1061,6 +1092,11 @@
         <member name="F:Sandcastle.PrintShop.WBIPrintStates.Recycling">
             <summary>
             The recycler is recycling something.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintStates.Unavailable">
+            <summary>
+            The printer cannot operate in its current situation.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.WBIBasePrinter.maxPrintVolume">

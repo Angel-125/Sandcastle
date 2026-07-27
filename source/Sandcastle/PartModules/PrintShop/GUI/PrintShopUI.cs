@@ -75,6 +75,11 @@ namespace Sandcastle.PrintShop
         public SpawnPartDelegate onSpawnPrintedPart;
 
         /// <summary>
+        /// Callback to release an orbital printed part from the printer.
+        /// </summary>
+        public SpawnPartDelegate onDecouplePrintedPart;
+
+        /// <summary>
         /// Flag indicating that the printer is printing
         /// </summary>
         public bool isPrinting;
@@ -93,6 +98,11 @@ namespace Sandcastle.PrintShop
         /// Flag to indicate whether or not to show the part spawn button.
         /// </summary>
         public bool showPartSpawnButton = false;
+
+        /// <summary>
+        /// Flag indicating whether to show the printed-part release button.
+        /// </summary>
+        public bool showPartDecoupleButton = false;
 
         #endregion
 
@@ -189,7 +199,7 @@ namespace Sandcastle.PrintShop
             GUILayout.EndHorizontal();
 
             // Print status
-            if (showPartSpawnButton)
+            if (showPartSpawnButton || showPartDecoupleButton)
                 drawSpawnButton();
             else
                 drawPrintStatus();
@@ -226,6 +236,13 @@ namespace Sandcastle.PrintShop
                 if (GUILayout.Button("Finalize Printing"))
                 {
                     onSpawnPrintedPart();
+                }
+            }
+            else if (showPartDecoupleButton)
+            {
+                if (GUILayout.Button(Localizer.Format("#LOC_SANDCASTLE_decouplePart")))
+                {
+                    onDecouplePrintedPart();
                 }
             }
             GUILayout.EndHorizontal();

@@ -229,9 +229,6 @@ The above should go right after the existing MODEL object. Next add the followin
 		// In meters how far along the X, Y, and Z axis to offset the spawn transform. YOU NEED TO EXPERIMENT WITH THIS to avoid spawned vessels from colliding with the printer part.
 		spawnTransformOffset = 
 
-		// Axis upon which to displace the part during spawn in. X, Y, Z
-		offsetAxis = 0,1,1
-
 		// What to show on the button that opens the printer
 		printShopGUIName = #LOC_SANDCASTLE_printAPart
 

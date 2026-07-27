@@ -50,12 +50,6 @@ namespace Sandcastle.PrintShop
         public bool enablePartSpawn = false;
 
         /// <summary>
-        /// Axis upon which to displace the part during spawn in. X, Y, Z
-        /// </summary>
-        [KSPField]
-        public string offsetAxis = "0,1,1";
-
-        /// <summary>
         /// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
         /// Leave empty for unlimited printing.
         /// </summary>
@@ -72,6 +66,7 @@ namespace Sandcastle.PrintShop
         PrintShopUI shopUI = null;
         List<string> whitelistedCategories;
         BuildItem buildItemToSpawn = null;
+        DockedVesselInfo dockedPartInfo = null;
         #endregion
 
         #region Overrides
@@ -83,6 +78,13 @@ namespace Sandcastle.PrintShop
 
             // Update the filtered list of cargo parts
             updateFilteredParts();
+            updatePartPrintingAvailability();
+
+            if (dockedPartInfo != null)
+            {
+                shopUI.showPartSpawnButton = false;
+                shopUI.showPartDecoupleButton = true;
+            }
         }
 
         public override void OnUpdate()
@@ -91,7 +93,20 @@ namespace Sandcastle.PrintShop
             if (!HighLogic.LoadedSceneIsFlight)
                 return;
 
+            updatePartPrintingAvailability();
             printStateString = printState.ToString();
+        }
+
+        public override void FixedUpdate()
+        {
+            if (HighLogic.LoadedSceneIsFlight &&
+                !isPartPrintingAvailable())
+            {
+                updatePartPrintingAvailability();
+                return;
+            }
+
+            base.FixedUpdate();
         }
 
         public override void OnAwake()
@@ -109,6 +124,7 @@ namespace Sandcastle.PrintShop
             shopUI.gravityRequirementsMet = gravityRequirementMet;
             shopUI.pressureRequrementsMet = pressureRequrementsMet;
             shopUI.onSpawnPrintedPart = onSpawnPrintedPart;
+            shopUI.onDecouplePrintedPart = onDecouplePrintedPart;
 
             if (!string.IsNullOrEmpty(printShopwGroupDisplayName))
                 Fields["printStateString"].group.displayName = printShopwGroupDisplayName;
@@ -165,11 +181,37 @@ namespace Sandcastle.PrintShop
 
             return base.GetModuleDisplayName();
         }
+
+        public override void OnLoad(ConfigNode node)
+        {
+            base.OnLoad(node);
+
+            if (node.HasNode("DOCKED_PART_INFO"))
+            {
+                dockedPartInfo = new DockedVesselInfo();
+                dockedPartInfo.Load(node.GetNode("DOCKED_PART_INFO"));
+            }
+        }
+
+        public override void OnSave(ConfigNode node)
+        {
+            base.OnSave(node);
+
+            if (dockedPartInfo != null)
+            {
+                ConfigNode dockedPartNode = new ConfigNode("DOCKED_PART_INFO");
+                dockedPartInfo.Save(dockedPartNode);
+                node.AddNode(dockedPartNode);
+            }
+        }
         #endregion
 
         #region Helpers
         protected override void onSupportPrintingRequest(WBIShipwright sender, List<BuildItem> buildList)
         {
+            if (!isPartPrintingAvailable())
+                return;
+
             if (sender.part.flightID == part.flightID)
             {
                 if (debugMode)
@@ -246,6 +288,9 @@ namespace Sandcastle.PrintShop
         [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_printShopGroupName", groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName", guiName = "#LOC_SANDCASTLE_openGUI")]
         public void OpenGUI()
         {
+            if (!isPartPrintingAvailable())
+                return;
+
             shopUI.partsList = filteredParts;
             shopUI.whitelistedCategories = whitelistedCategories;
             shopUI.SetVisible(true);
@@ -259,20 +304,92 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Helpers
+        private bool isPartPrintingAvailable()
+        {
+            // Inventory printing remains available in flight. Only printers
+            // configured to spawn completed parts into the world are restricted
+            // to landed or splashed vessels.
+            return !enablePartSpawn ||
+                (part != null && part.vessel != null &&
+                part.vessel.LandedOrSplashed);
+        }
+
+        private void updatePartPrintingAvailability()
+        {
+            bool isAvailable = isPartPrintingAvailable();
+            Events["OpenGUI"].active = isAvailable;
+
+            if (isAvailable)
+            {
+                if (printState == WBIPrintStates.Unavailable)
+                    printState = WBIPrintStates.Idle;
+                return;
+            }
+
+            if (shopUI.IsVisible())
+                shopUI.SetVisible(false);
+
+            if (printQueue != null && printQueue.Count > 0)
+            {
+                Debug.Log(string.Format(
+                    "[Sandcastle {0}] - Clearing {1} part-printing job(s) because the vessel is not landed or splashed.",
+                    part.flightID, printQueue.Count));
+                printQueue.Clear();
+            }
+
+            buildItemToSpawn = null;
+            printState = WBIPrintStates.Unavailable;
+            lastUpdateTime = Planetarium.GetUniversalTime();
+            shopUI.isPrinting = false;
+            shopUI.showPartSpawnButton = false;
+            part.Effect(runningEffect, 0);
+            if (animation != null)
+            {
+                animation[animationName].speed = 0f;
+                animation.Stop();
+            }
+        }
+
         private void onSpawnPrintedPart()
         {
-            if (buildItemToSpawn == null || spawnTransform == null)
+            if (!isPartPrintingAvailable() ||
+                buildItemToSpawn == null || spawnTransform == null)
                 return;
 
             shopUI.showPartSpawnButton = false;
 
-            // Spawn the part.
-            Vector3 axis = KSPUtil.ParseVector3(offsetAxis);
-            if (!repositionCraftBeforeSpawning)
-                axis = Vector3.zero;
-            InventoryUtils.SpawnPart(buildItemToSpawn.availablePart, part, spawnTransform, axis);
+            // Spawn the part at the configured boundary.
+            InventoryUtils.SpawnPart(buildItemToSpawn.availablePart, part,
+                spawnTransform, repositionCraftBeforeSpawning,
+                new Callback<DockedVesselInfo>(onPrintedPartCoupled));
 
             buildItemToSpawn = null;
+        }
+
+        private void onPrintedPartCoupled(DockedVesselInfo dockedVesselInfo)
+        {
+            dockedPartInfo = dockedVesselInfo;
+            shopUI.showPartSpawnButton = false;
+            shopUI.showPartDecoupleButton = true;
+        }
+
+        private void onDecouplePrintedPart()
+        {
+            if (dockedPartInfo == null)
+                return;
+
+            Part dockedPart = part.vessel[dockedPartInfo.rootPartUId];
+            if (dockedPart == null)
+            {
+                Debug.LogWarning("[Sandcastle] - Unable to find the coupled printed part.");
+                return;
+            }
+
+            DockedVesselInfo partInfo = dockedPartInfo;
+            dockedPartInfo = null;
+            shopUI.showPartDecoupleButton = false;
+            part.StartCoroutine(InventoryUtils.releaseOrbitalPrintedPart(
+                dockedPart, partInfo, part, spawnTransform, true));
         }
 
         private void updateFilteredParts()

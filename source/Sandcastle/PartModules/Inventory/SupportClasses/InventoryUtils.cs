@@ -22,7 +22,6 @@ namespace Sandcastle.Inventory
         #endregion
 
         #region Housekeeping
-        static List<string> thumbnailFilePaths = null;
         static Dictionary<string, Texture2D> thumbnails = null;
         #endregion
 
@@ -608,36 +607,6 @@ namespace Sandcastle.Inventory
         }
 
         /// <summary>
-        /// Searches the game folder for thumbnail images.
-        /// </summary>
-        public static void FindThumbnailPaths()
-        {
-            string gameDataPath = Path.GetFullPath(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"));
-            string[] files = Directory.GetFiles(gameDataPath, "*_icon*.png", SearchOption.AllDirectories);
-
-            thumbnailFilePaths = new List<string>();
-
-            for (int index = 0; index < files.Length; index++)
-            {
-                if (files[index].Contains("@thumbs"))
-                {
-                    thumbnailFilePaths.Add(files[index]);
-                }
-            }
-
-            // Don't forget the root path
-            gameDataPath = Path.GetFullPath(KSPUtil.ApplicationRootPath);
-            files = Directory.GetFiles(gameDataPath, "*_icon*.png", SearchOption.AllDirectories);
-            for (int index = 0; index < files.Length; index++)
-            {
-                if (files[index].Contains("@thumbs"))
-                {
-                    thumbnailFilePaths.Add(files[index]);
-                }
-            }
-        }
-
-        /// <summary>
         /// Retrieves the thumbnail texture that depicts the specified part name.
         /// </summary>
         /// <param name="partName">A string containing the name of the part.</param>
@@ -824,25 +793,123 @@ namespace Sandcastle.Inventory
             return thumbTexture;
         }
 
-        public static void SpawnPart(AvailablePart availablePart, Part parentPart, Transform dropTransform, Vector3 offsetAxis)
+        public static void SpawnPart(AvailablePart availablePart, Part parentPart,
+            Transform dropTransform, bool repositionPart,
+            Callback<DockedVesselInfo> onPartCoupled = null)
         {
-            // Calculate craft size so we don't smack into the printer when we drop the part.
             Part part = availablePart.partPrefab;
-            List<Part> parts = new List<Part>();
-            parts.Add(part);
+            Vector3 dropPoint = dropTransform.position;
+            Vector3 initialDropPoint = dropPoint;
+            Bounds localBounds;
+            bool hasLocalBounds = TryGetPartLocalBounds(part, part.transform,
+                out localBounds);
+            float boundaryOffset = 0f;
 
-            Vector3 craftSize = ShipConstruction.CalculateCraftSize(parts, part);
+            if (repositionPart && hasLocalBounds)
+            {
+                // LaunchPos local +Z points away from the print head. Move
+                // the part only far enough that none of its geometry crosses
+                // the virtual boundary at the transform origin.
+                boundaryOffset = Mathf.Max(0f, -localBounds.min.z);
+                dropPoint += dropTransform.forward * boundaryOffset;
+            }
 
-            // Account for offset axis
-            craftSize.x *= offsetAxis.x;
-            craftSize.y *= offsetAxis.y;
-            craftSize.z *= offsetAxis.z;
+            if (!hasLocalBounds)
+            {
+                Debug.LogWarning("[Sandcastle] - Unable to calculate bounds for "
+                    + availablePart.name + "; spawning at the LaunchPos origin.");
+            }
+            else if (parentPart.vessel.LandedOrSplashed)
+            {
+                movePartAboveTerrain(ref dropPoint, dropTransform.rotation,
+                    localBounds, parentPart.vessel.mainBody);
+            }
 
-            // Offset the drop point so we don't smack into the printer when we drop the part.
-            Vector3 dropPoint = dropTransform.TransformPoint(craftSize);
             Quaternion dropRotation = Quaternion.Inverse(FlightGlobals.ActiveVessel.mainBody.bodyTransform.rotation) * dropTransform.rotation;
+            Vector3 relativeDropPoint =
+                dropTransform.InverseTransformPoint(dropPoint);
+            Quaternion relativeDropRotation = Quaternion.identity;
 
-            ConfigNode node = EVAConstructionModeController.Instance.evaEditor.GetProtoVesselNode(availablePart.title, dropPoint, dropRotation, FlightGlobals.ActiveVessel, part);
+            if (SandcastleScenario.debugMode)
+            {
+                Vessel activeVessel = FlightGlobals.ActiveVessel;
+                Debug.Log("[Sandcastle] - SpawnPart placement diagnostics for "
+                    + availablePart.name
+                    + "\n  parent vessel: " + parentPart.vessel.vesselName
+                    + " (" + parentPart.vessel.id + "), situation: "
+                    + parentPart.vessel.situation
+                    + "\n  active vessel: "
+                    + (activeVessel != null
+                        ? activeVessel.vesselName + " (" + activeVessel.id + ")"
+                        : "<null>")
+                    + "\n  parent vessel world position: "
+                    + parentPart.vessel.transform.position.ToString("F4")
+                    + ", orbit position: "
+                    + parentPart.vessel.orbit.pos.ToString("F4")
+                    + "\n  LaunchPos world position: "
+                    + dropTransform.position.ToString("F4")
+                    + ", parent-relative position: "
+                    + parentPart.transform.InverseTransformPoint(
+                        dropTransform.position).ToString("F4")
+                    + "\n  LaunchPos forward/up/right: "
+                    + dropTransform.forward.ToString("F4") + " / "
+                    + dropTransform.up.ToString("F4") + " / "
+                    + dropTransform.right.ToString("F4")
+                    + "\n  LaunchPos world rotation: "
+                    + dropTransform.rotation.eulerAngles.ToString("F4")
+                    + ", body-relative rotation: "
+                    + dropRotation.eulerAngles.ToString("F4")
+                    + "\n  part local bounds center/extents/min/max: "
+                    + (hasLocalBounds
+                        ? localBounds.center.ToString("F4") + " / "
+                            + localBounds.extents.ToString("F4") + " / "
+                            + localBounds.min.ToString("F4") + " / "
+                            + localBounds.max.ToString("F4")
+                        : "<unavailable>")
+                    + "\n  reposition: " + repositionPart
+                    + ", boundary offset: " + boundaryOffset.ToString("F4")
+                    + "\n  initial/final drop point: "
+                    + initialDropPoint.ToString("F4") + " / "
+                    + dropPoint.ToString("F4")
+                    + ", final LaunchPos-local point: "
+                    + relativeDropPoint.ToString("F4"));
+            }
+
+            // A stock-dropped orbital part must load as a separate vessel before
+            // it can be coupled. Stage it safely beyond the final boundary so no
+            // collider can touch the printer during that initialization window.
+            Vector3 protoSpawnPoint = dropPoint;
+            if (!parentPart.vessel.LandedOrSplashed && onPartCoupled != null)
+            {
+                float stagingDistance = hasLocalBounds
+                    ? Mathf.Max(20f, localBounds.size.magnitude + 10f)
+                    : 20f;
+                protoSpawnPoint += dropTransform.forward * stagingDistance;
+
+                if (SandcastleScenario.debugMode)
+                    Debug.Log("[Sandcastle] - Staging orbital printed part "
+                        + stagingDistance.ToString("F4")
+                        + "m beyond its final placement at "
+                        + protoSpawnPoint.ToString("F4"));
+            }
+
+            ConfigNode node = EVAConstructionModeController.Instance.evaEditor.GetProtoVesselNode(availablePart.title, protoSpawnPoint, dropRotation, FlightGlobals.ActiveVessel, part);
+            if (SandcastleScenario.debugMode)
+            {
+                ConfigNode orbitNode = node.GetNode("ORBIT");
+                Debug.Log("[Sandcastle] - SpawnPart proto-vessel diagnostics for "
+                    + availablePart.name
+                    + "\n  situation/landed/lat/lon/alt: "
+                    + node.GetValue("sit") + " / " + node.GetValue("landed")
+                    + " / " + node.GetValue("lat") + " / "
+                    + node.GetValue("lon") + " / " + node.GetValue("alt")
+                    + "\n  rotation: " + node.GetValue("rot")
+                    + "\n  orbit: "
+                    + (orbitNode != null
+                        ? orbitNode.ToString()
+                        : "<none>"));
+            }
+
             ProtoVessel protoVessel = HighLogic.CurrentGame.AddVessel(node);
             Vessel unloadedVessel = null;
             for (int index = 0; index < FlightGlobals.VesselsUnloaded.Count; ++index)
@@ -851,10 +918,231 @@ namespace Sandcastle.Inventory
                 {
                     unloadedVessel = FlightGlobals.VesselsUnloaded[index];
                     unloadedVessel.SetPhysicsHoldExpiryOverride();
+                    unloadedVessel.ignoreCollisionsFrames = 60;
                     clearResources(unloadedVessel);
+                    if (SandcastleScenario.debugMode)
+                    {
+                        Debug.Log("[Sandcastle] - SpawnPart created vessel "
+                            + unloadedVessel.vesselName + " ("
+                            + unloadedVessel.id + ")"
+                            + "\n  situation: " + unloadedVessel.situation
+                            + ", world position: "
+                            + unloadedVessel.transform.position.ToString("F4")
+                            + "\n  orbit position/velocity: "
+                            + unloadedVessel.orbit.pos.ToString("F4") + " / "
+                            + unloadedVessel.orbit.vel.ToString("F4"));
+                    }
                     break;
                 }
             }
+
+            // The stock EVA construction helper's orbital path converts its
+            // world-space partPosition directly into an orbit-state offset. That
+            // position is not stable across KSP's floating-origin updates. Keep
+            // an orbital printed part at its LaunchPos-relative placement while
+            // it loads, just as SpawnShip does for a newly assembled vessel.
+            if (unloadedVessel != null && !parentPart.vessel.LandedOrSplashed)
+            {
+                parentPart.StartCoroutine(stabilizeSpawnedPart(unloadedVessel,
+                    parentPart, dropTransform, relativeDropPoint,
+                    relativeDropRotation, onPartCoupled));
+            }
+        }
+
+        /// <summary>
+        /// Keeps a newly spawned orbital part synchronized with the live printer
+        /// frame until KSP has initialized it and it can safely enter physics.
+        /// </summary>
+        static IEnumerator<YieldInstruction> stabilizeSpawnedPart(Vessel vessel,
+            Part parentPart, Transform anchorTransform, Vector3 relativePosition,
+            Quaternion relativeRotation,
+            Callback<DockedVesselInfo> onPartCoupled)
+        {
+            FlightGlobals.overrideOrbit = true;
+
+            while (vessel != null &&
+                (!vessel.loaded || vessel.Parts == null ||
+                vessel.Parts.Count == 0 || !allPartsStarted(vessel)))
+            {
+                // A part destined for coupling stays at its safe staging point
+                // until it is fully initialized. Its only move to the boundary
+                // occurs immediately before Couple, with no intervening physics
+                // frame. Free-floating parts still require continuous anchoring.
+                if (onPartCoupled == null && vessel.loaded &&
+                    vessel.Parts != null && vessel.Parts.Count > 0)
+                {
+                    repositionVessel(vessel, anchorTransform, relativePosition,
+                        relativeRotation);
+                    setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE,
+                        parentPart);
+                }
+
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+                yield return new WaitForFixedUpdate();
+            }
+
+            if (vessel == null)
+            {
+                FlightGlobals.overrideOrbit = false;
+                yield break;
+            }
+
+            // Enter physics while collision suppression is active, then continue
+            // anchoring for several fixed frames. KSP can report all parts as
+            // started before the vessel actually unpacks, and the unpack itself
+            // can otherwise move the part through the printer.
+            repositionVessel(vessel, anchorTransform, relativePosition,
+                relativeRotation);
+            setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
+
+            // When the part will remain attached, couple it while it is still
+            // packed and held. Giving this stock-dropped one-part vessel an
+            // independent GoOffRails physics frame can impart a destructive
+            // impulse to the nearby printer before Couple merges the vessels.
+            if (onPartCoupled != null)
+            {
+                FlightGlobals.overrideOrbit = false;
+                DockedVesselInfo dockedVesselInfo = new DockedVesselInfo();
+                dockedVesselInfo.name = vessel.vesselName;
+                dockedVesselInfo.vesselType = vessel.vesselType;
+                dockedVesselInfo.rootPartUId = vessel.rootPart.flightID;
+                vessel.rootPart.Couple(parentPart);
+
+                if (parentPart.vessel != FlightGlobals.ActiveVessel)
+                    FlightGlobals.SetActiveVessel(parentPart.vessel);
+
+                if (SandcastleScenario.debugMode)
+                    Debug.Log("[Sandcastle] - Coupled packed printed part "
+                        + dockedVesselInfo.name + " to " + parentPart.partInfo.name);
+
+                onPartCoupled(dockedVesselInfo);
+                yield break;
+            }
+
+            vessel.GoOffRails();
+
+            const int unpackStabilizationFrames = 5;
+            for (int frame = 0; frame < unpackStabilizationFrames; frame++)
+            {
+                if (vessel == null)
+                    break;
+
+                vessel.ignoreCollisionsFrames = Mathf.Max(
+                    vessel.ignoreCollisionsFrames, 60);
+                repositionVessel(vessel, anchorTransform, relativePosition,
+                    relativeRotation);
+                setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+                yield return new WaitForFixedUpdate();
+            }
+
+            FlightGlobals.overrideOrbit = false;
+            if (vessel == null)
+                yield break;
+
+            repositionVessel(vessel, anchorTransform, relativePosition,
+                relativeRotation);
+            setCraftOrbit(vessel, OrbitDriver.UpdateMode.UPDATE, parentPart);
+
+            if (SandcastleScenario.debugMode)
+            {
+                Debug.Log("[Sandcastle] - Stabilized printed orbital part "
+                    + vessel.vesselName
+                    + "\n  final world position: "
+                    + vessel.transform.position.ToString("F4")
+                    + "\n  expected LaunchPos-relative position: "
+                    + relativePosition.ToString("F4"));
+            }
+        }
+
+        /// <summary>
+        /// Calculates the bounds of a part in the coordinate system of the
+        /// supplied reference transform.
+        /// </summary>
+        static bool TryGetPartLocalBounds(Part part, Transform referenceTransform,
+            out Bounds localBounds)
+        {
+            localBounds = new Bounds();
+            bool boundsInitialized = false;
+
+            if (part == null || referenceTransform == null)
+                return false;
+
+            Matrix4x4 worldToReference = referenceTransform.worldToLocalMatrix;
+            foreach (Transform modelTransform in part.FindModelComponents<Transform>())
+            {
+                if (!modelTransform.gameObject.activeSelf)
+                    continue;
+
+                MeshRenderer renderer = modelTransform.GetComponent<MeshRenderer>();
+                if (renderer != null && !renderer.enabled)
+                    continue;
+
+                MeshFilter meshFilter = modelTransform.GetComponent<MeshFilter>();
+                if (meshFilter == null || meshFilter.sharedMesh == null)
+                    continue;
+
+                Matrix4x4 meshToReference = worldToReference *
+                    modelTransform.localToWorldMatrix;
+                Vector3[] vertices = meshFilter.sharedMesh.vertices;
+                for (int vertexIndex = 0; vertexIndex < vertices.Length; vertexIndex++)
+                {
+                    Vector3 point = meshToReference.MultiplyPoint3x4(vertices[vertexIndex]);
+                    if (!boundsInitialized)
+                    {
+                        localBounds = new Bounds(point, Vector3.zero);
+                        boundsInitialized = true;
+                    }
+                    else
+                    {
+                        localBounds.Encapsulate(point);
+                    }
+                }
+            }
+
+            return boundsInitialized;
+        }
+
+        /// <summary>
+        /// Raises a prospective part placement until its lowest bounds point is
+        /// one meter above the local terrain.
+        /// </summary>
+        static void movePartAboveTerrain(ref Vector3 dropPoint, Quaternion partRotation,
+            Bounds localBounds, CelestialBody body)
+        {
+            if (body == null)
+                return;
+
+            Vector3 upAxis = ((Vector3d)dropPoint - body.position).normalized;
+            if (upAxis == Vector3.zero)
+                return;
+
+            double latitude = body.GetLatitude(dropPoint);
+            double longitude = body.GetLongitude(dropPoint);
+            double terrainAltitude = body.TerrainAltitude(latitude, longitude);
+            Vector3 terrainPoint = body.GetWorldSurfacePosition(
+                latitude, longitude, terrainAltitude);
+
+            Vector3 localUp = Quaternion.Inverse(partRotation) * upAxis;
+            Vector3 extents = localBounds.extents;
+            float supportRadius =
+                Mathf.Abs(localUp.x) * extents.x +
+                Mathf.Abs(localUp.y) * extents.y +
+                Mathf.Abs(localUp.z) * extents.z;
+            float lowestPointOffset =
+                Vector3.Dot(partRotation * localBounds.center, upAxis) -
+                supportRadius;
+            float currentClearance =
+                Vector3.Dot(dropPoint - terrainPoint, upAxis) +
+                lowestPointOffset;
+            float terrainOffset = kLandedSpawnClearance - currentClearance;
+            if (terrainOffset <= 0f)
+                return;
+
+            dropPoint += upAxis * terrainOffset;
+            if (SandcastleScenario.debugMode)
+                Debug.Log("[Sandcastle] - Raised printed part by " + terrainOffset
+                    + "m for terrain clearance.");
         }
 
         public static void SpawnShip(ShipConstruct shipConstruct, Part parentPart, Transform dropTransform,
@@ -1509,6 +1797,106 @@ namespace Sandcastle.Inventory
                 yield return new WaitForFixedUpdate();
                 FlightGlobals.ForceSetActiveVessel(undockedVessel);
             }
+
+            yield return new WaitForFixedUpdate();
+        }
+
+        /// <summary>
+        /// Releases a printed part in orbit while preserving its position and
+        /// synchronizing its orbit and velocity with the printing vessel.
+        /// </summary>
+        /// <param name="rootPart">The root part of the coupled printed part.</param>
+        /// <param name="dockedVesselInfo">The information used to undock the part.</param>
+        /// <param name="parentPart">A part on the printing vessel.</param>
+        /// <param name="anchorTransform">The transform used to position the printed part.</param>
+        /// <param name="switchToVessel">
+        /// Whether to make the released part's vessel active.
+        /// </param>
+        public static IEnumerator<YieldInstruction> releaseOrbitalPrintedPart(
+            Part rootPart, DockedVesselInfo dockedVesselInfo, Part parentPart,
+            Transform anchorTransform, bool switchToVessel = true)
+        {
+            if (rootPart == null || dockedVesselInfo == null ||
+                parentPart == null || parentPart.vessel == null ||
+                anchorTransform == null)
+            {
+                Debug.LogWarning("[Sandcastle] - Cannot safely release the printed part: release data is incomplete.");
+                yield break;
+            }
+
+            Vessel parentVessel = parentPart.vessel;
+            Vector3 relativePosition =
+                anchorTransform.InverseTransformPoint(rootPart.transform.position);
+            Quaternion relativeRotation =
+                Quaternion.Inverse(anchorTransform.rotation) *
+                rootPart.transform.rotation;
+            Vector3d parentVelocity = parentVessel.rb_velocityD;
+            if (parentPart.rb != null)
+                parentVelocity = parentPart.rb.velocity;
+            Vector3 parentAngularVelocity = parentVessel.angularVelocity;
+
+            Debug.Log(string.Format(
+                "[Sandcastle] - Releasing orbital printed part {0}; parent velocity={1}, relative position={2}",
+                rootPart.partInfo != null ? rootPart.partInfo.name : rootPart.name,
+                parentVelocity, relativePosition));
+
+            FlightGlobals.overrideOrbit = true;
+            rootPart.Undock(dockedVesselInfo);
+
+            Vessel releasedVessel = rootPart.vessel;
+            while (releasedVessel == null || releasedVessel == parentVessel)
+            {
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+                yield return new WaitForFixedUpdate();
+                releasedVessel = rootPart.vessel;
+            }
+
+            releasedVessel.ignoreCollisionsFrames = 60;
+            releasedVessel.SetPhysicsHoldExpiryOverride();
+
+            // Keep the part at the live LaunchPos placement while KSP finishes
+            // constructing the vessel created by Undock. Rebuild its orbit from
+            // the printer's current orbit instead of retaining the stale orbit
+            // from the temporary vessel used during spawning.
+            for (int index = 0; index < 3; index++)
+            {
+                repositionVessel(releasedVessel, anchorTransform,
+                    relativePosition, relativeRotation);
+                setCraftOrbit(releasedVessel, OrbitDriver.UpdateMode.UPDATE,
+                    parentPart);
+                OrbitPhysicsManager.HoldVesselUnpack(2);
+                yield return new WaitForFixedUpdate();
+            }
+
+            repositionVessel(releasedVessel, anchorTransform,
+                relativePosition, relativeRotation);
+            setCraftOrbit(releasedVessel, OrbitDriver.UpdateMode.UPDATE,
+                parentPart);
+            FlightGlobals.overrideOrbit = false;
+
+            releasedVessel.GoOffRails();
+            releasedVessel.SetWorldVelocity(parentVelocity);
+            releasedVessel.angularVelocity = parentAngularVelocity;
+
+            yield return new WaitForFixedUpdate();
+
+            // One final live-state synchronization prevents the first
+            // independent physics frame from restoring the old proto orbit.
+            repositionVessel(releasedVessel, anchorTransform,
+                relativePosition, relativeRotation);
+            setCraftOrbit(releasedVessel, OrbitDriver.UpdateMode.UPDATE,
+                parentPart);
+            releasedVessel.SetWorldVelocity(parentVelocity);
+            releasedVessel.angularVelocity = parentAngularVelocity;
+
+            Debug.Log(string.Format(
+                "[Sandcastle] - Released orbital printed part {0}; vessel={1}, position={2}, velocity={3}",
+                rootPart.partInfo != null ? rootPart.partInfo.name : rootPart.name,
+                releasedVessel.id, releasedVessel.transform.position,
+                releasedVessel.rb_velocityD));
+
+            if (switchToVessel)
+                FlightGlobals.ForceSetActiveVessel(releasedVessel);
 
             yield return new WaitForFixedUpdate();
         }

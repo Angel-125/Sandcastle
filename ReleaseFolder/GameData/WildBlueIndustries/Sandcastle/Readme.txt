@@ -15,13 +15,27 @@ GameData
 		Sandcastle
 		WildBlueCore
 
+Changes
+- Added Chinese language support. Thank you Aebestach! :)
+
 Bug Fixes
-- Fixed issue where Shipbreaker would get stuck if it had no storage capacity for a resource that it was trying to drain from the part being recycled.
-- Fixed issue where Shipbreaker would get stuck if the recycled part's dry mass or variant mass is negative.
-- Fixed issue where Shipbreaker wasn't emptying the inventory of stored parts from the ship being recycled.
-- Fixed issue where Shipbreaker would store recycled parts in the vessel that it was recycling.
-- Fixed issue where Shipbreaker's UI wasn't reflecting the parts that had been recycled.
-- Fixed issue with duplicated parts being added to the Shipbreaker's recycling queue.
+
+- Fixed duplicate print-queue entries after vessel reloads by ensuring printer state is loaded and saved only once.
+- Fixed print-queue clearing and several null-reference exceptions during printing and vessel spawning.
+- Fixed orbital vessel spawn positioning so it remains aligned with the printer throughout its orbit.
+- Fixed orbital and landed craft orientation using a consistent LaunchPos transform coordinate system. Details in the part config files.
+- Fixed landed vessel placement, terrain clearance, wireframe alignment, and printer collision boundaries.
+- Prevented the placement wireframe and movement gizmo from appearing for orbital spawns.
+- Removed obsolete VAB- and SPH-specific spawn-transform fields in favor of a single spawnTransformName.
+
+Special Thanks liujisi and mjungnickel18 who provided several of these bug fixes. :)
+
+- Fixed issue with the storage containers where ModuleCargoPart needed to appear before ModuleInventoryPart for proper EVA manipulation.
+- Fixed issues with construction cone orientation.
+- Fixed UI issue preventing correct updates when user quicksaves/quickloads and a printed vessel hasn't been detached from the printer.
+- Restored the printer’s running UI state after vessel reloads and cleared it when the print queue becomes empty.
+- Fixed stock inventories with zero occupied volume being incorrectly rejected as print destinations.
+- Fixed issues with construction cone not being oriented properly for Extraplanetary Launchpads.
 
 WildBlueCore
 
