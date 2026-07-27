@@ -62,11 +62,25 @@ namespace Sandcastle.PartModules.Inventory
                 return;
 
             // For the future: Support ability to add multiple part modules.
-            moduleAdded = part.AddModule(partModuleName, true);
+            if (moduleSettings.Count > 0)
+            {
+                ConfigNode savedModuleNode = moduleSettings[0].CreateCopy();
+                if (savedModuleNode != null)
+                {
+                    savedModuleNode.name = "MODULE";
+                    moduleAdded = part.AddModule(savedModuleNode, true);
+                }
+            }
+
+            if (moduleAdded == null)
+            {
+                moduleAdded = part.AddModule(partModuleName, true);
+            }
+
             if (moduleAdded != null)
             {
                 addedPartModules.Add(moduleAdded);
-                loadModuleSettings(moduleAdded, 0);
+                moduleAdded.OnStart(state);
             }
             if (Vessel.IsValidVesselName(part.vessel.name))
                 GameEvents.onVesselRename.Fire(new GameEvents.HostedFromToAction<Vessel, string>(part.vessel, part.vessel.name, part.vessel.name));
@@ -122,57 +136,6 @@ namespace Sandcastle.PartModules.Inventory
 
                 //Add it to our node
                 node.AddNode(saveNode);
-            }
-        }
-        #endregion
-
-        #region Helpers
-        protected void loadModuleSettings(PartModule module, int index)
-        {
-            if (HighLogic.LoadedSceneIsFlight == false && HighLogic.LoadedSceneIsEditor == false && HighLogic.LoadedScene != GameScenes.SPACECENTER)
-                return;
-
-            Debug.Log("loadModuleSettings called");
-            if (index > moduleSettings.Count - 1)
-            {
-                Debug.Log("Index > moduleSettings.Count!");
-                return;
-            }
-            ConfigNode nodeSettings = moduleSettings[index];
-
-            //nodeSettings may have persistent fields. If so, then set them.
-            foreach (ConfigNode.Value nodeValue in nodeSettings.values)
-            {
-                try
-                {
-                    if (module.Fields[nodeValue.name] != null)
-                    {
-                        Debug.Log("Set Field " + nodeValue.name + " to " + nodeValue.value);
-                        module.Fields[nodeValue.name].Read(nodeValue.value, module);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.Log("Encountered an exception while setting values for " + nodeValue.name + ": " + ex);
-                    continue;
-                }
-            }
-
-            //Actions
-            if (nodeSettings.HasNode("ACTIONS"))
-            {
-                ConfigNode actionsNode = nodeSettings.GetNode("ACTIONS");
-                BaseAction action;
-
-                foreach (ConfigNode node in actionsNode.nodes)
-                {
-                    action = module.Actions[node.name];
-                    if (action != null)
-                    {
-                        action.actionGroup = (KSPActionGroup)Enum.Parse(typeof(KSPActionGroup), node.GetValue("actionGroup"));
-                        Debug.Log("Set " + node.name + " to " + action.actionGroup);
-                    }
-                }
             }
         }
         #endregion
