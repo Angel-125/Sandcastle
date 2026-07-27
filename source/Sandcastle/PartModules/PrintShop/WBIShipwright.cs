@@ -18,18 +18,6 @@ namespace Sandcastle.PrintShop
     {
         #region Fields
         /// <summary>
-        /// Alternate transform to use for VAB craft.
-        /// </summary>
-        [KSPField]
-        public string spawnTransformVABName;
-
-        /// <summary>
-        /// Alternate transform to use for SPH craft.
-        /// </summary>
-        [KSPField]
-        public string spawnTransformSPHName;
-
-        /// <summary>
         /// Flag to indicate whether the printed vessel must remain beyond the
         /// selected spawn transform's virtual boundary. Recommended to set to
         /// FALSE for printers with enclosed printing spaces.
@@ -282,7 +270,7 @@ namespace Sandcastle.PrintShop
                     return;
                 }
 
-                Transform placementTransform = getSpawnTransform(shipConstruct.shipFacility);
+                Transform placementTransform = getSpawnTransform();
                 if (placementTransform == null)
                 {
                     Debug.LogError("[Sandcastle] - Unable to find the spawn transform for " + shipConstruct.shipName);
@@ -948,7 +936,7 @@ namespace Sandcastle.PrintShop
             if (debugMode)
                 Debug.Log("[Sandcastle] - onShipConstructCompleted called.");
 
-            Transform dropTransform = getSpawnTransform(shipConstruct.shipFacility);
+            Transform dropTransform = getSpawnTransform();
 
             if (dropTransform == null)
             {
@@ -985,14 +973,8 @@ namespace Sandcastle.PrintShop
                     + previewRelativeRotation.eulerAngles);
         }
 
-        Transform getSpawnTransform(EditorFacility facility)
+        Transform getSpawnTransform()
         {
-            if (facility == EditorFacility.VAB && !string.IsNullOrEmpty(spawnTransformVABName))
-                return part.FindModelTransform(spawnTransformVABName);
-
-            if (facility == EditorFacility.SPH && !string.IsNullOrEmpty(spawnTransformSPHName))
-                return part.FindModelTransform(spawnTransformSPHName);
-
             return spawnTransform;
         }
         #endregion

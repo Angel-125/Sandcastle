@@ -1020,16 +1020,6 @@
             Prints entire vessels
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIShipwright.spawnTransformVABName">
-            <summary>
-            Alternate transform to use for VAB craft.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.PrintShop.WBIShipwright.spawnTransformSPHName">
-            <summary>
-            Alternate transform to use for SPH craft.
-            </summary>
-        </member>
         <member name="F:Sandcastle.PrintShop.WBIShipwright.repositionCraftBeforeSpawning">
             <summary>
             Flag to indicate whether the printed vessel must remain beyond the

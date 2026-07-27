@@ -35,10 +35,6 @@ NOTE: The FIRST Community Category found in the part's config will be used as th
 NOTE: If you see the drydock parts in the MOLE category tab, DO NOT USE THEM! They will have "Deprecated" in their title. Use the drydock parts found under the Sandcastle category tab instead.
 - WBIShipwright have new configurable fields:
 
-		// Alternate transforms- these are used in place of spawnTransformName to help orient vessels properly.
-		spawnTransformVABName = VesselSpawnPointVAB
-		spawnTransformSPHName = VesselSpawnPointSPH
-
 		// Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). E.G. 5,5,5
 		// Leave commented out for unlimited printing dimensions.
 		maxCraftDimensions = 11,11,20
