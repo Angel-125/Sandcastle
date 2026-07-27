@@ -537,6 +537,9 @@ namespace Sandcastle.PrintShop
         {
             base.OnLoad(node);
 
+            // KSP can replace the public queue during module load after OnAwake.
+            shipwrightUI.printQueue = printQueue;
+
             if (node.HasValue("shipName"))
                 shipName = node.GetValue("shipName");
 

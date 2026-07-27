@@ -186,6 +186,9 @@ namespace Sandcastle.PrintShop
         {
             base.OnLoad(node);
 
+            // KSP can replace the public queue during module load after OnAwake.
+            shopUI.printQueue = printQueue;
+
             if (node.HasNode("DOCKED_PART_INFO"))
             {
                 dockedPartInfo = new DockedVesselInfo();
