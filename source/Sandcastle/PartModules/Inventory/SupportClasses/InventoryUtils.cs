@@ -67,7 +67,7 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.packedVolumeLimit <= 0)
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
                     continue;
 
                 // Check mass
@@ -165,7 +165,7 @@ namespace Sandcastle.Inventory
             bool volRequirementMet = false;
             double partMass = availablePart.partPrefab.mass + availablePart.partPrefab.resourceMass;
 
-            if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.packedVolumeLimit <= 0)
+            if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
                 return false;
 
             // Check mass
@@ -236,17 +236,8 @@ namespace Sandcastle.Inventory
             {
                 inventory = inventories[index];
 
-                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached || inventory.packedVolumeLimit <= 0)
-                {
-                    Debug.Log("[FRED] inventory.isEnabled: " + inventory.isEnabled);
-                    Debug.Log("[FRED] inventory.InventoryIsFull: " + inventory.InventoryIsFull);
-                    Debug.Log("[FRED] inventory.massCapacityReached: " + inventory.massCapacityReached);
-                    Debug.Log("[FRED] inventory.volumeCapacityReached: " + inventory.volumeCapacityReached);
-                    Debug.Log("[FRED] inventory.volumeCapacity: " + inventory.volumeCapacity);
-                    Debug.Log("[FRED] inventory.HasPackedVolumeLimit: " + inventory.HasPackedVolumeLimit);
-                    Debug.Log("[FRED] inventory.packedVolumeLimit: " + inventory.packedVolumeLimit);
+                if (!inventory.isEnabled || inventory.InventoryIsFull || inventory.massCapacityReached || inventory.volumeCapacityReached)
                     continue;
-                }
 
                 // Check mass
                 if (inventory.HasMassLimit)

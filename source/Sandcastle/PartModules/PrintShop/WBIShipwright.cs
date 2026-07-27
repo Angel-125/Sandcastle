@@ -138,9 +138,16 @@ namespace Sandcastle.PrintShop
                 shipwrightUI.craftName = shipName;
             }
 
-            if (finalizeVesselAtStartup)
+            // OnLoad restores dockedVesselInfo, but ShipwrightUI is recreated in
+            // OnAwake. Restore the UI state for an already-coupled vessel first.
+            if (dockedVesselInfo != null)
             {
-                // If craft was coupled, show decouple button. Otherwise show finalize button.
+                shipwrightUI.showSpawnButton = false;
+                shipwrightUI.showDecoupleButton = true;
+            }
+            else if (finalizeVesselAtStartup)
+            {
+                shipwrightUI.showDecoupleButton = false;
                 shipwrightUI.showSpawnButton = true;
 
                 // Show bounding box
@@ -260,6 +267,15 @@ namespace Sandcastle.PrintShop
             if (moduleBoundingBox == null)
                 return;
 
+            // The placement preview and movement gizmo are only used to position
+            // landed vessels relative to the terrain. Orbital vessels are
+            // positioned directly from the spawn transform when finalized.
+            if (part.vessel == null || !part.vessel.LandedOrSplashed)
+            {
+                hideVesselBoundingBox();
+                return;
+            }
+
             ShipConstruct shipConstruct = null;
             try
             {
@@ -278,21 +294,11 @@ namespace Sandcastle.PrintShop
                 }
 
                 Bounds constructBounds;
-                if (!part.vessel.LandedOrSplashed)
-                {
-                    previewPlacementIsValid = InventoryUtils.TryPositionShipConstruct(
-                        shipConstruct, part, placementTransform, repositionCraftBeforeSpawning,
-                        out previewRelativePosition, out previewRelativeRotation, out constructBounds);
-                    previewPlacementFacility = shipConstruct.shipFacility;
-                }
-                else
-                {
-                    previewPlacementIsValid = InventoryUtils.TryPositionLandedShipConstruct(
-                        shipConstruct, part, placementTransform, repositionCraftBeforeSpawning,
-                        out previewRelativePosition, out previewRelativeRotation,
-                        out constructBounds);
-                    previewPlacementFacility = shipConstruct.shipFacility;
-                }
+                previewPlacementIsValid = InventoryUtils.TryPositionLandedShipConstruct(
+                    shipConstruct, part, placementTransform, repositionCraftBeforeSpawning,
+                    out previewRelativePosition, out previewRelativeRotation,
+                    out constructBounds);
+                previewPlacementFacility = shipConstruct.shipFacility;
 
                 if (constructBounds.size == Vector3.zero)
                 {

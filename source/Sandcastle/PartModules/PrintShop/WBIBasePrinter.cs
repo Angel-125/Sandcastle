@@ -166,6 +166,7 @@ namespace Sandcastle.PrintShop
                 lastUpdateTime = Planetarium.GetUniversalTime();
                 printState = WBIPrintStates.Idle;
                 updateUIStatus(printState.ToString());
+                updateUIStatus(false);
                 part.Effect(runningEffect, 0);
                 if (animation != null)
                 {
@@ -213,6 +214,9 @@ namespace Sandcastle.PrintShop
             // Setup spawn transform
             if (!string.IsNullOrEmpty(spawnTransformName))
                 spawnTransform = part.FindModelTransform(spawnTransformName);
+
+            // Synchronize the UI with the printer state restored by OnLoad.
+            updateUIStatus(printState == WBIPrintStates.Printing);
         }
 
         public override void OnAwake()
