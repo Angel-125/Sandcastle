@@ -17,18 +17,18 @@ GameData
 
 Changes
 - Added Chinese language support. Thank you Aebestach! :)
-
-Bug Fixes
-
+- Prevented the placement wireframe and movement gizmo from appearing for orbital vessel spawns.
+- Removed obsolete VAB- and SPH-specific spawn-transform fields in favor of a single spawnTransformName.
+- Removed unused FindThumbnailPaths function from InventoryUtils for performance gains.
+- Revised logic used to position and orient a single printed part.
+- Removed ability to print a single part and spawn it when the printer is in orbit. The printer can still print and spawn parts when on the ground, and inventory-based printing remains unchanged.
 - Fixed duplicate print-queue entries after vessel reloads by ensuring printer state is loaded and saved only once.
 - Fixed print-queue clearing and several null-reference exceptions during printing and vessel spawning.
 - Fixed orbital vessel spawn positioning so it remains aligned with the printer throughout its orbit.
 - Fixed orbital and landed craft orientation using a consistent LaunchPos transform coordinate system. Details in the part config files.
 - Fixed landed vessel placement, terrain clearance, wireframe alignment, and printer collision boundaries.
-- Prevented the placement wireframe and movement gizmo from appearing for orbital spawns.
-- Removed obsolete VAB- and SPH-specific spawn-transform fields in favor of a single spawnTransformName.
 
-Special Thanks liujisi and mjungnickel18 who provided several of these bug fixes. :)
+Special Thanks to liujisi and to mjungnickel18 who provided several of the following bug fixes. :)
 
 - Fixed issue with the storage containers where ModuleCargoPart needed to appear before ModuleInventoryPart for proper EVA manipulation.
 - Fixed issues with construction cone orientation.
