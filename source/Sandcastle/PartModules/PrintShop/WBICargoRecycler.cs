@@ -220,6 +220,9 @@ namespace Sandcastle.PrintShop
         {
             base.OnLoad(node);
 
+            // KSP can replace the public queue during module load after OnAwake.
+            recyclerUI.recycleQueue = recycleQueue;
+
             // Recycle state
             if (node.HasValue(kRecycleState))
                 recycleState = (WBIPrintStates)Enum.Parse(typeof(WBIPrintStates), node.GetValue(kRecycleState));
