@@ -633,6 +633,11 @@
             Default is true.
             </summary>
         </member>
+        <member name="F:WildBlueCore.PartModules.WBIModuleAnimateGenericExtended.deployedMass">
+            <summary>
+            Mass of the part after being deployed.
+            </summary>
+        </member>
         <member name="F:WildBlueCore.PartModules.WBIModuleAnimateGenericExtended.startSoundURL">
             <summary>
             URL for the start sound played when the animation starts.
@@ -676,6 +681,11 @@
         <member name="F:WildBlueCore.PartModules.WBIModuleAnimateGenericExtended.stopSoundVolume">
             <summary>
             Volume level for the stop sound.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.WBIModuleAnimateGenericExtended.isDeployed">
+            <summary>
+            Flag indicating if the animation is deployed.
             </summary>
         </member>
         <member name="M:WildBlueCore.PartModules.WBIModuleAnimateGenericExtended.OnStartFinished(PartModule.StartState)">

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using WildBlueCore.PartModules;
 
 namespace Sandcastle.PrintShop
 {
@@ -576,6 +577,12 @@ namespace Sandcastle.PrintShop
                         break;
                     }
                 }
+            }
+
+            WBIModuleAnimateGenericExtended wBIModuleAnimateGenericExtended = part.FindModuleImplementing<WBIModuleAnimateGenericExtended>();
+            if (wBIModuleAnimateGenericExtended != null && wBIModuleAnimateGenericExtended.isDeployed && wBIModuleAnimateGenericExtended.deployedMass > 0)
+            {
+                partMass += wBIModuleAnimateGenericExtended.deployedMass;
             }
 
             // Now update the resources
