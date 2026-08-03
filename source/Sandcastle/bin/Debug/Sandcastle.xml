@@ -19,6 +19,299 @@
             Disables in-flight variant switching
             </summary>
         </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionBridge">
+            <summary>
+            Shared state and stock-call adapters for vessel-hosted EVA Construction.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.IsStackNodeAlignmentEnabled">
+            <summary>
+            Reports whether the active construction path has opted into complete stack-node alignment.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.Activate(Sandcastle.PartModules.WBIEVAConstructionManipulator)">
+            <summary>
+            Makes a part module the active stock-construction host and hides conflicting flight UI.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.Deactivate(Sandcastle.PartModules.WBIEVAConstructionManipulator)">
+            <summary>
+            Releases the active host and restores every flight UI state captured during activation.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.CloseHostedConstruction">
+            <summary>
+            Closes the stock construction panel when it was opened by a vessel-mounted host.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.MaintainHostUI">
+            <summary>
+            Reapplies hidden UI states that stock flight code may change while parts are attached.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.HideStagingQuadrant">
+            <summary>
+            Captures and collapses the lower-left staging controls.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.RestoreStagingQuadrant">
+            <summary>
+            Returns the staging quadrant to the state it had before construction opened.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.HideFlightModeFrame">
+            <summary>
+            Hides the flight-mode buttons without deactivating their stock transition object.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.RestoreFlightModeFrame">
+            <summary>
+            Restores the flight-mode transition and CanvasGroup values captured on activation.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetManipulatorConstructionWeightLimit">
+            <summary>
+            Converts the host's configurable metric-ton mass limit into stock's local-weight limit.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.IsUnderManipulatorMassLimit(Part)">
+            <summary>
+            Tests a candidate part's dry and resource mass against the active host's mass limit.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.CanOpenConstructionPanel">
+            <summary>
+            Reproduces stock panel-opening guards that remain relevant without an EVA vessel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.IsConstructionVessel(Vessel)">
+            <summary>
+            Treats the active host vessel as EVA only for patched construction-workspace checks.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetConstructionOrigin(Vessel)">
+            <summary>
+            Returns the host model transform position, falling back to stock vessel positioning.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetConstructionReferenceTransform(Vessel)">
+            <summary>
+            Returns the host model transform used to orient stock placement calculations.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.InterruptWeld(KerbalEVA)">
+            <summary>
+            Calls the stock weld-interruption path when a real KerbalEVA controller exists.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.Weld(KerbalEVA,Part)">
+            <summary>
+            Calls the stock weld path when construction is genuinely hosted by a KerbalEVA.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionHarmonyLoader">
+            <summary>
+            Installs Sandcastle's opt-in patches for the stock EVA Construction editor.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.Awake">
+            <summary>
+            Installs Harmony patches and subscribes the bridge to stock construction lifecycle events.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnDestroy">
+            <summary>
+            Unsubscribes lifecycle events and restores any UI still owned by an active host.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.LateUpdate">
+            <summary>
+            Enforces hosted-construction UI state after stock flight UI has updated for the frame.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnEVAConstructionMode(System.Boolean)">
+            <summary>
+            Releases the bridge whenever the stock construction panel reports that it closed.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnVesselChange(Vessel)">
+            <summary>
+            Closes part-hosted construction if the final active vessel differs from the host vessel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnVesselSwitching(Vessel,Vessel)">
+            <summary>
+            Closes part-hosted construction at the start of a loaded or unloaded vessel switch.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnCrewOnEva(GameEvents.FromToAction{Part,Part})">
+            <summary>
+            Closes part-hosted construction when a crew member exits the host vessel on EVA.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnGameSceneLoadRequested(GameScenes)">
+            <summary>
+            Releases hosted construction before leaving the current KSP scene.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionCanOpenPatch.TargetMethod">
+            <summary>
+            Locates stock's private construction-panel eligibility method.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionCanOpenPatch.Prefix(System.Boolean@)">
+            <summary>
+            Supplies host-aware eligibility while preserving stock behavior for ordinary EVA.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionWeightLimitPatch.TargetMethod">
+            <summary>
+            Locates the weight-limit getter consumed by stock checks and UI labels.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionWeightLimitPatch.Prefix(System.Double@)">
+            <summary>
+            Reports the manipulator limit while hosted construction is active.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionPartMassCheckPatch.Prefix(Part,System.Boolean@)">
+            <summary>
+            Replaces stock's Kerbal mass predicate only during part-hosted construction.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch">
+            <summary>
+            Gives vessel-hosted stack attachment the deterministic node-frame roll alignment used by KIS.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.TargetMethod">
+            <summary>
+            Locates stock's private attachment test so its completed stack result can be adjusted.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.Postfix(EVAConstructionModeEditor,Part,Attachment)">
+            <summary>
+            Initializes roll when a new stack-node pair is acquired without overriding later player rotations.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.ResetTracking">
+            <summary>
+            Clears the remembered node pair so the next snap receives a fresh initial alignment.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.IsTrackedPair(EVAConstructionModeEditor,Part,AttachNode,Part,AttachNode)">
+            <summary>
+            Reports whether stock is still evaluating the node pair that was already initialized.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.TrackPair(EVAConstructionModeEditor,Part,AttachNode,Part,AttachNode)">
+            <summary>
+            Remembers a node pair before attempting alignment to avoid repeated warnings on bad nodes.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.TryGetSourceNodeLocalRotation(Part,AttachNode,UnityEngine.Quaternion@)">
+            <summary>
+            Gets the source node's complete frame relative to the selected part.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.TryGetTargetNodeWorldRotation(Part,AttachNode,UnityEngine.Quaternion@)">
+            <summary>
+            Gets the target node's complete world-space frame, including its vessel-relative roll.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.TryCreateNodeRotation(UnityEngine.Vector3,UnityEngine.Quaternion@)">
+            <summary>
+            Creates the same orientation-based node frame that KIS uses for config-defined nodes.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.IsUsable(UnityEngine.Quaternion)">
+            <summary>
+            Rejects invalid quaternion values before they can corrupt the selected part transform.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionStackNodeAlignmentPatch.IsFinite(System.Single)">
+            <summary>
+            Reports whether a floating-point component is neither NaN nor infinite.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionGroundPartDeploymentPatch">
+            <summary>
+            Converts vessel-hosted terrain placement of a ground part into stock's ground-deployment state.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionGroundPartDeploymentPatch.TargetMethod">
+            <summary>
+            Locates the stock method that builds the proto-vessel for a part dropped by EVA Construction.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionGroundPartDeploymentPatch.Postfix(EVAConstructionModeEditor,Part,ConfigNode)">
+            <summary>
+            Gives a hosted, terrain-placed ModuleGroundPart the same startup state as an inventory deployment.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionWorkspacePatch.TargetMethods">
+            <summary>
+            Selects stock editor methods that assume the active construction vessel is EVA.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionWorkspacePatch.Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction},System.Reflection.MethodBase)">
+            <summary>
+            Redirects EVA identity, workspace origin, and reference-transform calls through the bridge.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionWeldPatch.TargetMethods">
+            <summary>
+            Selects stock pickup and attachment methods that directly call KerbalEVA weld APIs.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionWeldPatch.Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction},System.Reflection.MethodBase)">
+            <summary>
+            Replaces direct KerbalEVA weld calls with null-safe bridge adapters.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.WBIEVAConstructionManipulator">
+            <summary>
+            Allows a vessel-mounted manipulator to act as the origin for stock EVA Construction.
+            This is an experimental module and requires the Sandcastle Harmony bridge.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.constructionTransformName">
+            <summary>
+            Model transform used as the center of the stock construction workspace.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.maxPartMass">
+            <summary>
+            Maximum movable part mass, including resources, in metric tons.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.alignStackNodeRotation">
+            <summary>
+            Aligns the complete source and target stack-node frames when a node pair is first acquired.
+            Player rotation input remains free after the initial alignment.
+            </summary>
+        </member>
+        <member name="P:Sandcastle.PartModules.WBIEVAConstructionManipulator.ConstructionTransform">
+            <summary>
+            World-space transform used as the construction origin.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.ToggleEVAConstruction">
+            <summary>
+            Opens or closes the stock EVA Construction interface using this part as its host.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.OnStart(PartModule.StartState)">
+            <summary>
+            Resolves the configured construction transform and initializes PAW visibility.
+            </summary>
+            <param name="state">KSP's current part-module startup state.</param>
+        </member>
+        <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.OnDestroy">
+            <summary>
+            Releases this part as the construction host if its part or vessel is destroyed.
+            </summary>
+        </member>
         <member name="T:Sandcastle.Inventory.InventoryUtils">
             <summary>
             An inventory helper class
@@ -1181,6 +1474,16 @@
             However, because it relies on the PartLoader to obtain information about prerequisite components, WBIPrinterRequirements can't completely fill out its info.
             We get around the problem by waiting until we load into the editor, and manually changing the ModuleInfo associated with WBIPrinterRequirements.
             It's crude but effective.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.SandcastleSettings.alignEVAConstructionStackNodes">
+            <summary>
+            Enables deterministic stack-node roll alignment for stock construction used by an EVA Kerbal.
+            </summary>
+        </member>
+        <member name="P:Sandcastle.SandcastleSettings.AlignEVAConstructionStackNodes">
+            <summary>
+            Indicates whether ordinary Kerbal EVA Construction should initialize complete stack-node frames.
             </summary>
         </member>
     </members>

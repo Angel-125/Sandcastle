@@ -14,6 +14,176 @@ Enables in-flight variant switching
 ### disableVariantSwitching
 Disables in-flight variant switching
 
+# PartModules.EVAConstructionBridge
+            
+Shared state and stock-call adapters for vessel-hosted EVA Construction.
+        
+## Methods
+
+
+### IsStackNodeAlignmentEnabled
+Reports whether the active construction path has opted into complete stack-node alignment.
+
+### Activate(Sandcastle.PartModules.WBIEVAConstructionManipulator)
+Makes a part module the active stock-construction host and hides conflicting flight UI.
+
+### Deactivate(Sandcastle.PartModules.WBIEVAConstructionManipulator)
+Releases the active host and restores every flight UI state captured during activation.
+
+### CloseHostedConstruction
+Closes the stock construction panel when it was opened by a vessel-mounted host.
+
+### MaintainHostUI
+Reapplies hidden UI states that stock flight code may change while parts are attached.
+
+### HideStagingQuadrant
+Captures and collapses the lower-left staging controls.
+
+### RestoreStagingQuadrant
+Returns the staging quadrant to the state it had before construction opened.
+
+### HideFlightModeFrame
+Hides the flight-mode buttons without deactivating their stock transition object.
+
+### RestoreFlightModeFrame
+Restores the flight-mode transition and CanvasGroup values captured on activation.
+
+### GetManipulatorConstructionWeightLimit
+Converts the host's configurable metric-ton mass limit into stock's local-weight limit.
+
+### IsUnderManipulatorMassLimit(Part)
+Tests a candidate part's dry and resource mass against the active host's mass limit.
+
+### CanOpenConstructionPanel
+Reproduces stock panel-opening guards that remain relevant without an EVA vessel.
+
+### IsConstructionVessel(Vessel)
+Treats the active host vessel as EVA only for patched construction-workspace checks.
+
+### GetConstructionOrigin(Vessel)
+Returns the host model transform position, falling back to stock vessel positioning.
+
+### GetConstructionReferenceTransform(Vessel)
+Returns the host model transform used to orient stock placement calculations.
+
+### InterruptWeld(KerbalEVA)
+Calls the stock weld-interruption path when a real KerbalEVA controller exists.
+
+### Weld(KerbalEVA,Part)
+Calls the stock weld path when construction is genuinely hosted by a KerbalEVA.
+
+# PartModules.EVAConstructionHarmonyLoader
+            
+Installs Sandcastle's opt-in patches for the stock EVA Construction editor.
+        
+## Methods
+
+
+### Awake
+Installs Harmony patches and subscribes the bridge to stock construction lifecycle events.
+
+### OnDestroy
+Unsubscribes lifecycle events and restores any UI still owned by an active host.
+
+### LateUpdate
+Enforces hosted-construction UI state after stock flight UI has updated for the frame.
+
+### OnEVAConstructionMode(System.Boolean)
+Releases the bridge whenever the stock construction panel reports that it closed.
+
+### OnVesselChange(Vessel)
+Closes part-hosted construction if the final active vessel differs from the host vessel.
+
+### OnVesselSwitching(Vessel,Vessel)
+Closes part-hosted construction at the start of a loaded or unloaded vessel switch.
+
+### OnCrewOnEva(GameEvents.FromToAction{Part,Part})
+Closes part-hosted construction when a crew member exits the host vessel on EVA.
+
+### OnGameSceneLoadRequested(GameScenes)
+Releases hosted construction before leaving the current KSP scene.
+
+# PartModules.EVAConstructionStackNodeAlignmentPatch
+            
+Gives vessel-hosted stack attachment the deterministic node-frame roll alignment used by KIS.
+        
+## Methods
+
+
+### TargetMethod
+Locates stock's private attachment test so its completed stack result can be adjusted.
+
+### Postfix(EVAConstructionModeEditor,Part,Attachment)
+Initializes roll when a new stack-node pair is acquired without overriding later player rotations.
+
+### ResetTracking
+Clears the remembered node pair so the next snap receives a fresh initial alignment.
+
+### IsTrackedPair(EVAConstructionModeEditor,Part,AttachNode,Part,AttachNode)
+Reports whether stock is still evaluating the node pair that was already initialized.
+
+### TrackPair(EVAConstructionModeEditor,Part,AttachNode,Part,AttachNode)
+Remembers a node pair before attempting alignment to avoid repeated warnings on bad nodes.
+
+### TryGetSourceNodeLocalRotation(Part,AttachNode,UnityEngine.Quaternion@)
+Gets the source node's complete frame relative to the selected part.
+
+### TryGetTargetNodeWorldRotation(Part,AttachNode,UnityEngine.Quaternion@)
+Gets the target node's complete world-space frame, including its vessel-relative roll.
+
+### TryCreateNodeRotation(UnityEngine.Vector3,UnityEngine.Quaternion@)
+Creates the same orientation-based node frame that KIS uses for config-defined nodes.
+
+### IsUsable(UnityEngine.Quaternion)
+Rejects invalid quaternion values before they can corrupt the selected part transform.
+
+### IsFinite(System.Single)
+Reports whether a floating-point component is neither NaN nor infinite.
+
+# PartModules.EVAConstructionGroundPartDeploymentPatch
+            
+Converts vessel-hosted terrain placement of a ground part into stock's ground-deployment state.
+        
+## Methods
+
+
+### TargetMethod
+Locates the stock method that builds the proto-vessel for a part dropped by EVA Construction.
+
+### Postfix(EVAConstructionModeEditor,Part,ConfigNode)
+Gives a hosted, terrain-placed ModuleGroundPart the same startup state as an inventory deployment.
+
+# PartModules.WBIEVAConstructionManipulator
+            
+Allows a vessel-mounted manipulator to act as the origin for stock EVA Construction. This is an experimental module and requires the Sandcastle Harmony bridge.
+        
+## Fields
+
+### constructionTransformName
+Model transform used as the center of the stock construction workspace.
+### maxPartMass
+Maximum movable part mass, including resources, in metric tons.
+### alignStackNodeRotation
+Aligns the complete source and target stack-node frames when a node pair is first acquired. Player rotation input remains free after the initial alignment.
+## Properties
+
+### ConstructionTransform
+World-space transform used as the construction origin.
+## Methods
+
+
+### ToggleEVAConstruction
+Opens or closes the stock EVA Construction interface using this part as its host.
+
+### OnStart(PartModule.StartState)
+Resolves the configured construction transform and initializes PAW visibility.
+> #### Parameters
+> **state:** KSP's current part-module startup state.
+
+
+### OnDestroy
+Releases this part as the construction host if its part or vessel is destroyed.
+
 # Inventory.InventoryUtils
             
 An inventory helper class

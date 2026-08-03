@@ -17,6 +17,12 @@ namespace Sandcastle
         [GameParameters.CustomParameterUI("#LOC_SANDCASTLE_checkKerbalsDesc", toolTip = "#LOC_SANDCASTLE_checkKerbalsTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool checkForKerbals = true;
 
+        /// <summary>
+        /// Enables deterministic stack-node roll alignment for stock construction used by an EVA Kerbal.
+        /// </summary>
+        [GameParameters.CustomParameterUI("#LOC_SANDCASTLE_alignEVAStackNodesDesc", toolTip = "#LOC_SANDCASTLE_alignEVAStackNodesTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool alignEVAConstructionStackNodes = true;
+
         public override string DisplaySection
         {
             get
@@ -85,6 +91,18 @@ namespace Sandcastle
             {
                 SandcastleSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<SandcastleSettings>();
                 return settings.checkForKerbals;
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether ordinary Kerbal EVA Construction should initialize complete stack-node frames.
+        /// </summary>
+        public static bool AlignEVAConstructionStackNodes
+        {
+            get
+            {
+                SandcastleSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<SandcastleSettings>();
+                return settings.alignEVAConstructionStackNodes;
             }
         }
 

@@ -52,6 +52,7 @@
     <Publicize Include="Assembly-CSharp:FlagDecalBackground.uI_ChooseOption" />
     <Publicize Include="Assembly-CSharp:FlagDecalBackground.UpdateUIChooseOptions" />
     <Publicize Include="Assembly-CSharp:EditorLogicBase.selectedPart" />
+    <Publicize Include="Assembly-CSharp:Attachment" />
     <Publicize Include="Assembly-CSharp:EVAConstructionModeEditor.DropAttachablePart" />
     <Publicize Include="Assembly-CSharp:EVAConstructionModeEditor.GetProtoVesselNode" />
     <Publicize Include="Assembly-CSharp:EVAConstructionModeController.CanOpenConstructionPanel" />
@@ -70,6 +71,10 @@
     <Publicize Include="Assembly-CSharp:ShipConstruct.vesselType" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="0Harmony">
+      <HintPath>..\..\..\..\..\..\KSPDev\GameData\000_Harmony\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\..\..\KSPDev\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
@@ -150,6 +155,8 @@
     <Compile Include="PartModules\PrintShop\WBIPrinterRequirements.cs" />
     <Compile Include="PartModules\EVAConstruction\SCModuleEVAVariants.cs" />
     <Compile Include="PartModules\EVAConstruction\SCModuleEVAFlagSwitch.cs" />
+    <Compile Include="PartModules\EVAConstruction\EVAConstructionBridge.cs" />
+    <Compile Include="PartModules\EVAConstruction\WBIEVAConstructionManipulator.cs" />
     <Compile Include="PartModules\PrintShop\WBIShipwright.cs" />
     <Compile Include="PartModules\PrintShop\WBIBasePrinter.cs" />
     <Compile Include="Scenario\SandcastleScenario.cs" />
