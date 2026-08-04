@@ -39,6 +39,16 @@
             Releases the active host and restores every flight UI state captured during activation.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.LockVesselControls">
+            <summary>
+            Blocks flight-control inputs without locking camera, PAW, editor, pause, save, or scene controls.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.UnlockVesselControls">
+            <summary>
+            Removes only the flight-control lock owned by vessel-hosted EVA Construction.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionBridge.CloseHostedConstruction">
             <summary>
             Closes the stock construction panel when it was opened by a vessel-mounted host.

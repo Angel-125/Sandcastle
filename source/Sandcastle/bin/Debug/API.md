@@ -30,6 +30,12 @@ Makes a part module the active stock-construction host and hides conflicting fli
 ### Deactivate(Sandcastle.PartModules.WBIEVAConstructionManipulator)
 Releases the active host and restores every flight UI state captured during activation.
 
+### LockVesselControls
+Blocks flight-control inputs without locking camera, PAW, editor, pause, save, or scene controls.
+
+### UnlockVesselControls
+Removes only the flight-control lock owned by vessel-hosted EVA Construction.
+
 ### CloseHostedConstruction
 Closes the stock construction panel when it was opened by a vessel-mounted host.
 

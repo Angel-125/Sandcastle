@@ -12,7 +12,22 @@ namespace Sandcastle.PartModules
     /// </summary>
     internal static class EVAConstructionBridge
     {
+        private const string VesselControlLockName = "SandcastleHostedEVAConstruction";
+        private const ControlTypes VesselControlLocks =
+            ControlTypes.PITCH |
+            ControlTypes.ROLL |
+            ControlTypes.YAW |
+            ControlTypes.THROTTLE |
+            ControlTypes.LINEAR |
+            ControlTypes.WHEEL_STEER |
+            ControlTypes.WHEEL_THROTTLE |
+            ControlTypes.SAS |
+            ControlTypes.RCS |
+            ControlTypes.THROTTLE_CUT_MAX |
+            ControlTypes.STAGING;
+
         internal static WBIEVAConstructionManipulator ActiveHost { get; private set; }
+        private static bool vesselControlsLocked;
         private static bool stageStackHidden;
         private static bool stagingQuadrantHidden;
         private static string stagingQuadrantPreviousState;
@@ -57,6 +72,7 @@ namespace Sandcastle.PartModules
             ClearHostedAttachmentHighlights();
             EVAConstructionStackNodeAlignmentPatch.ResetTracking();
             ActiveHost = host;
+            LockVesselControls();
 
             if (!stageStackHidden && HighLogic.LoadedSceneIsFlight)
             {
@@ -67,7 +83,7 @@ namespace Sandcastle.PartModules
             HideStagingQuadrant();
             HideFlightModeFrame();
 
-            Debug.Log("[Sandcastle] Vessel-hosted EVA Construction activated; flight staging and mode UI hidden.");
+            Debug.Log("[Sandcastle] Vessel-hosted EVA Construction activated; vessel controls locked and flight staging/mode UI hidden.");
         }
 
         /// <summary>
@@ -78,8 +94,9 @@ namespace Sandcastle.PartModules
             if (host != null && ActiveHost != host)
                 return;
 
-            bool wasActive = ActiveHost != null || stageStackHidden || stagingQuadrantHidden || flightModeFrameHidden;
+            bool wasActive = ActiveHost != null || vesselControlsLocked || stageStackHidden || stagingQuadrantHidden || flightModeFrameHidden;
             ActiveHost = null;
+            UnlockVesselControls();
             EVAConstructionStackNodeAlignmentPatch.ResetTracking();
             ClearHostedAttachmentHighlights();
 
@@ -95,7 +112,31 @@ namespace Sandcastle.PartModules
             RestoreFlightModeFrame();
 
             if (wasActive)
-                Debug.Log("[Sandcastle] Vessel-hosted EVA Construction released; flight staging and mode UI restored.");
+                Debug.Log("[Sandcastle] Vessel-hosted EVA Construction released; vessel controls unlocked and flight staging/mode UI restored.");
+        }
+
+        /// <summary>
+        /// Blocks flight-control inputs without locking camera, PAW, editor, pause, save, or scene controls.
+        /// </summary>
+        private static void LockVesselControls()
+        {
+            if (vesselControlsLocked || !HighLogic.LoadedSceneIsFlight)
+                return;
+
+            InputLockManager.SetControlLock(VesselControlLocks, VesselControlLockName);
+            vesselControlsLocked = true;
+        }
+
+        /// <summary>
+        /// Removes only the flight-control lock owned by vessel-hosted EVA Construction.
+        /// </summary>
+        private static void UnlockVesselControls()
+        {
+            if (!vesselControlsLocked)
+                return;
+
+            InputLockManager.RemoveControlLock(VesselControlLockName);
+            vesselControlsLocked = false;
         }
 
         /// <summary>
