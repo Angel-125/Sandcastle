@@ -152,6 +152,20 @@ Returns the full path to the part's thumbnail image.
 > #### Return value
 > 
 
+### SpawnPart(AvailablePart,Part,UnityEngine.Transform,System.Boolean,Callback{DockedVesselInfo})
+Spawns a completed print at a printer transform and optionally couples it to the printer vessel.
+> #### Parameters
+> **availablePart:** The part definition to place into the world.
+
+> **parentPart:** The printer part whose vessel supplies the spawn environment.
+
+> **dropTransform:** The printer transform that defines position and orientation.
+
+> **repositionPart:** Whether to move the print beyond the spawn boundary.
+
+> **onPartCoupled:** An optional callback used after the new part is coupled.
+
+
 ### stabilizeSpawnedPart(Vessel,Part,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Callback{DockedVesselInfo})
 Keeps a newly spawned orbital part synchronized with the live printer frame until KSP has initialized it and it can safely enter physics.
 

@@ -227,17 +227,154 @@
         </member>
         <member name="T:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer">
             <summary>
-            This part module enables resource transfers between inventory parts.
+            Enables resource transfers between inventory parts and exposes selected inventory
+            resources through the EVA Kerbal's stock vessel-resource interface.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.managedResourceNames">
+            <summary>
+            Names of transient proxy resources created during the previous save session.
+            This lets the module discard saved proxies before rebuilding them from inventory snapshots.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.InventoryResourceContributor.GetAmount">
+            <summary>
+            Returns the resource amount represented by this inventory stack.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.InventoryResourceContributor.GetMaxAmount">
+            <summary>
+            Returns the resource capacity represented by this inventory stack.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.InventoryResourceContributor.SetAmount(System.Double)">
+            <summary>
+            Sets the stack's total amount while retaining a single per-item snapshot value.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.InventoryResourceAggregate.GetAmount">
+            <summary>
+            Calculates the current resource amount across all contributing inventory snapshots.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.InventoryResourceAggregate.GetMaxAmount">
+            <summary>
+            Calculates the resource capacity across all contributing inventory snapshots.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.OnStart(PartModule.StartState)">
+            <summary>
+            Initializes the EVA and inventory references used by the resource bridge.
+            </summary>
+            <param name="state">KSP's current part-module startup state.</param>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.OnActive">
+            <summary>
+            Rebuilds inventory resource proxies when a carried item activates this EVA ability.
             </summary>
         </member>
         <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.OnInactive">
             <summary>
-            Overrides OnInactive. Called when an inventory item is unequipped and the module is disabled.
+            Commits proxy changes and removes them when the enabling cargo item is unequipped.
             </summary>
         </member>
-        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.OnActive">
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.FixedUpdate">
             <summary>
-            Overrides OnActive. Called when an inventory item is equipped and the module is enabled.
+            Synchronizes stock resource requests with the contributing inventory snapshots.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.OnDestroy">
+            <summary>
+            Flushes inventory amounts and removes transient proxy resources during EVA teardown.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.GetModuleMass(System.Single,ModifierStagingSituation)">
+            <summary>
+            Cancels the resource mass represented by live proxies because ModuleInventoryPart
+            already includes the same inventory resource mass.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.GetModuleMassChangeWhen">
+            <summary>
+            Reports that proxy mass can change whenever its resource amount changes.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.GetModuleCost(System.Single,ModifierStagingSituation)">
+            <summary>
+            Cancels the resource cost represented by live proxies because ModuleInventoryPart
+            already includes the same inventory resource cost.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.GetModuleCostChangeWhen">
+            <summary>
+            Reports that proxy cost can change whenever its resource amount changes.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.EnsureInitialized">
+            <summary>
+            Lazily initializes references because the wearables controller can call OnActive
+            before KSP invokes this module's OnStart method.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.RebuildResourceProxies">
+            <summary>
+            Recreates live Kerbal resources from the inventory types selected by provider parts.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.GetExposedResourceNames">
+            <summary>
+            Gets resource names carried by parts that activate WBIModuleEVAResourceTransfer.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.IsResourceProviderPart(System.String)">
+            <summary>
+            Reports whether a cargo part uses WBIModuleWearableItem to activate this module.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.BuildResourceAggregates(System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            Builds contribution lists for selected resource types across the entire EVA inventory.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.CreateResourceProxies">
+            <summary>
+            Adds stock-visible resources to the live Kerbal part for each aggregate.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.SynchronizeResourceProxies">
+            <summary>
+            Applies proxy resource changes to inventory snapshots and refreshes aggregate totals.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.SynchronizeResourceProxiesInternal">
+            <summary>
+            Performs synchronization while the caller owns the recursion guard.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.DrainContributors(WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.InventoryResourceAggregate,System.Double)">
+            <summary>
+            Drains provider parts first, then uses the same ascending resourcePriorityOffset
+            ordering that KerbalEVA uses for EVA Propellant.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.FillContributors(WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.InventoryResourceAggregate,System.Double)">
+            <summary>
+            Fills contributors in the same deterministic priority order used for draining.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.RemoveResourceProxies">
+            <summary>
+            Synchronizes and removes all live proxy resources owned by this module.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.RemoveResourceProxiesInternal">
+            <summary>
+            Removes proxies while the caller owns the recursion guard.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.RemovePersistedResourceProxies">
+            <summary>
+            Removes proxy resources restored by KSP before rebuilding from authoritative snapshots.
             </summary>
         </member>
         <member name="T:WildBlueCore.PartModules.Resources.WBIModuleFuelPump">

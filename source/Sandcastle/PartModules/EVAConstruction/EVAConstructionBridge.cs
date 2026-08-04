@@ -23,6 +23,7 @@ namespace Sandcastle.PartModules
         private static float flightModeFramePreviousAlpha;
         private static bool flightModeFramePreviouslyInteractable;
         private static bool flightModeFramePreviouslyBlockedRaycasts;
+        private static readonly HashSet<Part> hostedAttachedParts = new HashSet<Part>();
         private static readonly PropertyInfo CargoMassForWeightTesting =
             AccessTools.Property(typeof(ModuleCargoPart), "MassForWeightTesting");
 
@@ -42,12 +43,10 @@ namespace Sandcastle.PartModules
         /// </summary>
         internal static bool IsStackNodeAlignmentEnabled()
         {
-            if (HasActiveHost)
-                return ActiveHost.alignStackNodeRotation;
-
             Vessel activeVessel = FlightGlobals.ActiveVessel;
-            return activeVessel != null && activeVessel.isEVA &&
-                   global::Sandcastle.SandcastleSettings.AlignEVAConstructionStackNodes;
+            bool supportedConstructionHost = HasActiveHost || (activeVessel != null && activeVessel.isEVA);
+            return supportedConstructionHost &&
+                global::Sandcastle.SandcastleSettings.AlignEVAConstructionStackNodes;
         }
 
         /// <summary>
@@ -55,6 +54,7 @@ namespace Sandcastle.PartModules
         /// </summary>
         internal static void Activate(WBIEVAConstructionManipulator host)
         {
+            ClearHostedAttachmentHighlights();
             EVAConstructionStackNodeAlignmentPatch.ResetTracking();
             ActiveHost = host;
 
@@ -81,6 +81,7 @@ namespace Sandcastle.PartModules
             bool wasActive = ActiveHost != null || stageStackHidden || stagingQuadrantHidden || flightModeFrameHidden;
             ActiveHost = null;
             EVAConstructionStackNodeAlignmentPatch.ResetTracking();
+            ClearHostedAttachmentHighlights();
 
             if (stageStackHidden)
             {
@@ -293,6 +294,113 @@ namespace Sandcastle.PartModules
         }
 
         /// <summary>
+        /// Returns the active manipulator's construction distance or stock's distance for ordinary EVA.
+        /// </summary>
+        internal static float GetConstructionDistance()
+        {
+            if (HasActiveHost)
+                return Math.Max(0.0f, ActiveHost.maxConstructionDistance);
+
+            return GameSettings.EVA_CONSTRUCTION_RANGE;
+        }
+
+        /// <summary>
+        /// Returns the host workspace distance for hosted inventory access or stock's inventory distance otherwise.
+        /// </summary>
+        internal static float GetInventoryDistance()
+        {
+            if (HasActiveHost)
+                return Math.Max(0.0f, ActiveHost.maxConstructionDistance);
+
+            return GameSettings.EVA_INVENTORY_RANGE;
+        }
+
+        /// <summary>
+        /// Returns zero distance for inventories on the active host vessel so its entire storage network remains visible.
+        /// </summary>
+        internal static float GetInventoryDisplayDistance(Vector3 inventoryPosition, Vector3 constructionOrigin)
+        {
+            if (HasActiveHost && IsHostInventoryPosition(inventoryPosition))
+                return 0.0f;
+
+            return Vector3.Distance(inventoryPosition, constructionOrigin);
+        }
+
+        /// <summary>
+        /// Reports whether an inventory belongs to the vessel hosting the active construction manipulator.
+        /// </summary>
+        internal static bool IsHostInventory(ModuleInventoryPart inventoryPart)
+        {
+            if (!HasActiveHost || inventoryPart == null)
+                return false;
+
+            Vessel hostVessel = ActiveHost.part.vessel;
+            if (inventoryPart.part != null && inventoryPart.part.vessel == hostVessel)
+                return true;
+
+            foreach (Part hostPart in hostVessel.parts)
+            {
+                if (hostPart.protoModuleCrew == null)
+                    continue;
+
+                foreach (ProtoCrewMember crewMember in hostPart.protoModuleCrew)
+                {
+                    if (crewMember != null && crewMember.KerbalInventoryModule == inventoryPart)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Reports whether a stock inventory-display position belongs to an inventory on the host vessel.
+        /// </summary>
+        private static bool IsHostInventoryPosition(Vector3 inventoryPosition)
+        {
+            Vessel hostVessel = ActiveHost.part.vessel;
+            foreach (Part hostPart in hostVessel.parts)
+            {
+                ModuleInventoryPart partInventory = hostPart.FindModuleImplementing<ModuleInventoryPart>();
+                if (partInventory != null && PositionsMatch(GetInventoryPosition(partInventory), inventoryPosition))
+                    return true;
+
+                if (hostPart.protoModuleCrew == null)
+                    continue;
+
+                foreach (ProtoCrewMember crewMember in hostPart.protoModuleCrew)
+                {
+                    ModuleInventoryPart crewInventory = crewMember != null
+                        ? crewMember.KerbalInventoryModule
+                        : null;
+                    if (crewInventory != null && PositionsMatch(GetInventoryPosition(crewInventory), inventoryPosition))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Reproduces the position stock uses when measuring an inventory for construction display.
+        /// </summary>
+        private static Vector3 GetInventoryPosition(ModuleInventoryPart inventoryPart)
+        {
+            if (inventoryPart.kerbalMode || inventoryPart.part == null)
+                return inventoryPart.transform.position;
+
+            return inventoryPart.part.transform.position;
+        }
+
+        /// <summary>
+        /// Compares inventory positions with enough tolerance for transforms updated during the current frame.
+        /// </summary>
+        private static bool PositionsMatch(Vector3 first, Vector3 second)
+        {
+            return (first - second).sqrMagnitude <= 1E-06f;
+        }
+
+        /// <summary>
         /// Reproduces stock panel-opening guards that remain relevant without an EVA vessel.
         /// </summary>
         internal static bool CanOpenConstructionPanel()
@@ -324,6 +432,29 @@ namespace Sandcastle.PartModules
         }
 
         /// <summary>
+        /// Returns the position from which stock should measure access to nearby construction inventories.
+        /// </summary>
+        internal static Vector3 GetInventoryOrigin()
+        {
+            if (HasActiveHost && ActiveHost.ConstructionTransform != null)
+                return ActiveHost.ConstructionTransform.position;
+
+            Vessel activeVessel = FlightGlobals.ActiveVessel;
+            return activeVessel != null ? activeVessel.transform.position : Vector3.zero;
+        }
+
+        /// <summary>
+        /// Substitutes the hosted construction origin while preserving the transform supplied by ordinary stock EVA.
+        /// </summary>
+        internal static Vector3 GetConstructionOriginFromTransform(Transform stockOrigin)
+        {
+            if (HasActiveHost && ActiveHost.ConstructionTransform != null)
+                return ActiveHost.ConstructionTransform.position;
+
+            return stockOrigin != null ? stockOrigin.position : Vector3.zero;
+        }
+
+        /// <summary>
         /// Returns the host model transform used to orient stock placement calculations.
         /// </summary>
         internal static Transform GetConstructionReferenceTransform(Vessel vessel)
@@ -349,7 +480,39 @@ namespace Sandcastle.PartModules
         internal static void Weld(KerbalEVA evaController, Part targetPart)
         {
             if (evaController != null)
+            {
                 evaController.Weld(targetPart);
+                return;
+            }
+
+            // Stock leaves an attached part highlighted until the Kerbal weld lifecycle and
+            // construction shutdown finish. Remember hosted attachments so Deactivate can
+            // perform the equivalent visual cleanup without a KerbalEVA controller.
+            if (HasActiveHost && targetPart != null)
+                hostedAttachedParts.Add(targetPart);
+        }
+
+        /// <summary>
+        /// Restores normal flight highlighting on parts attached by a vessel-hosted construction session.
+        /// </summary>
+        private static void ClearHostedAttachmentHighlights()
+        {
+            int clearedPartCount = 0;
+            foreach (Part attachedPart in hostedAttachedParts)
+            {
+                if (attachedPart == null)
+                    continue;
+
+                attachedPart.SetHighlightColor(Highlighting.Highlighter.colorPartHighlightDefault);
+                attachedPart.SetHighlightType(Part.HighlightType.OnMouseOver);
+                attachedPart.SetHighlight(false, true);
+                clearedPartCount++;
+            }
+
+            hostedAttachedParts.Clear();
+            if (clearedPartCount > 0)
+                Debug.Log("[Sandcastle] Cleared hosted EVA Construction highlighting from " +
+                    clearedPartCount + " attached part(s).");
         }
     }
 
@@ -464,16 +627,11 @@ namespace Sandcastle.PartModules
         }
 
         /// <summary>
-        /// Closes part-hosted construction when a crew member exits the host vessel on EVA.
+        /// Closes part-hosted construction whenever any crew member goes on EVA.
         /// </summary>
         private void OnCrewOnEva(GameEvents.FromToAction<Part, Part> action)
         {
-            WBIEVAConstructionManipulator host = EVAConstructionBridge.ActiveHost;
-            if (host == null)
-                return;
-
-            Vessel hostVessel = host.part != null ? host.part.vessel : null;
-            if (action.from != null && action.from.vessel == hostVessel)
+            if (EVAConstructionBridge.ActiveHost != null)
                 EVAConstructionBridge.CloseHostedConstruction();
         }
 
@@ -732,6 +890,63 @@ namespace Sandcastle.PartModules
     }
 
     /// <summary>
+    /// Adds persistent zero buoyancy to loose parts placed by landed underwater EVA Construction actors.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAConstructionUnderwaterProtoVesselPatch
+    {
+        /// <summary>
+        /// Locates the stock method that builds the proto-vessel for a loose construction part.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(
+                typeof(EVAConstructionModeEditor),
+                "GetProtoVesselNode",
+                new Type[] { typeof(string), typeof(Vector3), typeof(Quaternion), typeof(Vessel), typeof(Part) });
+        }
+
+        /// <summary>
+        /// Applies the underwater policy using the stock construction actor supplied to the spawn method.
+        /// </summary>
+        private static void Postfix(Vessel vessel, ConfigNode __result)
+        {
+            global::Sandcastle.UnderwaterSpawnUtils.ApplyToProtoVessel(
+                __result, vessel, "EVA Construction");
+        }
+    }
+
+    /// <summary>
+    /// Adds persistent zero buoyancy to parts attached by landed underwater EVA Construction actors.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAConstructionUnderwaterAttachedPartPatch
+    {
+        /// <summary>
+        /// Locates the stock method that converts a held cargo part into a live attached part.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(
+                typeof(EVAConstructionModeEditor),
+                "AttachPart",
+                new Type[] { typeof(Part), typeof(Attachment) });
+        }
+
+        /// <summary>
+        /// Applies the underwater policy after stock has created and welded the attached part.
+        /// </summary>
+        private static void Postfix(Part __result)
+        {
+            Vessel actorVessel = EVAConstructionBridge.HasActiveHost
+                ? EVAConstructionBridge.ActiveHost.part.vessel
+                : FlightGlobals.ActiveVessel;
+            global::Sandcastle.UnderwaterSpawnUtils.ApplyToPart(
+                __result, actorVessel, "EVA Construction");
+        }
+    }
+
+    /// <summary>
     /// Converts vessel-hosted terrain placement of a ground part into stock's ground-deployment state.
     /// </summary>
     [HarmonyPatch]
@@ -761,8 +976,8 @@ namespace Sandcastle.PartModules
                 part == null ||
                 __result == null ||
                 IsPlacementOnGroundField == null ||
-                !(bool)IsPlacementOnGroundField.GetValue(__instance) ||
-                part.FindModuleImplementing<ModuleGroundPart>() == null)
+                part.FindModuleImplementing<ModuleGroundPart>() == null ||
+                !IsTerrainPlacement(__instance, part))
             {
                 return;
             }
@@ -798,6 +1013,309 @@ namespace Sandcastle.PartModules
             Debug.Log("[Sandcastle] Prepared " + part.partInfo.title +
                 " for hosted ModuleGroundPart terrain deployment.");
         }
+
+        /// <summary>
+        /// Recovers stock ground placement when its cursor ray misses but the fallback placement plane leaves the part on terrain.
+        /// </summary>
+        private static bool IsTerrainPlacement(EVAConstructionModeEditor editor, Part part)
+        {
+            if ((bool)IsPlacementOnGroundField.GetValue(editor))
+                return true;
+
+            WBIEVAConstructionManipulator host = EVAConstructionBridge.ActiveHost;
+            if (host == null || host.part == null || host.part.vessel == null || host.part.vessel.mainBody == null)
+                return false;
+
+            Vector3 upAxis = (Vector3)FlightGlobals.getUpAxis(host.part.vessel.mainBody, part.transform.position);
+            Bounds partBounds = PartGeometryUtil.MergeBounds(
+                PartGeometryUtil.GetPartRendererBounds(part),
+                part.transform);
+            float probeDistance = Math.Max(0.5f,
+                partBounds.extents.magnitude + editor.placementGroundOffset + 0.5f);
+            RaycastHit groundHit;
+
+            if (!Physics.Raycast(part.transform.position + upAxis * 0.05f, -upAxis, out groundHit, probeDistance, 32768))
+                return false;
+
+            Debug.Log("[Sandcastle] Recovered near-ground placement for " + part.partInfo.title +
+                " after the stock EVA Construction ground ray missed.");
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Makes mounted cargo parts use the manipulator origin and range when deciding construction eligibility.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAConstructionCargoPartHighlightPatch
+    {
+        private static readonly MethodInfo TransformPositionGetter =
+            AccessTools.PropertyGetter(typeof(Transform), nameof(Transform.position));
+        private static readonly FieldInfo StockConstructionDistance =
+            AccessTools.Field(typeof(GameSettings), nameof(GameSettings.EVA_CONSTRUCTION_RANGE));
+        private static readonly MethodInfo GetConstructionOriginMethod =
+            AccessTools.Method(
+                typeof(EVAConstructionBridge),
+                nameof(EVAConstructionBridge.GetConstructionOriginFromTransform),
+                new Type[] { typeof(Transform) });
+        private static readonly MethodInfo GetConstructionDistanceMethod =
+            AccessTools.Method(typeof(EVAConstructionBridge), nameof(EVAConstructionBridge.GetConstructionDistance));
+
+        /// <summary>
+        /// Locates the stock cargo-part update that highlights parts eligible for vessel detachment.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(typeof(ModuleCargoPart), "OnUpdateHighlight");
+        }
+
+        /// <summary>
+        /// Replaces the active-vessel origin and Kerbal range while leaving ordinary EVA behavior unchanged.
+        /// </summary>
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            List<CodeInstruction> patchedInstructions = new List<CodeInstruction>(instructions);
+            int originReplacements = 0;
+            int distanceReplacements = 0;
+
+            foreach (CodeInstruction instruction in patchedInstructions)
+            {
+                if (Equals(instruction.operand, StockConstructionDistance))
+                {
+                    instruction.opcode = OpCodes.Call;
+                    instruction.operand = GetConstructionDistanceMethod;
+                    distanceReplacements++;
+                    continue;
+                }
+
+                // The first Transform.position read is the active-vessel origin. The next
+                // belongs to this cargo part and must remain stock so distance stays meaningful.
+                if (originReplacements != 0 || !Equals(instruction.operand, TransformPositionGetter))
+                    continue;
+
+                instruction.opcode = OpCodes.Call;
+                instruction.operand = GetConstructionOriginMethod;
+                originReplacements++;
+            }
+
+            if (originReplacements != 1 || distanceReplacements != 2)
+            {
+                Debug.LogWarning("[Sandcastle] EVA Construction cargo highlight patch was only partially applied: origins=" +
+                    originReplacements + ", distance limits=" + distanceReplacements + ".");
+            }
+
+            return patchedInstructions;
+        }
+    }
+
+    /// <summary>
+    /// Makes the stock construction inventory list use the vessel-hosted workspace origin and distance.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAConstructionInventoryDisplayPatch
+    {
+        private static readonly MethodInfo TransformPositionGetter =
+            AccessTools.PropertyGetter(typeof(Transform), nameof(Transform.position));
+        private static readonly MethodInfo StockVectorDistance =
+            AccessTools.Method(typeof(Vector3), nameof(Vector3.Distance),
+                new Type[] { typeof(Vector3), typeof(Vector3) });
+        private static readonly FieldInfo StockInventoryDistance =
+            AccessTools.Field(typeof(GameSettings), nameof(GameSettings.EVA_INVENTORY_RANGE));
+        private static readonly MethodInfo GetInventoryOriginFromTransformMethod =
+            AccessTools.Method(
+                typeof(EVAConstructionBridge),
+                nameof(EVAConstructionBridge.GetConstructionOriginFromTransform),
+                new Type[] { typeof(Transform) });
+        private static readonly MethodInfo GetInventoryDistanceMethod =
+            AccessTools.Method(typeof(EVAConstructionBridge), nameof(EVAConstructionBridge.GetInventoryDistance));
+        private static readonly MethodInfo GetInventoryDisplayDistanceMethod =
+            AccessTools.Method(typeof(EVAConstructionBridge), nameof(EVAConstructionBridge.GetInventoryDisplayDistance));
+
+        /// <summary>
+        /// Locates the stock method that adds and removes inventory panes as their distance changes.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(typeof(EVAConstructionModeController), "UpdateDisplayedInventories");
+        }
+
+        /// <summary>
+        /// Replaces the active-vessel origin and fixed EVA inventory radius used by the stock inventory pane.
+        /// </summary>
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+        {
+            List<CodeInstruction> patchedInstructions = new List<CodeInstruction>(instructions);
+            int originReplacements = 0;
+            int distanceReplacements = 0;
+            int distanceCalculationReplacements = 0;
+
+            for (int index = 0; index < patchedInstructions.Count; index++)
+            {
+                CodeInstruction instruction = patchedInstructions[index];
+                if (Equals(instruction.operand, StockInventoryDistance))
+                {
+                    instruction.opcode = OpCodes.Call;
+                    instruction.operand = GetInventoryDistanceMethod;
+                    distanceReplacements++;
+                    continue;
+                }
+
+                if (Equals(instruction.operand, StockVectorDistance))
+                {
+                    instruction.opcode = OpCodes.Call;
+                    instruction.operand = GetInventoryDisplayDistanceMethod;
+                    distanceCalculationReplacements++;
+                    continue;
+                }
+
+                // The first Transform.position read initializes the origin from ActiveVessel.
+                // Later reads belong to the candidate inventory and must remain unchanged.
+                if (originReplacements != 0 || !Equals(instruction.operand, TransformPositionGetter))
+                    continue;
+
+                instruction.opcode = OpCodes.Call;
+                instruction.operand = GetInventoryOriginFromTransformMethod;
+                originReplacements++;
+            }
+
+            if (originReplacements != 1 || distanceReplacements != 2 || distanceCalculationReplacements != 2)
+            {
+                // Inventory display support is an enhancement; never let a future stock/mod IL variation
+                // abort the core Harmony patches that make vessel-hosted construction available.
+                Debug.LogWarning("[Sandcastle] EVA Construction inventory display patch was only partially applied: origins=" +
+                    originReplacements + ", distance limits=" + distanceReplacements +
+                    ", distance calculations=" + distanceCalculationReplacements + ".");
+            }
+
+            return patchedInstructions;
+        }
+    }
+
+    /// <summary>
+    /// Lets stock inventory slot interactions use the same range calculation as the hosted inventory display.
+    /// </summary>
+    [HarmonyPatch(typeof(UIPartActionControllerInventory), nameof(UIPartActionControllerInventory.IsKerbalWithinRange))]
+    internal static class EVAConstructionInventoryInteractionPatch
+    {
+        /// <summary>
+        /// Evaluates inventory access from the manipulator instead of stock's absent EVA Kerbal.
+        /// </summary>
+        private static bool Prefix(ModuleInventoryPart inventoryPart, ref bool __result)
+        {
+            if (!EVAConstructionBridge.HasActiveHost)
+                return true;
+
+            if (inventoryPart == null)
+            {
+                __result = false;
+                return false;
+            }
+
+            if (EVAConstructionBridge.IsHostInventory(inventoryPart))
+            {
+                __result = true;
+                return false;
+            }
+
+            __result = Vector3.Distance(
+                EVAConstructionBridge.GetInventoryOrigin(),
+                inventoryPart.transform.position) <= EVAConstructionBridge.GetInventoryDistance();
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Routes a simple deployed ground part through stock's loose-part pickup and inventory cursor workflow.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAConstructionGroundPartPickupPatch
+    {
+        private static readonly FieldInfo DeployedOnGroundField =
+            AccessTools.Field(typeof(ModuleGroundPart), "deployedOnGround");
+
+        /// <summary>
+        /// Stores the original ground state so a rejected pickup can leave the deployed vessel untouched.
+        /// </summary>
+        private sealed class GroundPartPickupState
+        {
+            internal Vessel vessel;
+            internal ModuleGroundPart groundPart;
+            internal VesselType vesselType;
+            internal bool deployedOnGround;
+        }
+
+        /// <summary>
+        /// Locates stock's click-to-pick-up implementation.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(typeof(EVAConstructionModeEditor), "PickupPart");
+        }
+
+        /// <summary>
+        /// Temporarily presents a deployed ground part as loose cargo so stock can create the held inventory part.
+        /// </summary>
+        private static void Prefix(out GroundPartPickupState __state)
+        {
+            __state = null;
+            if (!EVAConstructionBridge.HasActiveHost || DeployedOnGroundField == null)
+                return;
+
+            Part hoveredPart = Mouse.HoveredPart;
+            if (hoveredPart == null ||
+                hoveredPart.vessel == null ||
+                hoveredPart.vessel.vesselType != VesselType.DeployedGroundPart ||
+                hoveredPart.vessel.parts == null ||
+                hoveredPart.vessel.parts.Count != 1 ||
+                hoveredPart.FindModuleImplementing<ModuleGroundSciencePart>() != null ||
+                hoveredPart.FindModuleImplementing<ModuleGroundExpControl>() != null)
+            {
+                return;
+            }
+
+            ModuleGroundPart groundPart = hoveredPart.FindModuleImplementing<ModuleGroundPart>();
+            if (groundPart == null)
+                return;
+
+            __state = new GroundPartPickupState
+            {
+                vessel = hoveredPart.vessel,
+                groundPart = groundPart,
+                vesselType = hoveredPart.vessel.vesselType,
+                deployedOnGround = (bool)DeployedOnGroundField.GetValue(groundPart)
+            };
+
+            // Stock PickupPart accepts only DroppedPart and Debris. ModuleGroundPart.RetrievePart performs
+            // the equivalent deployed-state reset before taking its inventory snapshot for a Kerbal.
+            DeployedOnGroundField.SetValue(groundPart, false);
+            hoveredPart.vessel.vesselType = VesselType.DroppedPart;
+        }
+
+        /// <summary>
+        /// Keeps the cargo state after a successful pickup, or restores the deployed state if stock rejected it.
+        /// </summary>
+        private static void Postfix(EVAConstructionModeEditor __instance, GroundPartPickupState __state)
+        {
+            if (__state == null)
+                return;
+
+            Part heldPart = __instance != null ? __instance.SelectedPart : null;
+            if (heldPart == null)
+            {
+                if (__state.vessel != null)
+                    __state.vessel.vesselType = __state.vesselType;
+                if (__state.groundPart != null)
+                    DeployedOnGroundField.SetValue(__state.groundPart, __state.deployedOnGround);
+                return;
+            }
+
+            ModuleGroundPart heldGroundPart = heldPart.FindModuleImplementing<ModuleGroundPart>();
+            if (heldGroundPart != null)
+                DeployedOnGroundField.SetValue(heldGroundPart, false);
+
+            Debug.Log("[Sandcastle] Picked up deployed ground part " + heldPart.partInfo.title +
+                " for hosted EVA Construction inventory storage.");
+        }
     }
 
     [HarmonyPatch]
@@ -806,9 +1324,15 @@ namespace Sandcastle.PartModules
         private static readonly MethodInfo VesselIsEVAGetter = AccessTools.PropertyGetter(typeof(Vessel), nameof(Vessel.isEVA));
         private static readonly MethodInfo VesselWorldPosition = AccessTools.Method(typeof(Vessel), nameof(Vessel.GetWorldPos3D));
         private static readonly MethodInfo VesselReferenceTransformGetter = AccessTools.PropertyGetter(typeof(Vessel), nameof(Vessel.ReferenceTransform));
+        private static readonly FieldInfo StockConstructionDistance = AccessTools.Field(typeof(GameSettings), nameof(GameSettings.EVA_CONSTRUCTION_RANGE));
         private static readonly MethodInfo IsConstructionVesselMethod = AccessTools.Method(typeof(EVAConstructionBridge), nameof(EVAConstructionBridge.IsConstructionVessel));
-        private static readonly MethodInfo GetConstructionOriginMethod = AccessTools.Method(typeof(EVAConstructionBridge), nameof(EVAConstructionBridge.GetConstructionOrigin));
+        private static readonly MethodInfo GetConstructionOriginMethod =
+            AccessTools.Method(
+                typeof(EVAConstructionBridge),
+                nameof(EVAConstructionBridge.GetConstructionOrigin),
+                new Type[] { typeof(Vessel) });
         private static readonly MethodInfo GetConstructionReferenceTransformMethod = AccessTools.Method(typeof(EVAConstructionBridge), nameof(EVAConstructionBridge.GetConstructionReferenceTransform));
+        private static readonly MethodInfo GetConstructionDistanceMethod = AccessTools.Method(typeof(EVAConstructionBridge), nameof(EVAConstructionBridge.GetConstructionDistance));
 
         /// <summary>
         /// Selects stock editor methods that assume the active construction vessel is EVA.
@@ -824,7 +1348,7 @@ namespace Sandcastle.PartModules
         }
 
         /// <summary>
-        /// Redirects EVA identity, workspace origin, and reference-transform calls through the bridge.
+        /// Redirects EVA identity, workspace origin, reference transform, and construction distance through the bridge.
         /// </summary>
         private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, MethodBase __originalMethod)
         {
@@ -849,6 +1373,12 @@ namespace Sandcastle.PartModules
                 {
                     instruction.opcode = OpCodes.Call;
                     instruction.operand = GetConstructionReferenceTransformMethod;
+                    replacements++;
+                }
+                else if (Equals(instruction.operand, StockConstructionDistance))
+                {
+                    instruction.opcode = OpCodes.Call;
+                    instruction.operand = GetConstructionDistanceMethod;
                     replacements++;
                 }
 

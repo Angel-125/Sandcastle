@@ -79,6 +79,41 @@
             Tests a candidate part's dry and resource mass against the active host's mass limit.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetConstructionDistance">
+            <summary>
+            Returns the active manipulator's construction distance or stock's distance for ordinary EVA.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetInventoryDistance">
+            <summary>
+            Returns the host workspace distance for hosted inventory access or stock's inventory distance otherwise.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetInventoryDisplayDistance(UnityEngine.Vector3,UnityEngine.Vector3)">
+            <summary>
+            Returns zero distance for inventories on the active host vessel so its entire storage network remains visible.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.IsHostInventory(ModuleInventoryPart)">
+            <summary>
+            Reports whether an inventory belongs to the vessel hosting the active construction manipulator.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.IsHostInventoryPosition(UnityEngine.Vector3)">
+            <summary>
+            Reports whether a stock inventory-display position belongs to an inventory on the host vessel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetInventoryPosition(ModuleInventoryPart)">
+            <summary>
+            Reproduces the position stock uses when measuring an inventory for construction display.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.PositionsMatch(UnityEngine.Vector3,UnityEngine.Vector3)">
+            <summary>
+            Compares inventory positions with enough tolerance for transforms updated during the current frame.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionBridge.CanOpenConstructionPanel">
             <summary>
             Reproduces stock panel-opening guards that remain relevant without an EVA vessel.
@@ -94,6 +129,16 @@
             Returns the host model transform position, falling back to stock vessel positioning.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetInventoryOrigin">
+            <summary>
+            Returns the position from which stock should measure access to nearby construction inventories.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetConstructionOriginFromTransform(UnityEngine.Transform)">
+            <summary>
+            Substitutes the hosted construction origin while preserving the transform supplied by ordinary stock EVA.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionBridge.GetConstructionReferenceTransform(Vessel)">
             <summary>
             Returns the host model transform used to orient stock placement calculations.
@@ -107,6 +152,11 @@
         <member name="M:Sandcastle.PartModules.EVAConstructionBridge.Weld(KerbalEVA,Part)">
             <summary>
             Calls the stock weld path when construction is genuinely hosted by a KerbalEVA.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.ClearHostedAttachmentHighlights">
+            <summary>
+            Restores normal flight highlighting on parts attached by a vessel-hosted construction session.
             </summary>
         </member>
         <member name="T:Sandcastle.PartModules.EVAConstructionHarmonyLoader">
@@ -146,7 +196,7 @@
         </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnCrewOnEva(GameEvents.FromToAction{Part,Part})">
             <summary>
-            Closes part-hosted construction when a crew member exits the host vessel on EVA.
+            Closes part-hosted construction whenever any crew member goes on EVA.
             </summary>
         </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionHarmonyLoader.OnGameSceneLoadRequested(GameScenes)">
@@ -234,6 +284,36 @@
             Reports whether a floating-point component is neither NaN nor infinite.
             </summary>
         </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch">
+            <summary>
+            Adds persistent zero buoyancy to loose parts placed by landed underwater EVA Construction actors.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch.TargetMethod">
+            <summary>
+            Locates the stock method that builds the proto-vessel for a loose construction part.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch.Postfix(Vessel,ConfigNode)">
+            <summary>
+            Applies the underwater policy using the stock construction actor supplied to the spawn method.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionUnderwaterAttachedPartPatch">
+            <summary>
+            Adds persistent zero buoyancy to parts attached by landed underwater EVA Construction actors.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionUnderwaterAttachedPartPatch.TargetMethod">
+            <summary>
+            Locates the stock method that converts a held cargo part into a live attached part.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionUnderwaterAttachedPartPatch.Postfix(Part)">
+            <summary>
+            Applies the underwater policy after stock has created and welded the attached part.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PartModules.EVAConstructionGroundPartDeploymentPatch">
             <summary>
             Converts vessel-hosted terrain placement of a ground part into stock's ground-deployment state.
@@ -249,6 +329,76 @@
             Gives a hosted, terrain-placed ModuleGroundPart the same startup state as an inventory deployment.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionGroundPartDeploymentPatch.IsTerrainPlacement(EVAConstructionModeEditor,Part)">
+            <summary>
+            Recovers stock ground placement when its cursor ray misses but the fallback placement plane leaves the part on terrain.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionCargoPartHighlightPatch">
+            <summary>
+            Makes mounted cargo parts use the manipulator origin and range when deciding construction eligibility.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionCargoPartHighlightPatch.TargetMethod">
+            <summary>
+            Locates the stock cargo-part update that highlights parts eligible for vessel detachment.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionCargoPartHighlightPatch.Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction})">
+            <summary>
+            Replaces the active-vessel origin and Kerbal range while leaving ordinary EVA behavior unchanged.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionInventoryDisplayPatch">
+            <summary>
+            Makes the stock construction inventory list use the vessel-hosted workspace origin and distance.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionInventoryDisplayPatch.TargetMethod">
+            <summary>
+            Locates the stock method that adds and removes inventory panes as their distance changes.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionInventoryDisplayPatch.Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction})">
+            <summary>
+            Replaces the active-vessel origin and fixed EVA inventory radius used by the stock inventory pane.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionInventoryInteractionPatch">
+            <summary>
+            Lets stock inventory slot interactions use the same range calculation as the hosted inventory display.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionInventoryInteractionPatch.Prefix(ModuleInventoryPart,System.Boolean@)">
+            <summary>
+            Evaluates inventory access from the manipulator instead of stock's absent EVA Kerbal.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch">
+            <summary>
+            Routes a simple deployed ground part through stock's loose-part pickup and inventory cursor workflow.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.GroundPartPickupState">
+            <summary>
+            Stores the original ground state so a rejected pickup can leave the deployed vessel untouched.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.TargetMethod">
+            <summary>
+            Locates stock's click-to-pick-up implementation.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.Prefix(Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.GroundPartPickupState@)">
+            <summary>
+            Temporarily presents a deployed ground part as loose cargo so stock can create the held inventory part.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.Postfix(EVAConstructionModeEditor,Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.GroundPartPickupState)">
+            <summary>
+            Keeps the cargo state after a successful pickup, or restores the deployed state if stock rejected it.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionWorkspacePatch.TargetMethods">
             <summary>
             Selects stock editor methods that assume the active construction vessel is EVA.
@@ -256,7 +406,7 @@
         </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionWorkspacePatch.Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction},System.Reflection.MethodBase)">
             <summary>
-            Redirects EVA identity, workspace origin, and reference-transform calls through the bridge.
+            Redirects EVA identity, workspace origin, reference transform, and construction distance through the bridge.
             </summary>
         </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionWeldPatch.TargetMethods">
@@ -285,10 +435,9 @@
             Maximum movable part mass, including resources, in metric tons.
             </summary>
         </member>
-        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.alignStackNodeRotation">
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.maxConstructionDistance">
             <summary>
-            Aligns the complete source and target stack-node frames when a node pair is first acquired.
-            Player rotation input remains free after the initial alignment.
+            Maximum distance from the construction transform at which parts can be manipulated, in meters.
             </summary>
         </member>
         <member name="P:Sandcastle.PartModules.WBIEVAConstructionManipulator.ConstructionTransform">
@@ -432,6 +581,16 @@
             <param name="variantIndex">An int containing the variant index to check for. Default is -1.</param>
             <param name="useDefaultPath">A bool indicating whether or not to use the default thumbnails path.</param>
             <returns></returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.SpawnPart(AvailablePart,Part,UnityEngine.Transform,System.Boolean,Callback{DockedVesselInfo})">
+            <summary>
+            Spawns a completed print at a printer transform and optionally couples it to the printer vessel.
+            </summary>
+            <param name="availablePart">The part definition to place into the world.</param>
+            <param name="parentPart">The printer part whose vessel supplies the spawn environment.</param>
+            <param name="dropTransform">The printer transform that defines position and orientation.</param>
+            <param name="repositionPart">Whether to move the print beyond the spawn boundary.</param>
+            <param name="onPartCoupled">An optional callback used after the new part is coupled.</param>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.stabilizeSpawnedPart(Vessel,Part,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Callback{DockedVesselInfo})">
             <summary>
@@ -593,6 +752,61 @@
             Drops the desired part if it is in the inventory.
             </summary>
             <param name="availablePart">An AvailablePart containing the item to drop.</param>
+        </member>
+        <member name="T:Sandcastle.WBIUnderwaterSpawnBuoyancy">
+            <summary>
+            Persists a zero-buoyancy adjustment made when a part is placed by underwater construction.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.WBIUnderwaterSpawnBuoyancy.disableBuoyancy">
+            <summary>
+            Indicates that this specific part instance was placed by landed underwater construction.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.WBIUnderwaterSpawnBuoyancy.OnLoad(ConfigNode)">
+            <summary>
+            Reapplies zero buoyancy while KSP is restoring the part from its snapshot.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.WBIUnderwaterSpawnBuoyancy.OnStart(PartModule.StartState)">
+            <summary>
+            Reapplies zero buoyancy after the part has completed normal flight startup.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.WBIUnderwaterSpawnBuoyancy.DisableBuoyancy">
+            <summary>
+            Sets the owning part's stock buoyancy multiplier to zero when the part is available.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.UnderwaterSpawnUtils">
+            <summary>
+            Applies Sandcastle's shared landed-underwater spawn policy to proto and live parts.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.UnderwaterSpawnUtils.ShouldDisableBuoyancy(Vessel)">
+            <summary>
+            Reports whether the actor is exactly landed beneath an ocean surface and the feature is enabled.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.UnderwaterSpawnUtils.ApplyToProtoVessel(ConfigNode,Vessel,System.String)">
+            <summary>
+            Adds the persistent zero-buoyancy marker to every part in a new proto-vessel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.UnderwaterSpawnUtils.ApplyToPart(Part,Vessel,System.String)">
+            <summary>
+            Sets a newly attached live part to zero buoyancy and adds the persistent marker module.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.UnderwaterSpawnUtils.FindBuoyancyMarker(ConfigNode)">
+            <summary>
+            Finds the persistent zero-buoyancy marker in a proto-part snapshot.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.UnderwaterSpawnUtils.LogAdjustment(Vessel,System.String)">
+            <summary>
+            Writes a concise diagnostic describing why the new part received zero buoyancy.
+            </summary>
         </member>
         <member name="T:Sandcastle.PrintShop.ShipbreakerUI">
             <summary>
@@ -1332,6 +1546,191 @@
             Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
             </summary>
         </member>
+        <member name="T:Sandcastle.PrintShop.WBIModuleEVAPrintShop">
+            <summary>
+            Provides a KerbalGear-activated print shop that consumes resources exposed on an EVA Kerbal
+            and stores completed cargo parts in the Kerbal's inventory.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIModuleEVAPrintShop.printShopGUIName">
+            <summary>
+            Localized label used by the event that opens the EVA print-shop window.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIModuleEVAPrintShop.printShopDialogTitle">
+            <summary>
+            Localized title used by the EVA print-shop window.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIModuleEVAPrintShop.maxPartDimensions">
+            <summary>
+            Maximum printable-part dimensions expressed as Height (X), Width (Y), Length (Z).
+            Leave empty to restrict printing by volume only.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIModuleEVAPrintShop.printStateString">
+            <summary>
+            Current state displayed in the EVA Kerbal's part action window.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnAwake">
+            <summary>
+            Creates the reusable print-shop UI and connects it to this printer's queue.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnStart(PartModule.StartState)">
+            <summary>
+            Initializes the EVA printer after KSP has loaded its configured fields.
+            </summary>
+            <param name="state">KSP's current part-module startup state.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnLoad(ConfigNode)">
+            <summary>
+            Keeps the UI attached to the queue instance restored by KSP.
+            </summary>
+            <param name="node">The module's saved or prefab configuration.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnActive">
+            <summary>
+            Activates the printer when its KerbalGear item is present in the EVA inventory.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnInactive">
+            <summary>
+            Deactivates the printer and schedules queue cancellation if its gear is truly removed.
+            KerbalGear immediately reactivates retained gear during ordinary inventory refreshes.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnUpdate">
+            <summary>
+            Updates PAW state only while the EVA printer gear is active.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.FixedUpdate">
+            <summary>
+            Advances printing only while the EVA printer gear is active.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.onVesselChange(Vessel)">
+            <summary>
+            Closes the printer window when focus changes to another vessel.
+            </summary>
+            <param name="newVessel">The newly active vessel.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnDestroy">
+            <summary>
+            Cancels pending jobs when the EVA vessel is destroyed, including when the Kerbal boards.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.GetModuleDisplayName">
+            <summary>
+            Returns the localized module title shown by KSP.
+            </summary>
+            <returns>The EVA print-shop title.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.buildItemCompleted(Sandcastle.PrintShop.BuildItem)">
+            <summary>
+            Adds a completed cargo part to the EVA Kerbal's inventory.
+            </summary>
+            <param name="buildItem">The completed print job.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OpenGUI">
+            <summary>
+            Opens the EVA print-shop window while its printer gear is active.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.updateUIStatus(System.String)">
+            <summary>
+            Updates the print-job status shown in the shared print-shop UI.
+            </summary>
+            <param name="statusUpdate">The new localized or formatted status.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.updateUIStatus(System.Boolean)">
+            <summary>
+            Updates the running state shown in the shared print-shop UI.
+            </summary>
+            <param name="isPrinting">Whether the current queue is printing.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.spaceRequirementsMet(Sandcastle.PrintShop.BuildItem)">
+            <summary>
+            Verifies that the EVA inventory has room for the completed cargo part.
+            </summary>
+            <param name="buildItem">The print job whose output needs inventory space.</param>
+            <returns>True when an inventory can accept the completed part.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.calculateSpecialistBonus">
+            <summary>
+            Calculates the EVA Kerbal's specialist bonus without relying on part CrewCapacity.
+            </summary>
+            <returns>The multiplier applied to the EVA printer's base speed.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.onSupportPrintingRequest(Sandcastle.PrintShop.WBIShipwright,System.Collections.Generic.List{Sandcastle.PrintShop.BuildItem})">
+            <summary>
+            Prevents a personal EVA printer from accepting distributed shipwright jobs.
+            </summary>
+            <param name="sender">The shipwright requesting printer support.</param>
+            <param name="buildList">The shipwright's remaining build items.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.ensureInitialized">
+            <summary>
+            Resolves the EVA inventory and finishes wiring the shared UI.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.configureUI">
+            <summary>
+            Connects the reusable print-shop window to this EVA printer instance.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.refreshPrintableParts">
+            <summary>
+            Builds the list of cargo parts this EVA printer can produce.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.getWhitelistedCategories(ConfigNode)">
+            <summary>
+            Gets the configured category whitelist or all stock categories when none is supplied.
+            </summary>
+            <param name="printerNode">The EVA printer's injected module configuration.</param>
+            <returns>Category names accepted by the printer UI.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.getEVAPrinterConfigNode">
+            <summary>
+            Finds this dynamically injected module's original KERBAL_EVA_MODULES configuration.
+            </summary>
+            <returns>The matching MODULE node, or null when none can be found.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.onCrewBoardVessel(GameEvents.FromToAction{Part,Part})">
+            <summary>
+            Cancels all jobs immediately when this EVA Kerbal boards another part.
+            </summary>
+            <param name="data">The EVA part being boarded from and the destination part.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.cancelQueueIfStillInactive">
+            <summary>
+            Cancels the queue on the next frame unless KerbalGear immediately reactivates this module.
+            </summary>
+            <returns>An enumerator used by Unity's coroutine scheduler.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.cancelPrintQueue">
+            <summary>
+            Permanently discards all pending EVA print jobs and resets printer state.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.closeUI">
+            <summary>
+            Hides the reusable print-shop window if it is currently open.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.stopPrinterEffects">
+            <summary>
+            Stops optional part effects and animations when EVA printing is disabled.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.updateEventAvailability">
+            <summary>
+            Shows the PAW event only while the KerbalGear printer is active and initialized.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PrintShop.WBIPrinterRequirements">
             <summary>
             Describes the 3D Printer requirements for the part. This is a stub part module; the real functionality is over in PrinterInfoHelper.
@@ -1453,6 +1852,13 @@
             Name of the animation to play during printing.
             </summary>
         </member>
+        <member name="M:Sandcastle.PrintShop.WBIBasePrinter.calculateSpecialistBonus">
+            <summary>
+            Calculates the print-speed multiplier contributed by qualified specialists.
+            Derived printers can override this when their operator is not stored as ordinary part crew.
+            </summary>
+            <returns>The multiplier to apply to the printer's base speed.</returns>
+        </member>
         <member name="F:Sandcastle.SandcastleScenario.onSupportPrintingRequest">
             <summary>
             A vessel printer has requested a list of parts to be printed.
@@ -1481,9 +1887,19 @@
             Enables deterministic stack-node roll alignment for stock construction used by an EVA Kerbal.
             </summary>
         </member>
+        <member name="F:Sandcastle.SandcastleSettings.disableBuoyancyForUnderwaterConstruction">
+            <summary>
+            Enables zero buoyancy for parts placed by construction actors that are landed underwater.
+            </summary>
+        </member>
         <member name="P:Sandcastle.SandcastleSettings.AlignEVAConstructionStackNodes">
             <summary>
             Indicates whether ordinary Kerbal EVA Construction should initialize complete stack-node frames.
+            </summary>
+        </member>
+        <member name="P:Sandcastle.SandcastleSettings.DisableBuoyancyForUnderwaterConstruction">
+            <summary>
+            Indicates whether landed underwater construction should give newly placed parts zero buoyancy.
             </summary>
         </member>
     </members>

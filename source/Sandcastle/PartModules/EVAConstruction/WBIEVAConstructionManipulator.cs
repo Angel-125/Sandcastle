@@ -22,11 +22,10 @@ namespace Sandcastle.PartModules
         public double maxPartMass = 1000.0;
 
         /// <summary>
-        /// Aligns the complete source and target stack-node frames when a node pair is first acquired.
-        /// Player rotation input remains free after the initial alignment.
+        /// Maximum distance from the construction transform at which parts can be manipulated, in meters.
         /// </summary>
-        [KSPField]
-        public bool alignStackNodeRotation = true;
+        [KSPField(groupName = "#LOC_SANDCASTLE_evaConstructionGroupName", groupDisplayName = "#LOC_SANDCASTLE_evaConstructionGroupName")]
+        public float maxConstructionDistance = 7.0f;
 
         private Transform constructionTransform;
 

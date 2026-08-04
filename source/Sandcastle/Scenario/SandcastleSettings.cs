@@ -23,6 +23,12 @@ namespace Sandcastle
         [GameParameters.CustomParameterUI("#LOC_SANDCASTLE_alignEVAStackNodesDesc", toolTip = "#LOC_SANDCASTLE_alignEVAStackNodesTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
         public bool alignEVAConstructionStackNodes = true;
 
+        /// <summary>
+        /// Enables zero buoyancy for parts placed by construction actors that are landed underwater.
+        /// </summary>
+        [GameParameters.CustomParameterUI("#LOC_SANDCASTLE_underwaterSpawnBuoyancyDesc", toolTip = "#LOC_SANDCASTLE_underwaterSpawnBuoyancyTip", autoPersistance = true, gameMode = GameParameters.GameMode.ANY)]
+        public bool disableBuoyancyForUnderwaterConstruction = true;
+
         public override string DisplaySection
         {
             get
@@ -103,6 +109,18 @@ namespace Sandcastle
             {
                 SandcastleSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<SandcastleSettings>();
                 return settings.alignEVAConstructionStackNodes;
+            }
+        }
+
+        /// <summary>
+        /// Indicates whether landed underwater construction should give newly placed parts zero buoyancy.
+        /// </summary>
+        public static bool DisableBuoyancyForUnderwaterConstruction
+        {
+            get
+            {
+                SandcastleSettings settings = HighLogic.CurrentGame.Parameters.CustomParams<SandcastleSettings>();
+                return settings.disableBuoyancyForUnderwaterConstruction;
             }
         }
 

@@ -140,6 +140,7 @@
     <Compile Include="PartModules\Inventory\ModuleDefaultInventoryStack.cs" />
     <Compile Include="PartModules\Inventory\ModuleStorablePart.cs" />
     <Compile Include="PartModules\ModuleMassFixer.cs" />
+    <Compile Include="PartModules\WBIUnderwaterSpawnBuoyancy.cs" />
     <Compile Include="PartModules\PrintShop\GUI\ShipbreakerUI.cs" />
     <Compile Include="PartModules\PrintShop\GUI\ShipwrightUI.cs" />
     <Compile Include="PartModules\PrintShop\GUI\RecyclerUI.cs" />
@@ -152,9 +153,10 @@
     <Compile Include="PartModules\PrintShop\SupportClasses\BuildItem.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\MaterialsList.cs" />
     <Compile Include="PartModules\PrintShop\WBIPrintShop.cs" />
+    <Compile Include="PartModules\PrintShop\WBIModuleEVAPrintShop.cs" />
     <Compile Include="PartModules\PrintShop\WBIPrinterRequirements.cs" />
-    <Compile Include="PartModules\EVAConstruction\SCModuleEVAVariants.cs" />
-    <Compile Include="PartModules\EVAConstruction\SCModuleEVAFlagSwitch.cs" />
+    <Compile Include="PartModules\EVAConstruction\WBIModuleEVAVariants.cs" />
+    <Compile Include="PartModules\EVAConstruction\WBIModuleEVAFlagSwitch.cs" />
     <Compile Include="PartModules\EVAConstruction\EVAConstructionBridge.cs" />
     <Compile Include="PartModules\EVAConstruction\WBIEVAConstructionManipulator.cs" />
     <Compile Include="PartModules\PrintShop\WBIShipwright.cs" />

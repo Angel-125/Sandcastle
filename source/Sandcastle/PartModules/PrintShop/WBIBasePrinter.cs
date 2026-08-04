@@ -699,7 +699,12 @@ namespace Sandcastle.PrintShop
             updateUIStatus(isPrinting);
         }
 
-        private float calculateSpecialistBonus()
+        /// <summary>
+        /// Calculates the print-speed multiplier contributed by qualified specialists.
+        /// Derived printers can override this when their operator is not stored as ordinary part crew.
+        /// </summary>
+        /// <returns>The multiplier to apply to the printer's base speed.</returns>
+        protected virtual float calculateSpecialistBonus()
         {
             if (!UseSpecialistBonus || part.CrewCapacity == 0 || part.protoModuleCrew.Count == 0)
                 return 1.0f;

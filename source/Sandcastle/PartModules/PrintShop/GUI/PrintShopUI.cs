@@ -263,7 +263,8 @@ namespace Sandcastle.PrintShop
             if (GUILayout.Button(iconSet["Trash"], buttonDimensions))
             {
                 // We always work from the first item in the queue.
-                printQueue.RemoveAt(0);
+                if (printQueue.Count > 0)
+                    printQueue.RemoveAt(0);
             }
 
             GUILayout.BeginVertical();

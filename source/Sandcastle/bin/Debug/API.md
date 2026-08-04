@@ -54,6 +54,27 @@ Converts the host's configurable metric-ton mass limit into stock's local-weight
 ### IsUnderManipulatorMassLimit(Part)
 Tests a candidate part's dry and resource mass against the active host's mass limit.
 
+### GetConstructionDistance
+Returns the active manipulator's construction distance or stock's distance for ordinary EVA.
+
+### GetInventoryDistance
+Returns the host workspace distance for hosted inventory access or stock's inventory distance otherwise.
+
+### GetInventoryDisplayDistance(UnityEngine.Vector3,UnityEngine.Vector3)
+Returns zero distance for inventories on the active host vessel so its entire storage network remains visible.
+
+### IsHostInventory(ModuleInventoryPart)
+Reports whether an inventory belongs to the vessel hosting the active construction manipulator.
+
+### IsHostInventoryPosition(UnityEngine.Vector3)
+Reports whether a stock inventory-display position belongs to an inventory on the host vessel.
+
+### GetInventoryPosition(ModuleInventoryPart)
+Reproduces the position stock uses when measuring an inventory for construction display.
+
+### PositionsMatch(UnityEngine.Vector3,UnityEngine.Vector3)
+Compares inventory positions with enough tolerance for transforms updated during the current frame.
+
 ### CanOpenConstructionPanel
 Reproduces stock panel-opening guards that remain relevant without an EVA vessel.
 
@@ -63,6 +84,12 @@ Treats the active host vessel as EVA only for patched construction-workspace che
 ### GetConstructionOrigin(Vessel)
 Returns the host model transform position, falling back to stock vessel positioning.
 
+### GetInventoryOrigin
+Returns the position from which stock should measure access to nearby construction inventories.
+
+### GetConstructionOriginFromTransform(UnityEngine.Transform)
+Substitutes the hosted construction origin while preserving the transform supplied by ordinary stock EVA.
+
 ### GetConstructionReferenceTransform(Vessel)
 Returns the host model transform used to orient stock placement calculations.
 
@@ -71,6 +98,9 @@ Calls the stock weld-interruption path when a real KerbalEVA controller exists.
 
 ### Weld(KerbalEVA,Part)
 Calls the stock weld path when construction is genuinely hosted by a KerbalEVA.
+
+### ClearHostedAttachmentHighlights
+Restores normal flight highlighting on parts attached by a vessel-hosted construction session.
 
 # PartModules.EVAConstructionHarmonyLoader
             
@@ -98,7 +128,7 @@ Closes part-hosted construction if the final active vessel differs from the host
 Closes part-hosted construction at the start of a loaded or unloaded vessel switch.
 
 ### OnCrewOnEva(GameEvents.FromToAction{Part,Part})
-Closes part-hosted construction when a crew member exits the host vessel on EVA.
+Closes part-hosted construction whenever any crew member goes on EVA.
 
 ### OnGameSceneLoadRequested(GameScenes)
 Releases hosted construction before leaving the current KSP scene.
@@ -140,6 +170,32 @@ Rejects invalid quaternion values before they can corrupt the selected part tran
 ### IsFinite(System.Single)
 Reports whether a floating-point component is neither NaN nor infinite.
 
+# PartModules.EVAConstructionUnderwaterProtoVesselPatch
+            
+Adds persistent zero buoyancy to loose parts placed by landed underwater EVA Construction actors.
+        
+## Methods
+
+
+### TargetMethod
+Locates the stock method that builds the proto-vessel for a loose construction part.
+
+### Postfix(Vessel,ConfigNode)
+Applies the underwater policy using the stock construction actor supplied to the spawn method.
+
+# PartModules.EVAConstructionUnderwaterAttachedPartPatch
+            
+Adds persistent zero buoyancy to parts attached by landed underwater EVA Construction actors.
+        
+## Methods
+
+
+### TargetMethod
+Locates the stock method that converts a held cargo part into a live attached part.
+
+### Postfix(Part)
+Applies the underwater policy after stock has created and welded the attached part.
+
 # PartModules.EVAConstructionGroundPartDeploymentPatch
             
 Converts vessel-hosted terrain placement of a ground part into stock's ground-deployment state.
@@ -153,6 +209,66 @@ Locates the stock method that builds the proto-vessel for a part dropped by EVA 
 ### Postfix(EVAConstructionModeEditor,Part,ConfigNode)
 Gives a hosted, terrain-placed ModuleGroundPart the same startup state as an inventory deployment.
 
+### IsTerrainPlacement(EVAConstructionModeEditor,Part)
+Recovers stock ground placement when its cursor ray misses but the fallback placement plane leaves the part on terrain.
+
+# PartModules.EVAConstructionCargoPartHighlightPatch
+            
+Makes mounted cargo parts use the manipulator origin and range when deciding construction eligibility.
+        
+## Methods
+
+
+### TargetMethod
+Locates the stock cargo-part update that highlights parts eligible for vessel detachment.
+
+### Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction})
+Replaces the active-vessel origin and Kerbal range while leaving ordinary EVA behavior unchanged.
+
+# PartModules.EVAConstructionInventoryDisplayPatch
+            
+Makes the stock construction inventory list use the vessel-hosted workspace origin and distance.
+        
+## Methods
+
+
+### TargetMethod
+Locates the stock method that adds and removes inventory panes as their distance changes.
+
+### Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction})
+Replaces the active-vessel origin and fixed EVA inventory radius used by the stock inventory pane.
+
+# PartModules.EVAConstructionInventoryInteractionPatch
+            
+Lets stock inventory slot interactions use the same range calculation as the hosted inventory display.
+        
+## Methods
+
+
+### Prefix(ModuleInventoryPart,System.Boolean@)
+Evaluates inventory access from the manipulator instead of stock's absent EVA Kerbal.
+
+# PartModules.EVAConstructionGroundPartPickupPatch
+            
+Routes a simple deployed ground part through stock's loose-part pickup and inventory cursor workflow.
+        
+## Methods
+
+
+### TargetMethod
+Locates stock's click-to-pick-up implementation.
+
+### Prefix(Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.GroundPartPickupState@)
+Temporarily presents a deployed ground part as loose cargo so stock can create the held inventory part.
+
+### Postfix(EVAConstructionModeEditor,Sandcastle.PartModules.EVAConstructionGroundPartPickupPatch.GroundPartPickupState)
+Keeps the cargo state after a successful pickup, or restores the deployed state if stock rejected it.
+
+# PartModules.EVAConstructionGroundPartPickupPatch.GroundPartPickupState
+            
+Stores the original ground state so a rejected pickup can leave the deployed vessel untouched.
+        
+
 # PartModules.WBIEVAConstructionManipulator
             
 Allows a vessel-mounted manipulator to act as the origin for stock EVA Construction. This is an experimental module and requires the Sandcastle Harmony bridge.
@@ -163,8 +279,8 @@ Allows a vessel-mounted manipulator to act as the origin for stock EVA Construct
 Model transform used as the center of the stock construction workspace.
 ### maxPartMass
 Maximum movable part mass, including resources, in metric tons.
-### alignStackNodeRotation
-Aligns the complete source and target stack-node frames when a node pair is first acquired. Player rotation input remains free after the initial alignment.
+### maxConstructionDistance
+Maximum distance from the construction transform at which parts can be manipulated, in meters.
 ## Properties
 
 ### ConstructionTransform
@@ -339,6 +455,20 @@ Returns the full path to the part's thumbnail image.
 > #### Return value
 > 
 
+### SpawnPart(AvailablePart,Part,UnityEngine.Transform,System.Boolean,Callback{DockedVesselInfo})
+Spawns a completed print at a printer transform and optionally couples it to the printer vessel.
+> #### Parameters
+> **availablePart:** The part definition to place into the world.
+
+> **parentPart:** The printer part whose vessel supplies the spawn environment.
+
+> **dropTransform:** The printer transform that defines position and orientation.
+
+> **repositionPart:** Whether to move the print beyond the spawn boundary.
+
+> **onPartCoupled:** An optional callback used after the new part is coupled.
+
+
 ### stabilizeSpawnedPart(Vessel,Part,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Callback{DockedVesselInfo})
 Keeps a newly spawned orbital part synchronized with the live printer frame until KSP has initialized it and it can safely enter physics.
 
@@ -454,6 +584,48 @@ Drops the desired part if it is in the inventory.
 > #### Parameters
 > **availablePart:** An AvailablePart containing the item to drop.
 
+
+# WBIUnderwaterSpawnBuoyancy
+            
+Persists a zero-buoyancy adjustment made when a part is placed by underwater construction.
+        
+## Fields
+
+### disableBuoyancy
+Indicates that this specific part instance was placed by landed underwater construction.
+## Methods
+
+
+### OnLoad(ConfigNode)
+Reapplies zero buoyancy while KSP is restoring the part from its snapshot.
+
+### OnStart(PartModule.StartState)
+Reapplies zero buoyancy after the part has completed normal flight startup.
+
+### DisableBuoyancy
+Sets the owning part's stock buoyancy multiplier to zero when the part is available.
+
+# UnderwaterSpawnUtils
+            
+Applies Sandcastle's shared landed-underwater spawn policy to proto and live parts.
+        
+## Methods
+
+
+### ShouldDisableBuoyancy(Vessel)
+Reports whether the actor is exactly landed beneath an ocean surface and the feature is enabled.
+
+### ApplyToProtoVessel(ConfigNode,Vessel,System.String)
+Adds the persistent zero-buoyancy marker to every part in a new proto-vessel.
+
+### ApplyToPart(Part,Vessel,System.String)
+Sets a newly attached live part to zero buoyancy and adds the persistent marker module.
+
+### FindBuoyancyMarker(ConfigNode)
+Finds the persistent zero-buoyancy marker in a proto-part snapshot.
+
+### LogAdjustment(Vessel,System.String)
+Writes a concise diagnostic describing why the new part received zero buoyancy.
 
 # PrintShop.ShipbreakerUI
             
@@ -889,6 +1061,151 @@ Flag indicating that part spawn is enabled. This lets the printer spawn parts in
 Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
 ### repositionCraftBeforeSpawning
 Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
+
+# PrintShop.WBIModuleEVAPrintShop
+            
+Provides a KerbalGear-activated print shop that consumes resources exposed on an EVA Kerbal and stores completed cargo parts in the Kerbal's inventory.
+        
+## Fields
+
+### printShopGUIName
+Localized label used by the event that opens the EVA print-shop window.
+### printShopDialogTitle
+Localized title used by the EVA print-shop window.
+### maxPartDimensions
+Maximum printable-part dimensions expressed as Height (X), Width (Y), Length (Z). Leave empty to restrict printing by volume only.
+### printStateString
+Current state displayed in the EVA Kerbal's part action window.
+## Methods
+
+
+### OnAwake
+Creates the reusable print-shop UI and connects it to this printer's queue.
+
+### OnStart(PartModule.StartState)
+Initializes the EVA printer after KSP has loaded its configured fields.
+> #### Parameters
+> **state:** KSP's current part-module startup state.
+
+
+### OnLoad(ConfigNode)
+Keeps the UI attached to the queue instance restored by KSP.
+> #### Parameters
+> **node:** The module's saved or prefab configuration.
+
+
+### OnActive
+Activates the printer when its KerbalGear item is present in the EVA inventory.
+
+### OnInactive
+Deactivates the printer and schedules queue cancellation if its gear is truly removed. KerbalGear immediately reactivates retained gear during ordinary inventory refreshes.
+
+### OnUpdate
+Updates PAW state only while the EVA printer gear is active.
+
+### FixedUpdate
+Advances printing only while the EVA printer gear is active.
+
+### onVesselChange(Vessel)
+Closes the printer window when focus changes to another vessel.
+> #### Parameters
+> **newVessel:** The newly active vessel.
+
+
+### OnDestroy
+Cancels pending jobs when the EVA vessel is destroyed, including when the Kerbal boards.
+
+### GetModuleDisplayName
+Returns the localized module title shown by KSP.
+> #### Return value
+> The EVA print-shop title.
+
+### buildItemCompleted(Sandcastle.PrintShop.BuildItem)
+Adds a completed cargo part to the EVA Kerbal's inventory.
+> #### Parameters
+> **buildItem:** The completed print job.
+
+
+### OpenGUI
+Opens the EVA print-shop window while its printer gear is active.
+
+### updateUIStatus(System.String)
+Updates the print-job status shown in the shared print-shop UI.
+> #### Parameters
+> **statusUpdate:** The new localized or formatted status.
+
+
+### updateUIStatus(System.Boolean)
+Updates the running state shown in the shared print-shop UI.
+> #### Parameters
+> **isPrinting:** Whether the current queue is printing.
+
+
+### spaceRequirementsMet(Sandcastle.PrintShop.BuildItem)
+Verifies that the EVA inventory has room for the completed cargo part.
+> #### Parameters
+> **buildItem:** The print job whose output needs inventory space.
+
+> #### Return value
+> True when an inventory can accept the completed part.
+
+### calculateSpecialistBonus
+Calculates the EVA Kerbal's specialist bonus without relying on part CrewCapacity.
+> #### Return value
+> The multiplier applied to the EVA printer's base speed.
+
+### onSupportPrintingRequest(Sandcastle.PrintShop.WBIShipwright,System.Collections.Generic.List{Sandcastle.PrintShop.BuildItem})
+Prevents a personal EVA printer from accepting distributed shipwright jobs.
+> #### Parameters
+> **sender:** The shipwright requesting printer support.
+
+> **buildList:** The shipwright's remaining build items.
+
+
+### ensureInitialized
+Resolves the EVA inventory and finishes wiring the shared UI.
+
+### configureUI
+Connects the reusable print-shop window to this EVA printer instance.
+
+### refreshPrintableParts
+Builds the list of cargo parts this EVA printer can produce.
+
+### getWhitelistedCategories(ConfigNode)
+Gets the configured category whitelist or all stock categories when none is supplied.
+> #### Parameters
+> **printerNode:** The EVA printer's injected module configuration.
+
+> #### Return value
+> Category names accepted by the printer UI.
+
+### getEVAPrinterConfigNode
+Finds this dynamically injected module's original KERBAL_EVA_MODULES configuration.
+> #### Return value
+> The matching MODULE node, or null when none can be found.
+
+### onCrewBoardVessel(GameEvents.FromToAction{Part,Part})
+Cancels all jobs immediately when this EVA Kerbal boards another part.
+> #### Parameters
+> **data:** The EVA part being boarded from and the destination part.
+
+
+### cancelQueueIfStillInactive
+Cancels the queue on the next frame unless KerbalGear immediately reactivates this module.
+> #### Return value
+> An enumerator used by Unity's coroutine scheduler.
+
+### cancelPrintQueue
+Permanently discards all pending EVA print jobs and resets printer state.
+
+### closeUI
+Hides the reusable print-shop window if it is currently open.
+
+### stopPrinterEffects
+Stops optional part effects and animations when EVA printing is disabled.
+
+### updateEventAvailability
+Shows the PAW event only while the KerbalGear printer is active and initialized.
 
 # PrintShop.WBIPrinterRequirements
             

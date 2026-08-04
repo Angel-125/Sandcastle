@@ -793,6 +793,14 @@ namespace Sandcastle.Inventory
             return thumbTexture;
         }
 
+        /// <summary>
+        /// Spawns a completed print at a printer transform and optionally couples it to the printer vessel.
+        /// </summary>
+        /// <param name="availablePart">The part definition to place into the world.</param>
+        /// <param name="parentPart">The printer part whose vessel supplies the spawn environment.</param>
+        /// <param name="dropTransform">The printer transform that defines position and orientation.</param>
+        /// <param name="repositionPart">Whether to move the print beyond the spawn boundary.</param>
+        /// <param name="onPartCoupled">An optional callback used after the new part is coupled.</param>
         public static void SpawnPart(AvailablePart availablePart, Part parentPart,
             Transform dropTransform, bool repositionPart,
             Callback<DockedVesselInfo> onPartCoupled = null)
@@ -825,7 +833,7 @@ namespace Sandcastle.Inventory
                     localBounds, parentPart.vessel.mainBody);
             }
 
-            Quaternion dropRotation = Quaternion.Inverse(FlightGlobals.ActiveVessel.mainBody.bodyTransform.rotation) * dropTransform.rotation;
+            Quaternion dropRotation = Quaternion.Inverse(parentPart.vessel.mainBody.bodyTransform.rotation) * dropTransform.rotation;
             Vector3 relativeDropPoint =
                 dropTransform.InverseTransformPoint(dropPoint);
             Quaternion relativeDropRotation = Quaternion.identity;
@@ -893,7 +901,13 @@ namespace Sandcastle.Inventory
                         + protoSpawnPoint.ToString("F4"));
             }
 
-            ConfigNode node = EVAConstructionModeController.Instance.evaEditor.GetProtoVesselNode(availablePart.title, protoSpawnPoint, dropRotation, FlightGlobals.ActiveVessel, part);
+            // The printer vessel, rather than whichever vessel is globally active, owns the
+            // environmental prerequisites and the celestial-body frame for this spawn.
+            ConfigNode node = EVAConstructionModeController.Instance.evaEditor.GetProtoVesselNode(availablePart.title, protoSpawnPoint, dropRotation, parentPart.vessel, part);
+            // This direct application keeps printer spawning correct even if another mod
+            // changes the stock GetProtoVesselNode Harmony patch ordering.
+            global::Sandcastle.UnderwaterSpawnUtils.ApplyToProtoVessel(
+                node, parentPart.vessel, "WBIPrintShop");
             if (SandcastleScenario.debugMode)
             {
                 ConfigNode orbitNode = node.GetNode("ORBIT");
