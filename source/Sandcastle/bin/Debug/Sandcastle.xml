@@ -680,6 +680,14 @@
             Whether to make the released part's vessel active.
             </param>
         </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.normalizePersistentStringFields(Part)">
+            <summary>
+            Replaces null persistent string fields with empty strings before KSP serializes a part
+            prefab into an inventory snapshot. ConfigNode cannot store null strings, and part modules
+            may legitimately leave an optional persistent string unset until it is first used.
+            </summary>
+            <param name="partPrefab">The part prefab that KSP is about to store in an inventory.</param>
+        </member>
         <member name="T:Sandcastle.Inventory.ModuleCargoCatcher">
             <summary>
             Catches and stores cargo items into the part's inventory as long as they fit. Does not require a kerbal. This only works on single-part vessels.
@@ -1186,6 +1194,30 @@
             </summary>
             <param name="windowId">An int representing the window ID.</param>
         </member>
+        <member name="M:Sandcastle.PrintShop.PrintShopUI.updateVisibleCategories">
+            <summary>
+            Builds the toolbar from categories that contain at least one part in the printer's filtered list.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.PrintShopUI.selectPopulatedCategory">
+            <summary>
+            Retains the current selection when populated, otherwise selects the first visible category.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.PrintShopUI.hasPrintableStockCategory(System.String)">
+            <summary>
+            Determines whether the filtered printable list contains a stock part category.
+            </summary>
+            <param name="category">The stock category identifier.</param>
+            <returns>True when at least one printable part belongs to the category.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.PrintShopUI.hasPrintableCCKCategory(System.String)">
+            <summary>
+            Determines whether the filtered printable list contains a Community Category Kit tag.
+            </summary>
+            <param name="category">The Community Category Kit category identifier.</param>
+            <returns>True when at least one printable part carries the category tag.</returns>
+        </member>
         <member name="T:Sandcastle.PrintShop.WBIShipbreaker">
             <summary>
             Represents a shop that is capable of printing items and placing them in an available inventory.
@@ -1607,9 +1639,15 @@
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnInactive">
             <summary>
-            Deactivates the printer and schedules queue cancellation if its gear is truly removed.
-            KerbalGear immediately reactivates retained gear during ordinary inventory refreshes.
+            Deactivates the printer and cancels its queue when the enabling gear is removed.
+            Retained gear no longer receives lifecycle callbacks during ordinary inventory refreshes.
             </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnKerbalGearInventoryChanged(ModuleInventoryPart)">
+            <summary>
+            Refreshes the printer's inventory reference and UI wiring after a retained gear item changes.
+            </summary>
+            <param name="changedInventory">The EVA inventory whose contents changed.</param>
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OnUpdate">
             <summary>
@@ -1646,7 +1684,7 @@
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.OpenGUI">
             <summary>
-            Opens the EVA print-shop window while its printer gear is active.
+            Toggles the EVA print-shop window while its printer gear is active.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.updateUIStatus(System.String)">
@@ -1714,12 +1752,6 @@
             Cancels all jobs immediately when this EVA Kerbal boards another part.
             </summary>
             <param name="data">The EVA part being boarded from and the destination part.</param>
-        </member>
-        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.cancelQueueIfStillInactive">
-            <summary>
-            Cancels the queue on the next frame unless KerbalGear immediately reactivates this module.
-            </summary>
-            <returns>An enumerator used by Unity's coroutine scheduler.</returns>
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.cancelPrintQueue">
             <summary>

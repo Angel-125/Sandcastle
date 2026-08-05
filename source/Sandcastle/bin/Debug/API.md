@@ -526,6 +526,12 @@ Releases a printed part in orbit while preserving its position and synchronizing
 > **switchToVessel:** Whether to make the released part's vessel active.
 
 
+### normalizePersistentStringFields(Part)
+Replaces null persistent string fields with empty strings before KSP serializes a part prefab into an inventory snapshot. ConfigNode cannot store null strings, and part modules may legitimately leave an optional persistent string unset until it is first used.
+> #### Parameters
+> **partPrefab:** The part prefab that KSP is about to store in an inventory.
+
+
 # Inventory.ModuleCargoCatcher
             
 Catches and stores cargo items into the part's inventory as long as they fit. Does not require a kerbal. This only works on single-part vessels. Note that you'll need a trigger collider set up in the part containing this part module in order to trigger the catch and store operation.
@@ -874,6 +880,28 @@ Draws the window
 > **windowId:** An int representing the window ID.
 
 
+### updateVisibleCategories
+Builds the toolbar from categories that contain at least one part in the printer's filtered list.
+
+### selectPopulatedCategory
+Retains the current selection when populated, otherwise selects the first visible category.
+
+### hasPrintableStockCategory(System.String)
+Determines whether the filtered printable list contains a stock part category.
+> #### Parameters
+> **category:** The stock category identifier.
+
+> #### Return value
+> True when at least one printable part belongs to the category.
+
+### hasPrintableCCKCategory(System.String)
+Determines whether the filtered printable list contains a Community Category Kit tag.
+> #### Parameters
+> **category:** The Community Category Kit category identifier.
+
+> #### Return value
+> True when at least one printable part carries the category tag.
+
 # PrintShop.WBIShipbreaker
             
 Represents a shop that is capable of printing items and placing them in an available inventory.
@@ -1104,7 +1132,13 @@ Keeps the UI attached to the queue instance restored by KSP.
 Activates the printer when its KerbalGear item is present in the EVA inventory.
 
 ### OnInactive
-Deactivates the printer and schedules queue cancellation if its gear is truly removed. KerbalGear immediately reactivates retained gear during ordinary inventory refreshes.
+Deactivates the printer and cancels its queue when the enabling gear is removed. Retained gear no longer receives lifecycle callbacks during ordinary inventory refreshes.
+
+### OnKerbalGearInventoryChanged(ModuleInventoryPart)
+Refreshes the printer's inventory reference and UI wiring after a retained gear item changes.
+> #### Parameters
+> **changedInventory:** The EVA inventory whose contents changed.
+
 
 ### OnUpdate
 Updates PAW state only while the EVA printer gear is active.
@@ -1133,7 +1167,7 @@ Adds a completed cargo part to the EVA Kerbal's inventory.
 
 
 ### OpenGUI
-Opens the EVA print-shop window while its printer gear is active.
+Toggles the EVA print-shop window while its printer gear is active.
 
 ### updateUIStatus(System.String)
 Updates the print-job status shown in the shared print-shop UI.
@@ -1195,11 +1229,6 @@ Cancels all jobs immediately when this EVA Kerbal boards another part.
 > #### Parameters
 > **data:** The EVA part being boarded from and the destination part.
 
-
-### cancelQueueIfStillInactive
-Cancels the queue on the next frame unless KerbalGear immediately reactivates this module.
-> #### Return value
-> An enumerator used by Unity's coroutine scheduler.
 
 ### cancelPrintQueue
 Permanently discards all pending EVA print jobs and resets printer state.

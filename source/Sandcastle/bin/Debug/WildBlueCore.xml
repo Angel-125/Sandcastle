@@ -278,6 +278,12 @@
             Commits proxy changes and removes them when the enabling cargo item is unequipped.
             </summary>
         </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.OnKerbalGearInventoryChanged(ModuleInventoryPart)">
+            <summary>
+            Rebuilds proxy contributors once after a retained KerbalGear module's inventory changes.
+            </summary>
+            <param name="changedInventory">The EVA inventory whose contents changed.</param>
+        </member>
         <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.FixedUpdate">
             <summary>
             Synchronizes stock resource requests with the contributing inventory snapshots.
@@ -336,9 +342,14 @@
             Builds contribution lists for selected resource types across the entire EVA inventory.
             </summary>
         </member>
-        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.CreateResourceProxies">
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.CaptureResourceProxies">
             <summary>
-            Adds stock-visible resources to the live Kerbal part for each aggregate.
+            Captures live proxy objects so inventory refreshes can reuse them without rebuilding PAW rows.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.ReconcileResourceProxies(System.Collections.Generic.Dictionary{System.String,PartResource})">
+            <summary>
+            Reuses proxies whose resource types remain exposed, removes stale proxies, and creates new types.
             </summary>
         </member>
         <member name="M:WildBlueCore.PartModules.KerbalGear.WBIModuleEVAResourceTransfer.SynchronizeResourceProxies">
@@ -1065,6 +1076,29 @@
             Overrides OnActive. Called when an inventory item is equipped and the module is enabled.
             </summary>
         </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleEVAOverrides.OnKerbalGearInventoryChanged(ModuleInventoryPart)">
+            <summary>
+            Recalculates active EVA overrides without cycling this retained KerbalGear module.
+            </summary>
+            <param name="changedInventory">The EVA inventory whose contents changed.</param>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleEVAOverrides.refreshInventoryOverrides(ModuleInventoryPart)">
+            <summary>
+            Rebuilds the strongest EVA overrides supplied by the current inventory contents.
+            </summary>
+            <param name="inventory">The EVA inventory containing KerbalGear parts.</param>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleEVAOverrides.applyActiveOverrides">
+            <summary>
+            Applies the currently calculated inventory overrides to the active EVA Kerbal.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleEVAOverrides.updatePartOverrides(System.String)">
+            <summary>
+            Accumulates the strongest EVA overrides supplied by one carried cargo part.
+            </summary>
+            <param name="partName">The internal part name whose EVA_OVERRIDES node is inspected.</param>
+        </member>
         <member name="T:WildBlueCore.KerbalGear.WBIModuleKerbalEVAModules">
             <summary>
             Special thanks to Vali for figuring out this issue! :)
@@ -1216,6 +1250,19 @@
             Separate names with a semicolon.
             </summary>
         </member>
+        <member name="T:WildBlueCore.KerbalGear.IKerbalGearInventoryListener">
+            <summary>
+            Receives a single notification after KerbalGear has reconciled an EVA inventory change.
+            Implement this interface when an active EVA module needs to refresh data derived from
+            inventory contents without being deactivated and reactivated.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.IKerbalGearInventoryListener.OnKerbalGearInventoryChanged(ModuleInventoryPart)">
+            <summary>
+            Refreshes inventory-derived state after the EVA inventory reaches its final state.
+            </summary>
+            <param name="inventory">The EVA inventory whose contents changed.</param>
+        </member>
         <member name="T:WildBlueCore.KerbalGear.SWearableProp">
             <summary>
             Represents an instance of a wearable prop. One SWearableProp corresponds to a part's WBIModuleWearableItem part module.
@@ -1284,10 +1331,61 @@
             Flag to turn on/off debug mode.
             </summary>
         </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.OnDestroy">
+            <summary>
+            Stops listening to stock inventory events when this EVA controller is destroyed.
+            Module teardown is left to KSP so scene changes do not generate duplicate OnInactive calls.
+            </summary>
+        </member>
         <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.ShowPropOffsetView">
             <summary>
             Debug button that shows the prop offset view.
             </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.onModuleInventorySlotChanged(ModuleInventoryPart,System.Int32)">
+            <summary>
+            Queues the same coalesced refresh used by the general inventory-changed event.
+            </summary>
+            <param name="partInventory">The inventory whose slot changed.</param>
+            <param name="slotIndex">The changed inventory slot.</param>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.reconcileInventory">
+            <summary>
+            Reconciles wearable props and EVA modules with the inventory's current contents.
+            Unchanged modules remain active; only genuine activation transitions receive lifecycle calls.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.initializeEVAModules">
+            <summary>
+            Establishes a disabled baseline for every module referenced by wearable cargo.
+            KSP injects these modules enabled, so one initial deactivation is required before
+            the inventory reconciliation activates only the abilities actually being carried.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.reconcileWearableProps(System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            Shows only the wearable props represented by parts currently stored in the EVA inventory.
+            </summary>
+            <param name="storedPartNames">Unique part names currently present in the inventory.</param>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.activateEVAModule(System.String)">
+            <summary>
+            Enables an EVA module and sends one activation callback for a genuine inactive-to-active transition.
+            </summary>
+            <param name="moduleName">The configured PartModule class name.</param>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.deactivateEVAModule(System.String)">
+            <summary>
+            Disables an EVA module and sends one deactivation callback for a genuine active-to-inactive transition.
+            </summary>
+            <param name="moduleName">The configured PartModule class name.</param>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.getEVAModule(System.String)">
+            <summary>
+            Finds the EVA PartModule identified by a wearable item's evaModules setting.
+            </summary>
+            <param name="moduleName">The configured PartModule class name.</param>
+            <returns>The matching module, or null when it was not injected onto the EVA part.</returns>
         </member>
         <member name="T:WildBlueCore.WBIBasePartModule">
             <summary>

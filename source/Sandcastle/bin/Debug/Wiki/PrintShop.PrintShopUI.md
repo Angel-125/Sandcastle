@@ -44,3 +44,25 @@ Draws the window
 > **windowId:** An int representing the window ID.
 
 
+### updateVisibleCategories
+Builds the toolbar from categories that contain at least one part in the printer's filtered list.
+
+### selectPopulatedCategory
+Retains the current selection when populated, otherwise selects the first visible category.
+
+### hasPrintableStockCategory(System.String)
+Determines whether the filtered printable list contains a stock part category.
+> #### Parameters
+> **category:** The stock category identifier.
+
+> #### Return value
+> True when at least one printable part belongs to the category.
+
+### hasPrintableCCKCategory(System.String)
+Determines whether the filtered printable list contains a Community Category Kit tag.
+> #### Parameters
+> **category:** The Community Category Kit category identifier.
+
+> #### Return value
+> True when at least one printable part carries the category tag.
+

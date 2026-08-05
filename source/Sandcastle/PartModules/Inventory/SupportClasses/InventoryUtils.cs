@@ -408,6 +408,8 @@ namespace Sandcastle.Inventory
                 return null;
             }
 
+            normalizePersistentStringFields(availablePart.partPrefab);
+
             PartVariant partVariant = null;
             PartVariant prevVariant = null;
             string variantName = string.Empty;
@@ -1926,6 +1928,36 @@ namespace Sandcastle.Inventory
         #endregion
 
         #region Helpers
+        /// <summary>
+        /// Replaces null persistent string fields with empty strings before KSP serializes a part
+        /// prefab into an inventory snapshot. ConfigNode cannot store null strings, and part modules
+        /// may legitimately leave an optional persistent string unset until it is first used.
+        /// </summary>
+        /// <param name="partPrefab">The part prefab that KSP is about to store in an inventory.</param>
+        private static void normalizePersistentStringFields(Part partPrefab)
+        {
+            if (partPrefab == null || partPrefab.Modules == null)
+                return;
+
+            for (int moduleIndex = 0; moduleIndex < partPrefab.Modules.Count; moduleIndex++)
+            {
+                PartModule partModule = partPrefab.Modules[moduleIndex];
+                if (partModule == null || partModule.Fields == null)
+                    continue;
+
+                for (int fieldIndex = 0; fieldIndex < partModule.Fields.Count; fieldIndex++)
+                {
+                    BaseField field = partModule.Fields[fieldIndex];
+                    if (!field.isPersistant || field.FieldInfo == null ||
+                        field.FieldInfo.FieldType != typeof(string))
+                        continue;
+
+                    if (field.FieldInfo.GetValue(partModule) == null)
+                        field.FieldInfo.SetValue(partModule, string.Empty);
+                }
+            }
+        }
+
         internal static void clearResources(Vessel vessel)
         {
             if (vessel.loaded)

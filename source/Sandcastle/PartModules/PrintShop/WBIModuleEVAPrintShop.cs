@@ -1,10 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using KSP.Localization;
 using Sandcastle.Inventory;
 using UnityEngine;
+using WildBlueCore.KerbalGear;
 
 namespace Sandcastle.PrintShop
 {
@@ -13,7 +13,7 @@ namespace Sandcastle.PrintShop
     /// and stores completed cargo parts in the Kerbal's inventory.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_evaPrintShopTitle")]
-    public class WBIModuleEVAPrintShop : WBIBasePrinter
+    public class WBIModuleEVAPrintShop : WBIBasePrinter, IKerbalGearInventoryListener
     {
         private const string KerbalEVAModulesNode = "KERBAL_EVA_MODULES";
         private const string ModuleNode = "MODULE";
@@ -51,8 +51,6 @@ namespace Sandcastle.PrintShop
         private ModuleInventoryPart inventory;
         private bool evaPrinterIsActive;
         private bool initialized;
-        private bool queueCancellationPending;
-        private bool resumePrintingAfterInventoryRefresh;
 
         /// <summary>
         /// Creates the reusable print-shop UI and connects it to this printer's queue.
@@ -99,39 +97,42 @@ namespace Sandcastle.PrintShop
         {
             base.OnActive();
 
-            queueCancellationPending = false;
             evaPrinterIsActive = true;
             ensureInitialized();
             refreshPrintableParts();
-
-            if (resumePrintingAfterInventoryRefresh && printQueue != null && printQueue.Count > 0)
-                printState = WBIPrintStates.Printing;
-
-            resumePrintingAfterInventoryRefresh = false;
             updateEventAvailability();
         }
 
         /// <summary>
-        /// Deactivates the printer and schedules queue cancellation if its gear is truly removed.
-        /// KerbalGear immediately reactivates retained gear during ordinary inventory refreshes.
+        /// Deactivates the printer and cancels its queue when the enabling gear is removed.
+        /// Retained gear no longer receives lifecycle callbacks during ordinary inventory refreshes.
         /// </summary>
         public override void OnInactive()
         {
             base.OnInactive();
 
-            resumePrintingAfterInventoryRefresh = printState == WBIPrintStates.Printing;
             evaPrinterIsActive = false;
-            queueCancellationPending = true;
-            printState = printQueue != null && printQueue.Count > 0
-                ? WBIPrintStates.Paused
-                : WBIPrintStates.Idle;
-
             closeUI();
             stopPrinterEffects();
+            cancelPrintQueue();
             updateEventAvailability();
+        }
 
-            if (part != null)
-                part.StartCoroutine(cancelQueueIfStillInactive());
+        /// <summary>
+        /// Refreshes the printer's inventory reference and UI wiring after a retained gear item changes.
+        /// </summary>
+        /// <param name="changedInventory">The EVA inventory whose contents changed.</param>
+        public void OnKerbalGearInventoryChanged(ModuleInventoryPart changedInventory)
+        {
+            if (!evaPrinterIsActive || changedInventory == null)
+                return;
+
+            ensureInitialized();
+            if (!initialized || changedInventory != inventory)
+                return;
+
+            configureUI();
+            updateEventAvailability();
         }
 
         /// <summary>
@@ -191,7 +192,6 @@ namespace Sandcastle.PrintShop
         /// </summary>
         public override void OnDestroy()
         {
-            queueCancellationPending = false;
             evaPrinterIsActive = false;
             cancelPrintQueue();
             closeUI();
@@ -241,7 +241,7 @@ namespace Sandcastle.PrintShop
         }
 
         /// <summary>
-        /// Opens the EVA print-shop window while its printer gear is active.
+        /// Toggles the EVA print-shop window while its printer gear is active.
         /// </summary>
         [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_printShopGroupName",
             groupDisplayName = "#LOC_SANDCASTLE_printShopGroupName",
@@ -250,6 +250,12 @@ namespace Sandcastle.PrintShop
         {
             if (!evaPrinterIsActive || !initialized || shopUI == null)
                 return;
+
+            if (shopUI.IsVisible())
+            {
+                shopUI.SetVisible(false);
+                return;
+            }
 
             refreshPrintableParts();
             shopUI.partsList = filteredParts;
@@ -474,7 +480,6 @@ namespace Sandcastle.PrintShop
             if (data.from != part)
                 return;
 
-            queueCancellationPending = false;
             evaPrinterIsActive = false;
             cancelPrintQueue();
             closeUI();
@@ -483,24 +488,10 @@ namespace Sandcastle.PrintShop
         }
 
         /// <summary>
-        /// Cancels the queue on the next frame unless KerbalGear immediately reactivates this module.
-        /// </summary>
-        /// <returns>An enumerator used by Unity's coroutine scheduler.</returns>
-        private IEnumerator cancelQueueIfStillInactive()
-        {
-            yield return null;
-
-            if (queueCancellationPending && !evaPrinterIsActive)
-                cancelPrintQueue();
-        }
-
-        /// <summary>
         /// Permanently discards all pending EVA print jobs and resets printer state.
         /// </summary>
         private void cancelPrintQueue()
         {
-            queueCancellationPending = false;
-            resumePrintingAfterInventoryRefresh = false;
             if (printQueue != null)
                 printQueue.Clear();
 

@@ -111,6 +111,7 @@ namespace Sandcastle.PrintShop
         Dictionary<string, BuildItem> itemCache;
         AvailablePart previewPart;
         List<PartVariant> partVariants = new List<PartVariant>();
+        List<string> visibleCategories = new List<string>();
         Texture2D previewPartImage;
         string previewPartRequirements = string.Empty;
         string previewPartDescription = string.Empty;
@@ -143,6 +144,25 @@ namespace Sandcastle.PrintShop
         string categoryName = PartCategories.Pods.ToString();
         bool categoryMousedOver;
         double categoryUpdateTime;
+        static readonly string[] stockCategoryOrder = new string[]
+        {
+            PartCategories.Pods.ToString(),
+            PartCategories.FuelTank.ToString(),
+            PartCategories.Engine.ToString(),
+            PartCategories.Control.ToString(),
+            PartCategories.Structural.ToString(),
+            PartCategories.Robotics.ToString(),
+            PartCategories.Coupling.ToString(),
+            PartCategories.Payload.ToString(),
+            PartCategories.Ground.ToString(),
+            PartCategories.Thermal.ToString(),
+            PartCategories.Electrical.ToString(),
+            PartCategories.Communication.ToString(),
+            PartCategories.Science.ToString(),
+            PartCategories.Cargo.ToString(),
+            PartCategories.Utility.ToString(),
+            PartCategories.none.ToString()
+        };
         #endregion
 
         #region Constructors
@@ -165,10 +185,12 @@ namespace Sandcastle.PrintShop
         public override void SetVisible(bool newValue)
         {
             base.SetVisible(newValue);
-            updateCategoryParts();
 
             if (newValue)
             {
+                updateVisibleCategories();
+                selectPopulatedCategory();
+                updateCategoryParts();
                 previewPartImage = iconSet["Blank"];
             }
         }
@@ -422,77 +444,8 @@ namespace Sandcastle.PrintShop
 
             categoryScrollPos = GUILayout.BeginScrollView(categoryScrollPos, categoryPanelWidth);
 
-            // Stock categories
-            string stockCategory = PartCategories.Pods.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.FuelTank.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Engine.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Control.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Structural.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Robotics.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Coupling.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Payload.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Ground.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Thermal.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Electrical.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Communication.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Science.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Cargo.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.Utility.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            stockCategory = PartCategories.none.ToString();
-            if (whitelistedCategories.Contains(stockCategory))
-                drawCategoryButton(stockCategory);
-
-            // CCK categories
-            string[] keys = cckTags.Keys.ToArray();
-            for (int index = 0; index < keys.Length; index++)
-            {
-                drawCategoryButton(keys[index]);
-            }
+            for (int index = 0; index < visibleCategories.Count; index++)
+                drawCategoryButton(visibleCategories[index]);
 
             GUILayout.EndScrollView();
 
@@ -537,6 +490,88 @@ namespace Sandcastle.PrintShop
         #endregion
 
         #region Helpers
+        /// <summary>
+        /// Builds the toolbar from categories that contain at least one part in the printer's filtered list.
+        /// </summary>
+        private void updateVisibleCategories()
+        {
+            visibleCategories.Clear();
+            if (partsList == null || partsList.Count <= 0)
+                return;
+
+            for (int categoryIndex = 0; categoryIndex < stockCategoryOrder.Length; categoryIndex++)
+            {
+                string category = stockCategoryOrder[categoryIndex];
+                if (whitelistedCategories != null && whitelistedCategories.Contains(category) &&
+                    hasPrintableStockCategory(category))
+                {
+                    visibleCategories.Add(category);
+                }
+            }
+
+            string[] cckCategories = cckTags.Keys.ToArray();
+            for (int categoryIndex = 0; categoryIndex < cckCategories.Length; categoryIndex++)
+            {
+                string category = cckCategories[categoryIndex];
+                if (!visibleCategories.Contains(category) && hasPrintableCCKCategory(category))
+                    visibleCategories.Add(category);
+            }
+        }
+
+        /// <summary>
+        /// Retains the current selection when populated, otherwise selects the first visible category.
+        /// </summary>
+        private void selectPopulatedCategory()
+        {
+            if (visibleCategories.Contains(currentCategory))
+                return;
+
+            currentCategory = visibleCategories.Count > 0 ? visibleCategories[0] : string.Empty;
+            selectedCategory = currentCategory;
+            categoryName = string.IsNullOrEmpty(currentCategory)
+                ? string.Empty
+                : getCategoryName(currentCategory);
+        }
+
+        /// <summary>
+        /// Determines whether the filtered printable list contains a stock part category.
+        /// </summary>
+        /// <param name="category">The stock category identifier.</param>
+        /// <returns>True when at least one printable part belongs to the category.</returns>
+        private bool hasPrintableStockCategory(string category)
+        {
+            for (int index = 0; index < partsList.Count; index++)
+            {
+                AvailablePart availablePart = partsList[index];
+                if (availablePart != null && availablePart.category.ToString() == category)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the filtered printable list contains a Community Category Kit tag.
+        /// </summary>
+        /// <param name="category">The Community Category Kit category identifier.</param>
+        /// <returns>True when at least one printable part carries the category tag.</returns>
+        private bool hasPrintableCCKCategory(string category)
+        {
+            string cckTag;
+            if (!cckTags.TryGetValue(category, out cckTag) || string.IsNullOrEmpty(cckTag))
+                return false;
+
+            for (int index = 0; index < partsList.Count; index++)
+            {
+                AvailablePart availablePart = partsList[index];
+                if (availablePart != null && !string.IsNullOrEmpty(availablePart.tags) &&
+                    availablePart.tags.IndexOf(cckTag, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private void updatePartPreview(int partIndex, int variantIndex = 0)
         {
             previewPart = filteredParts[partIndex];
@@ -669,6 +704,14 @@ namespace Sandcastle.PrintShop
         {
             // Filter parts for the current category.
             filteredParts = new List<AvailablePart>();
+            if (partsList == null || string.IsNullOrEmpty(currentCategory))
+            {
+                partImages = new Texture2D[0];
+                currentIndex = 0;
+                partsScrollPos = Vector2.zero;
+                return;
+            }
+
             int count = partsList.Count;
             List<Texture2D> thumbnails = new List<Texture2D>();
             AvailablePart availablePart;
@@ -685,7 +728,9 @@ namespace Sandcastle.PrintShop
                 title = partsList[index].title;
                 partCategory = partsList[index].category.ToString();
                 tags = partsList[index].tags;
-                if (partCategory == currentCategory || (tags.Contains(cckTag) && !string.IsNullOrEmpty(cckTag)))
+                bool hasCCKTag = !string.IsNullOrEmpty(cckTag) && !string.IsNullOrEmpty(tags) &&
+                    tags.IndexOf(cckTag, StringComparison.OrdinalIgnoreCase) >= 0;
+                if (partCategory == currentCategory || hasCCKTag)
                 {
                     availablePart = partsList[index];
                     filteredParts.Add(availablePart);

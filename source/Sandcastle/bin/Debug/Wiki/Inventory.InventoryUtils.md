@@ -217,3 +217,9 @@ Releases a printed part in orbit while preserving its position and synchronizing
 > **switchToVessel:** Whether to make the released part's vessel active.
 
 
+### normalizePersistentStringFields(Part)
+Replaces null persistent string fields with empty strings before KSP serializes a part prefab into an inventory snapshot. ConfigNode cannot store null strings, and part modules may legitimately leave an optional persistent string unset until it is first used.
+> #### Parameters
+> **partPrefab:** The part prefab that KSP is about to store in an inventory.
+
+
