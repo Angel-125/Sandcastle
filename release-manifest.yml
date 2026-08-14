@@ -1,0 +1,9 @@
+product_name: Sandcastle
+release_folder: ReleaseFolder
+game_data_path: GameData
+readme_path: GameData/WildBlueIndustries/Sandcastle/Readme.txt
+
+changes_start_marker: "---CHANGES---"
+changes_end_marker: "--END CHANGES--"
+
+release_name_pattern: "{product}_{version}_R1"

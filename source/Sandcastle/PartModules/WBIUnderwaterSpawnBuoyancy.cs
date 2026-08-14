@@ -42,7 +42,7 @@ namespace Sandcastle
     }
 
     /// <summary>
-    /// Applies Sandcastle's shared landed-underwater spawn policy to proto and live parts.
+    /// Applies Sandcastle's shared underwater spawn policy to proto and live parts.
     /// </summary>
     internal static class UnderwaterSpawnUtils
     {
@@ -148,7 +148,7 @@ namespace Sandcastle
         private static void LogAdjustment(Vessel actorVessel, string source)
         {
             Debug.Log("[Sandcastle] " + source +
-                " placed a part from landed underwater vessel " + actorVessel.vesselName +
+                " placed a part from an underwater vessel " + actorVessel.vesselName +
                 "; buoyancy set to zero.");
         }
     }

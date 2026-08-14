@@ -1,4 +1,5 @@
 using HarmonyLib;
+using KSP.Localization;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -931,11 +932,25 @@ namespace Sandcastle.PartModules
     }
 
     /// <summary>
-    /// Adds persistent zero buoyancy to loose parts placed by landed underwater EVA Construction actors.
+    /// Allows submerged EVA actors to place loose parts on the seabed and applies persistent zero buoyancy.
     /// </summary>
     [HarmonyPatch]
     internal static class EVAConstructionUnderwaterProtoVesselPatch
     {
+        private static readonly FieldInfo IsPlacementValidField =
+            AccessTools.Field(typeof(EVAConstructionModeEditor), "isPlacementValid");
+
+        /// <summary>
+        /// Remembers the live EVA vessel state while stock serializes a seabed placement as landed.
+        /// </summary>
+        private sealed class VesselSituationState
+        {
+            internal Vessel vessel;
+            internal Vessel.Situations situation;
+            internal bool landed;
+            internal bool splashed;
+        }
+
         /// <summary>
         /// Locates the stock method that builds the proto-vessel for a loose construction part.
         /// </summary>
@@ -948,12 +963,77 @@ namespace Sandcastle.PartModules
         }
 
         /// <summary>
+        /// Makes stock's landed-only serializer handle a valid seabed target selected by a splashed construction host.
+        /// </summary>
+        private static void Prefix(EVAConstructionModeEditor __instance, Vector3 partPosition,
+            Vessel vessel, Part part, out VesselSituationState __state)
+        {
+            __state = null;
+            if (!IsSplashedSeabedPlacement(__instance, partPosition, vessel, part))
+                return;
+
+            __state = new VesselSituationState
+            {
+                vessel = vessel,
+                situation = vessel.situation,
+                landed = vessel.Landed,
+                splashed = vessel.Splashed
+            };
+
+            // GetProtoVesselNode has no SPLASHED branch and otherwise passes a null Orbit to
+            // ProtoVessel.CreateVesselNode. Present a consistent landed state only for this call.
+            vessel.situation = Vessel.Situations.LANDED;
+            vessel.Landed = true;
+            vessel.Splashed = false;
+
+            Debug.Log("[Sandcastle] Treating splashed seabed placement as landed while creating its proto-vessel.");
+        }
+
+        /// <summary>
         /// Applies the underwater policy using the stock construction actor supplied to the spawn method.
         /// </summary>
         private static void Postfix(Vessel vessel, ConfigNode __result)
         {
             global::Sandcastle.UnderwaterSpawnUtils.ApplyToProtoVessel(
                 __result, vessel, "EVA Construction");
+        }
+
+        /// <summary>
+        /// Restores the construction host's live state after all proto-vessel postfixes, including on failure.
+        /// </summary>
+        private static Exception Finalizer(Exception __exception, VesselSituationState __state)
+        {
+            if (__state != null && __state.vessel != null)
+            {
+                __state.vessel.situation = __state.situation;
+                __state.vessel.Landed = __state.landed;
+                __state.vessel.Splashed = __state.splashed;
+            }
+
+            return __exception;
+        }
+
+        /// <summary>
+        /// Reports whether a splashed EVA or active manipulator is placing a part on terrain below an ocean surface.
+        /// </summary>
+        private static bool IsSplashedSeabedPlacement(EVAConstructionModeEditor editor,
+            Vector3 partPosition, Vessel vessel, Part part)
+        {
+            bool isActiveManipulator = EVAConstructionBridge.HasActiveHost &&
+                EVAConstructionBridge.ActiveHost.part.vessel == vessel;
+
+            if (editor == null || vessel == null || part == null ||
+                (!vessel.isEVA && !isActiveManipulator) ||
+                vessel.situation != Vessel.Situations.SPLASHED ||
+                vessel.mainBody == null || !vessel.mainBody.ocean ||
+                IsPlacementValidField == null ||
+                !(bool)IsPlacementValidField.GetValue(editor) ||
+                !EVAConstructionGroundPartDeploymentPatch.IsTerrainPlacement(editor, part))
+            {
+                return false;
+            }
+
+            return FlightGlobals.getAltitudeAtPos((Vector3d)partPosition, vessel.mainBody) < 0.0;
         }
     }
 
@@ -1058,7 +1138,7 @@ namespace Sandcastle.PartModules
         /// <summary>
         /// Recovers stock ground placement when its cursor ray misses but the fallback placement plane leaves the part on terrain.
         /// </summary>
-        private static bool IsTerrainPlacement(EVAConstructionModeEditor editor, Part part)
+        internal static bool IsTerrainPlacement(EVAConstructionModeEditor editor, Part part)
         {
             if ((bool)IsPlacementOnGroundField.GetValue(editor))
                 return true;
@@ -1261,6 +1341,65 @@ namespace Sandcastle.PartModules
             __result = Vector3.Distance(
                 EVAConstructionBridge.GetInventoryOrigin(),
                 inventoryPart.transform.position) <= EVAConstructionBridge.GetInventoryDistance();
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Replaces stock's generic deployed-part pickup capacity warning when packed volume is the constraint.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAGroundPartPickupVolumeMessagePatch
+    {
+        /// <summary>
+        /// Locates the protected stock capacity check used by ModuleGroundPart.RetrievePart.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(typeof(ModuleGroundPart), "CanBeStored");
+        }
+
+        /// <summary>
+        /// Reports the live, ModuleManager-adjusted EVA inventory volume limit and suppresses stock's vague warning.
+        /// </summary>
+        private static bool Prefix(ModuleGroundPart __instance, ref bool __result)
+        {
+            if (!HighLogic.LoadedSceneIsFlight ||
+                __instance == null ||
+                __instance.part == null ||
+                FlightGlobals.ActiveVessel == null ||
+                !FlightGlobals.ActiveVessel.isEVA)
+            {
+                return true;
+            }
+
+            ModuleInventoryPart inventory =
+                FlightGlobals.ActiveVessel.FindPartModuleImplementing<ModuleInventoryPart>();
+            ModuleCargoPart cargoPart = __instance.part.FindModuleImplementing<ModuleCargoPart>();
+            if (inventory == null || cargoPart == null || cargoPart.packedVolume < 0f)
+                return true;
+
+            // Use the same live fields and comparison as ModuleInventoryPart.HasCapacity. These values
+            // include all changes made to the EVA inventory and cargo part by ModuleManager patches.
+            if (inventory.volumeCapacity + cargoPart.packedVolume <= inventory.packedVolumeLimit)
+                return true;
+
+            string partTitle = __instance.part.partInfo != null
+                ? __instance.part.partInfo.title
+                : __instance.part.name;
+            ScreenMessages.PostScreenMessage(
+                Localizer.Format(
+                    "#LOC_SANDCASTLE_evaPickupVolumeExceeded",
+                    new string[]
+                    {
+                        partTitle,
+                        string.Format("{0:n1}", cargoPart.packedVolume),
+                        string.Format("{0:n1}", inventory.packedVolumeLimit)
+                    }),
+                5f,
+                ScreenMessageStyle.UPPER_CENTER);
+
+            __result = false;
             return false;
         }
     }

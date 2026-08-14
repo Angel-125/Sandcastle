@@ -558,7 +558,7 @@ namespace Sandcastle.PrintShop
             for (int index = 0; index < count; index++)
             {
                 partModule = part.Modules[index];
-                if (partModule.moduleName == "WBIPackingBox" || partModule.moduleName == "WBIMultipurposeHab" || partModule.moduleName == "WBIMultipurposeLab")
+                if (partModule.moduleName == "WBIPackingBox" || partModule.moduleName == "WBIMultipurposeHab" || partModule.moduleName == "WBIMultipurposeLab" || partModule.moduleName == "WBIManagedAnimation")
                 {
                     BaseField field = partModule.Fields["isDeployed"];
                     if (field != null)
@@ -569,6 +569,15 @@ namespace Sandcastle.PrintShop
                     }
 
                     field = partModule.Fields["partMass"];
+                    if (field != null)
+                    {
+                        float deployedMass = (float)field.GetValue(partModule);
+                        partMass += deployedMass;
+                        isUnpacked = true;
+                        break;
+
+                    }
+                    field = partModule.Fields["deployedMass"];
                     if (field != null)
                     {
                         float deployedMass = (float)field.GetValue(partModule);

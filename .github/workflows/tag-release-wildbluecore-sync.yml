@@ -1,0 +1,161 @@
+name: Update Release Build From WildBlueCore
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    env:
+      WBC_REPO: Angel-125/WildBlueCore
+      WBC_REF: master
+      RELEASE_BUILD_PRODUCT: Sandcastle
+
+    steps:
+      - name: Checkout RELEASE_BUILD_PRODUCT repo
+        uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: tagvars
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"      # v1.0.1
+          VERSION="${TAG#v}"           # 1.0.1
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch WildBlueCore ReleaseFolder/GameData/WildBlueIndustries/00WildBlueCore into RELEASE_BUILD_PRODUCT
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          WBC_DIR="_wbc"
+          rm -rf "$WBC_DIR"
+
+          # Clone WildBlueCore so we can copy recursively (includes subfolders)
+          git clone --depth 1 --branch "${WBC_REF}" "https://github.com/${WBC_REPO}.git" "$WBC_DIR"
+
+          WBC_SRC="${WBC_DIR}/ReleaseFolder/GameData/WildBlueIndustries/00WildBlueCore"
+          DST_BASE="ReleaseFolder/GameData/WildBlueIndustries"
+          DST="${DST_BASE}/00WildBlueCore"
+
+          if [ ! -d "$WBC_SRC" ]; then
+            echo "Could not find: $WBC_SRC" >&2
+            exit 1
+          fi
+
+          mkdir -p "$DST_BASE"
+
+          # Replace any existing 00WildBlueCore folder in RELEASE_BUILD_PRODUCT
+          rm -rf "$DST"
+
+          # Copy folder + all subfolders
+          cp -R "$WBC_SRC" "$DST_BASE"
+
+      - name: Zip ReleaseFolder
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -f "${RELEASE_BUILD_PRODUCT}.zip"
+
+          # Zip everything under ReleaseFolder/
+          cd ReleaseFolder
+          zip -r "../${RELEASE_BUILD_PRODUCT}.zip" .
+
+      - name: Compute next R number for this version
+        id: rcalc
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.tagvars.outputs.version }}
+          PRODUCT: ${{ env.RELEASE_BUILD_PRODUCT }}
+        run: |
+          set -euo pipefail
+
+          OWNER_REPO="${GITHUB_REPOSITORY}"
+          PRODUCT="${PRODUCT}"
+          VERSION="${VERSION}"
+
+          # Fail fast if the API request fails
+          releases_json="$(curl -sS --fail \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${OWNER_REPO}/releases?per_page=100")"
+
+          # Requires jq
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "jq not available on runner." >&2
+            exit 1
+          fi
+
+          # Match asset names like RELEASE_BUILD_PRODUCT_<version>_R<number>.zip
+          max_r=0
+          while IFS= read -r name; do
+            if [[ "$name" =~ ^${PRODUCT}_${VERSION}_R([0-9]+)\.zip$ ]]; then
+              r="${BASH_REMATCH[1]}"
+              if (( r > max_r )); then
+                max_r="$r"
+              fi
+            fi
+          done < <(echo "$releases_json" | jq -r '.[] | .assets[]? | .name')
+
+          next_r=$((max_r + 1))
+          final_asset="${PRODUCT}_${VERSION}_R${next_r}.zip"
+
+          echo "max_r=$max_r" >> "$GITHUB_OUTPUT"
+          echo "next_r=$next_r" >> "$GITHUB_OUTPUT"
+          echo "final_asset=$final_asset" >> "$GITHUB_OUTPUT"
+
+      - name: Rename zip to RELEASE_BUILD_PRODUCT_<version>_R# .zip
+        id: renamezip
+        shell: bash
+        run: |
+          set -euo pipefail
+          mv "${RELEASE_BUILD_PRODUCT}.zip" "${{ steps.rcalc.outputs.final_asset }}"
+          echo "asset=${{ steps.rcalc.outputs.final_asset }}" >> "$GITHUB_OUTPUT"
+
+      - name: Extract release notes from Readme.txt (between markers)
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Uses the RELEASE_BUILD_PRODUCT project's Readme.txt
+          README="ReleaseFolder/GameData/WildBlueIndustries/${RELEASE_BUILD_PRODUCT}/Readme.txt"
+          START="---CHANGES---"
+          END="--END CHANGES--"
+
+          if [ ! -f "$README" ]; then
+            echo "Missing README: $README" >&2
+            exit 1
+          fi
+
+          NOTES="$(awk -v s="$START" -v e="$END" '
+            BEGIN {in_changes=0}
+            $0 ~ "^" s "[[:space:]]*$" {in_changes=1; next}
+            $0 ~ "^" e "[[:space:]]*$" {in_changes=0; next}
+            in_changes==1 {print}
+          ' "$README")"
+
+          # Remove leading/trailing blank lines
+          NOTES="$(printf "%s\n" "$NOTES" | sed -e '/^[[:space:]]*$/d')"
+
+          {
+            echo "notes<<'EOF'"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release and upload zip
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tagvars.outputs.tag }}          # e.g., v1.0.1
+          name: ${{ steps.tagvars.outputs.version }}         # e.g., 1.0.1
+          body: ${{ steps.notes.outputs.notes }}
+          files: ${{ steps.renamezip.outputs.asset }}
+          draft: false
+          prerelease: false

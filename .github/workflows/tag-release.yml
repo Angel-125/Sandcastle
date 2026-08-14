@@ -1,0 +1,140 @@
+name: Tag Release (Manifest-Driven)
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read manifest + derive version
+        id: cfg
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG="${GITHUB_REF_NAME}"      # e.g., v1.0.1
+          VERSION="${TAG#v}"          # e.g., 1.0.1
+
+          MANIFEST="release-manifest.yml"
+          if [ ! -f "$MANIFEST" ]; then
+            echo "Missing $MANIFEST" >&2
+            exit 1
+          fi
+
+          get_yaml() {
+            local key="$1"
+            awk -F': *' -v k="$key" '
+              $1 == k { sub(/\r$/, "", $2); print $2 }
+            ' "$MANIFEST" | head -n1
+          }
+
+          PRODUCT_NAME="$(get_yaml product_name)"
+          RELEASE_FOLDER="$(get_yaml release_folder)"
+          GAME_DATA_PATH="$(get_yaml game_data_path)"
+          README_REL="$(get_yaml readme_path)"
+          START_MARKER="$(get_yaml changes_start_marker)"
+          END_MARKER="$(get_yaml changes_end_marker)"
+          RELEASE_NAME_PATTERN="$(get_yaml release_name_pattern)"
+
+          if [ -z "$PRODUCT_NAME" ] || [ -z "$RELEASE_FOLDER" ] || [ -z "$GAME_DATA_PATH" ] || [ -z "$README_REL" ]; then
+            echo "Manifest missing required fields" >&2
+            exit 1
+          fi
+
+          if [ -z "$START_MARKER" ] || [ -z "$END_MARKER" ] || [ -z "$RELEASE_NAME_PATTERN" ]; then
+            echo "Manifest missing marker/pattern fields" >&2
+            exit 1
+          fi
+
+          README_PATH="${RELEASE_FOLDER}/${README_REL}"
+
+          RELEASE_ASSET_NAME="${RELEASE_NAME_PATTERN}"
+          RELEASE_ASSET_NAME="${RELEASE_ASSET_NAME//\{product\}/$PRODUCT_NAME}"
+          RELEASE_ASSET_NAME="${RELEASE_ASSET_NAME//\{version\}/$VERSION}"
+          RELEASE_ASSET_NAME="${RELEASE_ASSET_NAME}.zip"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "product=$PRODUCT_NAME" >> "$GITHUB_OUTPUT"
+          echo "release_folder=$RELEASE_FOLDER" >> "$GITHUB_OUTPUT"
+          echo "game_data_path=$GAME_DATA_PATH" >> "$GITHUB_OUTPUT"
+          echo "readme_path=$README_PATH" >> "$GITHUB_OUTPUT"
+          echo "start_marker=$START_MARKER" >> "$GITHUB_OUTPUT"
+          echo "end_marker=$END_MARKER" >> "$GITHUB_OUTPUT"
+          echo "asset_name=$RELEASE_ASSET_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Zip GameData folder into <product_name>.zip
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RELEASE_FOLDER="${{ steps.cfg.outputs.release_folder }}"
+          GAME_DATA_PATH="${{ steps.cfg.outputs.game_data_path }}"
+          PRODUCT_NAME="${{ steps.cfg.outputs.product }}"
+
+          cd "$RELEASE_FOLDER"
+
+          rm -f "${PRODUCT_NAME}.zip"
+          zip -r "${PRODUCT_NAME}.zip" "${GAME_DATA_PATH}"
+
+      - name: Extract release notes from Readme.txt (between markers)
+        id: notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          README="${{ steps.cfg.outputs.readme_path }}"
+          START="${{ steps.cfg.outputs.start_marker }}"
+          END="${{ steps.cfg.outputs.end_marker }}"
+
+          NOTES="$(awk -v s="$START" -v e="$END" '
+            BEGIN {in_changes=0}
+
+            # Line matches start marker (allow trailing spaces)
+            $0 ~ "^" s "[[:space:]]*$" {in_changes=1; next}
+
+            # Line matches end marker (allow trailing spaces)
+            $0 ~ "^" e "[[:space:]]*$" {in_changes=0; next}
+
+            # Print while inside the changes section
+            in_changes==1 {print}
+          ' "$README")"
+
+          # Remove leading/trailing blank lines
+          NOTES="$(printf "%s\n" "$NOTES" | sed -e '/^[[:space:]]*$/d')"
+
+          {
+            echo "notes<<'EOF'"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Rename zip to <product>_<version>_R1.zip
+        id: renamezip
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RELEASE_FOLDER="${{ steps.cfg.outputs.release_folder }}"
+          PRODUCT_NAME="${{ steps.cfg.outputs.product }}"
+          FINAL_ASSET="${{ steps.cfg.outputs.asset_name }}"
+
+          mv "${RELEASE_FOLDER}/${PRODUCT_NAME}.zip" "${FINAL_ASSET}"
+          echo "asset=$FINAL_ASSET" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release and upload zip
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.cfg.outputs.tag }}
+          name: ${{ steps.cfg.outputs.version }}
+          body: ${{ steps.notes.outputs.notes }}
+          files: ${{ steps.renamezip.outputs.asset }}
+          draft: false
+          prerelease: false

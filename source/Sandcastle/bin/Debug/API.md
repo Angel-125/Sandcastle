@@ -178,7 +178,7 @@ Reports whether a floating-point component is neither NaN nor infinite.
 
 # PartModules.EVAConstructionUnderwaterProtoVesselPatch
             
-Adds persistent zero buoyancy to loose parts placed by landed underwater EVA Construction actors.
+Allows submerged EVA actors to place loose parts on the seabed and applies persistent zero buoyancy.
         
 ## Methods
 
@@ -186,8 +186,22 @@ Adds persistent zero buoyancy to loose parts placed by landed underwater EVA Con
 ### TargetMethod
 Locates the stock method that builds the proto-vessel for a loose construction part.
 
+### Prefix(EVAConstructionModeEditor,UnityEngine.Vector3,Vessel,Part,Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch.VesselSituationState@)
+Makes stock's landed-only serializer handle a valid seabed target selected by a splashed construction host.
+
 ### Postfix(Vessel,ConfigNode)
 Applies the underwater policy using the stock construction actor supplied to the spawn method.
+
+### Finalizer(System.Exception,Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch.VesselSituationState)
+Restores the construction host's live state after all proto-vessel postfixes, including on failure.
+
+### IsSplashedSeabedPlacement(EVAConstructionModeEditor,UnityEngine.Vector3,Vessel,Part)
+Reports whether a splashed EVA or active manipulator is placing a part on terrain below an ocean surface.
+
+# PartModules.EVAConstructionUnderwaterProtoVesselPatch.VesselSituationState
+            
+Remembers the live EVA vessel state while stock serializes a seabed placement as landed.
+        
 
 # PartModules.EVAConstructionUnderwaterAttachedPartPatch
             
@@ -253,6 +267,19 @@ Lets stock inventory slot interactions use the same range calculation as the hos
 
 ### Prefix(ModuleInventoryPart,System.Boolean@)
 Evaluates inventory access from the manipulator instead of stock's absent EVA Kerbal.
+
+# PartModules.EVAGroundPartPickupVolumeMessagePatch
+            
+Replaces stock's generic deployed-part pickup capacity warning when packed volume is the constraint.
+        
+## Methods
+
+
+### TargetMethod
+Locates the protected stock capacity check used by ModuleGroundPart.RetrievePart.
+
+### Prefix(ModuleGroundPart,System.Boolean@)
+Reports the live, ModuleManager-adjusted EVA inventory volume limit and suppresses stock's vague warning.
 
 # PartModules.EVAConstructionGroundPartPickupPatch
             
@@ -597,6 +624,211 @@ Drops the desired part if it is in the inventory.
 > **availablePart:** An AvailablePart containing the item to drop.
 
 
+# WBIGroundPlatform
+            
+Levels a deck above a ground-attached pivot and projects visual pylons into the terrain.
+        
+## Fields
+
+### pivotTransformName
+Transform used as the invisible mast pivot. If empty, the part transform is used.
+### deckTransformName
+Transform that represents the level platform deck.
+### mastHeight
+Height above the pivot point where the deck is placed after leveling.
+### minMastHeight
+Minimum in-flight mast height allowed by the PAW slider.
+### maxMastHeight
+Maximum in-flight mast height allowed by the PAW slider.
+### mastHeightStep
+Increment used by the in-flight mast height PAW slider.
+### pylonShaftTransformNames
+Comma-separated list of pylon shaft transforms. Each shaft raycasts along its local +Z axis.
+### pylonFootTransformNames
+Comma-separated list of pylon foot transforms, matching pylonShaftTransformNames by index.
+### pylonAxis
+Local shaft axis used for pylon length and terrain raycasts. Defaults to +Z.
+### footUpAxis
+Local foot axis that should point away from the terrain surface. Defaults to +Y.
+### pylonMaxLength
+Maximum raycast distance used to find terrain beneath each pylon.
+### pylonEmbedDepth
+Extra distance pushed below the terrain hit point so feet look embedded.
+### pylonModelLength
+Original model length represented by a shaft scale of 1.
+### attachNodeNames
+Comma-separated attach node names that should be synced after deck alignment.
+### attachNodeMarkerNames
+Comma-separated marker transform names that drive attachNodeNames by index.
+### showRealignEvent
+Enables a PAW event that reruns alignment when the configured attach nodes are empty.
+### debugLog
+Enables concise diagnostics for platform alignment.
+### platformAligned
+Indicates that the platform has solved and saved its deck and pylon transforms.
+### savedDeckLocalPosition
+Saved local deck position.
+### savedDeckLocalRotation
+Saved local deck rotation.
+### savedPylonLocalPositions
+Saved local pylon shaft positions.
+### savedPylonLocalRotations
+Saved local pylon shaft rotations.
+### savedPylonLocalScales
+Saved local pylon shaft scales.
+### savedFootLocalPositions
+Saved local pylon foot positions.
+### savedFootLocalRotations
+Saved local pylon foot rotations.
+## Methods
+
+
+### OnStart(PartModule.StartState)
+Resolves configured transforms and restores saved geometry when the vessel loads.
+
+### OnDestroy
+Removes PAW field callbacks when KSP destroys the part module.
+
+### OnUpdate
+Waits for stock ModuleGroundPart to finish static attachment before doing first-time alignment.
+
+### AlignPlatform
+Manually reruns deck and pylon alignment when no configured attach nodes are occupied.
+
+### AlignAfterGroundAttach
+Delays alignment until the stock ground part coroutine has had time to freeze the vessel.
+
+### RestoreSavedPlatform
+Restores saved deck, pylon, and attach-node geometry after KSP rebuilds the loaded vessel.
+
+### ResolveConfiguration
+Resolves all named model transforms and comma-separated node identifiers.
+
+### ConfigureMastHeightSlider
+Configures the PAW slider from part config and subscribes to height changes.
+
+### UnsubscribeMastHeightField
+Removes the mast height callback from the PAW field.
+
+### UpdateMastHeightFieldVisibility
+Shows the mast height slider only when the platform can safely move its attach nodes.
+
+### OnMastHeightModified(System.Object)
+Re-solves the deck, pylons, and attach nodes when the PAW slider changes mast height.
+
+### TryAlignPlatform
+Levels the deck, projects pylons along each shaft's local pylon axis, and updates free attach nodes.
+
+### ProjectPylon(System.Int32,UnityEngine.Vector3)
+Raycasts one pylon along its shaft axis, extends the shaft, and aligns its foot to terrain.
+
+### SyncAttachNodesFromMarkers(System.Boolean)
+Updates configured AttachNodes from marker transforms, optionally requiring the nodes to be empty.
+
+### AreAttachNodesFree
+Reports whether every configured AttachNode is empty and safe to move.
+
+### SavePlatformState
+Saves local transform state so the solved platform geometry survives reload.
+
+### IsStaticGroundPart
+Reports whether stock has completed the ModuleGroundPart static-attach sequence.
+
+### ResolveTransforms(System.String)
+Finds every transform listed in a comma-separated field.
+
+### SplitNames(System.String)
+Splits comma-separated config names while trimming whitespace and empty entries.
+
+### ScaleAlongDominantAxis(UnityEngine.Vector3,UnityEngine.Vector3,System.Single)
+Scales the component that most closely matches the configured pylon axis.
+
+### GetLocalScales(UnityEngine.Transform[])
+Captures model-authored local scales so pylon extension can be applied relatively.
+
+### ApplySavedTransform(UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion)
+Applies saved local position and rotation to one transform.
+
+### ApplySavedTransforms(UnityEngine.Transform[],System.String,System.String,System.String)
+Applies saved local transform lists to a matching transform array.
+
+### WriteLocalPositions(UnityEngine.Transform[])
+Serializes local positions for a transform list.
+
+### WriteLocalRotations(UnityEngine.Transform[])
+Serializes local rotations for a transform list.
+
+### WriteLocalScales(UnityEngine.Transform[])
+Serializes local scales for a transform list.
+
+### ReadVectorList(System.String)
+Parses a semicolon-separated Vector3 list.
+
+### ReadQuaternionList(System.String)
+Parses a semicolon-separated Quaternion list.
+
+### LogFailure(System.String)
+Logs an alignment failure when diagnostics are enabled.
+
+# WBIGroundPartPositionStabilizer
+            
+Persists the final settled pose of a stock ModuleGroundPart and restores it after KSP reloads the vessel.
+        
+## Fields
+
+### hasStableGroundPose
+Indicates that this part has recorded the final static-attached ground pose.
+### stabilizationEnabled
+Indicates that this ground part was deployed while the stabilizer was installed.
+### stableLatitude
+Latitude of the vessel origin after the ground part has settled.
+### stableLongitude
+Longitude of the vessel origin after the ground part has settled.
+### stableAltitude
+Absolute altitude of the vessel origin after the ground part has settled.
+### stableTerrainOffset
+Height of the vessel origin above the PQS terrain at the saved latitude and longitude.
+### debugLog
+Enables concise diagnostics for saved and restored ground poses.
+## Methods
+
+
+### OnStart(PartModule.StartState)
+Locates the stock ground part module and schedules a post-load restore when a saved pose is available.
+
+### OnUpdate
+Watches newly deployed ground parts until stock has finished static-attaching them, then records their pose.
+
+### StartPoseRestore
+Starts the delayed restore coroutine once per vessel load.
+
+### RestoreSavedPose
+Waits for stock ground positioning to complete and then restores the saved terrain-relative position.
+
+### CaptureSettledPose
+Lets stock complete its deployment coroutine, then captures the settled position for future reloads.
+
+### CaptureCurrentPose
+Captures the current vessel origin as both an absolute altitude and a terrain-relative offset.
+
+### GetSavedWorldPosition(CelestialBody)
+Rebuilds the saved world position from the current PQS surface plus the saved terrain offset.
+
+### GetSurfaceAltitude(CelestialBody,System.Double,System.Double)
+Gets the current PQS terrain altitude at the supplied latitude and longitude.
+
+### CanUseStablePose
+Reports whether the saved pose has enough data to restore a landed ground part.
+
+### EnableStabilizer(System.String)
+Enables stabilization only after this module observes a fresh ModuleGroundPart deployment.
+
+### IsBeingDeployed
+Reports whether stock ModuleGroundPart is currently performing its initial deployment.
+
+### IsStaticGroundPart
+Reports whether stock has completed the ModuleGroundPart deployment/static-attach sequence.
+
 # WBIUnderwaterSpawnBuoyancy
             
 Persists a zero-buoyancy adjustment made when a part is placed by underwater construction.
@@ -619,7 +851,7 @@ Sets the owning part's stock buoyancy multiplier to zero when the part is availa
 
 # UnderwaterSpawnUtils
             
-Applies Sandcastle's shared landed-underwater spawn policy to proto and live parts.
+Applies Sandcastle's shared underwater spawn policy to proto and live parts.
         
 ## Methods
 
