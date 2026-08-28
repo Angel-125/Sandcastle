@@ -55,6 +55,32 @@ namespace Sandcastle.PartModules
         }
 
         /// <summary>
+        /// Reports whether a candidate part is the part currently hosting vessel-mounted EVA Construction.
+        /// </summary>
+        /// <param name="candidatePart">The part being considered by stock construction code.</param>
+        /// <returns>True when the candidate is the active construction manipulator part.</returns>
+        internal static bool IsActiveHostPart(Part candidatePart)
+        {
+            return HasActiveHost &&
+                   candidatePart != null &&
+                   ActiveHost.part != null &&
+                   candidatePart.persistentId == ActiveHost.part.persistentId;
+        }
+
+        /// <summary>
+        /// Clears construction highlighting on a part that stock is not allowed to manipulate.
+        /// </summary>
+        /// <param name="candidatePart">The part whose construction highlight should be cleared.</param>
+        internal static void ClearConstructionHighlight(Part candidatePart)
+        {
+            if (candidatePart == null)
+                return;
+
+            candidatePart.SetHighlightType(Part.HighlightType.OnMouseOver);
+            candidatePart.SetHighlight(false, true);
+        }
+
+        /// <summary>
         /// Reports whether the active construction path has opted into complete stack-node alignment.
         /// </summary>
         internal static bool IsStackNodeAlignmentEnabled()
@@ -1226,6 +1252,69 @@ namespace Sandcastle.PartModules
             }
 
             return patchedInstructions;
+        }
+    }
+
+    /// <summary>
+    /// Prevents the vessel-mounted construction host from highlighting itself as a detachable cargo part.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAConstructionHostCargoHighlightBlockPatch
+    {
+        /// <summary>
+        /// Locates the private stock highlight update used by ModuleCargoPart while construction is open.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(typeof(ModuleCargoPart), "OnUpdateHighlight");
+        }
+
+        /// <summary>
+        /// Suppresses stock construction highlighting for the active manipulator part.
+        /// </summary>
+        /// <param name="__instance">The cargo module being updated.</param>
+        /// <returns>False when stock highlighting should be skipped.</returns>
+        private static bool Prefix(ModuleCargoPart __instance)
+        {
+            if (__instance == null || !EVAConstructionBridge.IsActiveHostPart(__instance.part))
+                return true;
+
+            EVAConstructionBridge.ClearConstructionHighlight(__instance.part);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Prevents the stock editor from selecting the part that is hosting vessel-mounted EVA Construction.
+    /// </summary>
+    [HarmonyPatch]
+    internal static class EVAConstructionHostPartSelectionBlockPatch
+    {
+        /// <summary>
+        /// Locates the private stock editability gate used before a hovered cargo part becomes selected.
+        /// </summary>
+        private static MethodBase TargetMethod()
+        {
+            return AccessTools.Method(
+                typeof(EVAConstructionModeEditor),
+                "CanPartBeEdited",
+                new Type[] { typeof(Part), typeof(bool) });
+        }
+
+        /// <summary>
+        /// Rejects attempts to edit the active construction host part.
+        /// </summary>
+        /// <param name="part">The candidate part.</param>
+        /// <param name="__result">The editability result returned to stock.</param>
+        /// <returns>False when the stock editability check should be skipped.</returns>
+        private static bool Prefix(Part part, ref bool __result)
+        {
+            if (!EVAConstructionBridge.IsActiveHostPart(part))
+                return true;
+
+            EVAConstructionBridge.ClearConstructionHighlight(part);
+            __result = false;
+            return false;
         }
     }
 

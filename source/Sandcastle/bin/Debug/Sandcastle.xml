@@ -24,6 +24,19 @@
             Shared state and stock-call adapters for vessel-hosted EVA Construction.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.IsActiveHostPart(Part)">
+            <summary>
+            Reports whether a candidate part is the part currently hosting vessel-mounted EVA Construction.
+            </summary>
+            <param name="candidatePart">The part being considered by stock construction code.</param>
+            <returns>True when the candidate is the active construction manipulator part.</returns>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionBridge.ClearConstructionHighlight(Part)">
+            <summary>
+            Clears construction highlighting on a part that stock is not allowed to manipulate.
+            </summary>
+            <param name="candidatePart">The part whose construction highlight should be cleared.</param>
+        </member>
         <member name="M:Sandcastle.PartModules.EVAConstructionBridge.IsStackNodeAlignmentEnabled">
             <summary>
             Reports whether the active construction path has opted into complete stack-node alignment.
@@ -378,6 +391,41 @@
             <summary>
             Replaces the active-vessel origin and Kerbal range while leaving ordinary EVA behavior unchanged.
             </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionHostCargoHighlightBlockPatch">
+            <summary>
+            Prevents the vessel-mounted construction host from highlighting itself as a detachable cargo part.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHostCargoHighlightBlockPatch.TargetMethod">
+            <summary>
+            Locates the private stock highlight update used by ModuleCargoPart while construction is open.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHostCargoHighlightBlockPatch.Prefix(ModuleCargoPart)">
+            <summary>
+            Suppresses stock construction highlighting for the active manipulator part.
+            </summary>
+            <param name="__instance">The cargo module being updated.</param>
+            <returns>False when stock highlighting should be skipped.</returns>
+        </member>
+        <member name="T:Sandcastle.PartModules.EVAConstructionHostPartSelectionBlockPatch">
+            <summary>
+            Prevents the stock editor from selecting the part that is hosting vessel-mounted EVA Construction.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHostPartSelectionBlockPatch.TargetMethod">
+            <summary>
+            Locates the private stock editability gate used before a hovered cargo part becomes selected.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionHostPartSelectionBlockPatch.Prefix(Part,System.Boolean@)">
+            <summary>
+            Rejects attempts to edit the active construction host part.
+            </summary>
+            <param name="part">The candidate part.</param>
+            <param name="__result">The editability result returned to stock.</param>
+            <returns>False when the stock editability check should be skipped.</returns>
         </member>
         <member name="T:Sandcastle.PartModules.EVAConstructionInventoryDisplayPatch">
             <summary>
@@ -805,281 +853,6 @@
             Drops the desired part if it is in the inventory.
             </summary>
             <param name="availablePart">An AvailablePart containing the item to drop.</param>
-        </member>
-        <member name="T:Sandcastle.WBIGroundPlatform">
-            <summary>
-            Levels a deck above a ground-attached pivot and projects visual pylons into the terrain.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.pivotTransformName">
-            <summary>
-            Transform used as the invisible mast pivot. If empty, the part transform is used.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.deckTransformName">
-            <summary>
-            Transform that represents the level platform deck.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.mastHeight">
-            <summary>
-            Height above the pivot point where the deck is placed after leveling.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.minMastHeight">
-            <summary>
-            Minimum in-flight mast height allowed by the PAW slider.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.maxMastHeight">
-            <summary>
-            Maximum in-flight mast height allowed by the PAW slider.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.mastHeightStep">
-            <summary>
-            Increment used by the in-flight mast height PAW slider.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.pylonShaftTransformNames">
-            <summary>
-            Comma-separated list of pylon shaft transforms. Each shaft raycasts along its local +Z axis.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.pylonFootTransformNames">
-            <summary>
-            Comma-separated list of pylon foot transforms, matching pylonShaftTransformNames by index.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.pylonAxis">
-            <summary>
-            Local shaft axis used for pylon length and terrain raycasts. Defaults to +Z.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.footUpAxis">
-            <summary>
-            Local foot axis that should point away from the terrain surface. Defaults to +Y.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.pylonMaxLength">
-            <summary>
-            Maximum raycast distance used to find terrain beneath each pylon.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.pylonEmbedDepth">
-            <summary>
-            Extra distance pushed below the terrain hit point so feet look embedded.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.pylonModelLength">
-            <summary>
-            Original model length represented by a shaft scale of 1.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.attachNodeNames">
-            <summary>
-            Comma-separated attach node names that should be synced after deck alignment.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.attachNodeMarkerNames">
-            <summary>
-            Comma-separated marker transform names that drive attachNodeNames by index.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.showRealignEvent">
-            <summary>
-            Enables a PAW event that reruns alignment when the configured attach nodes are empty.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.debugLog">
-            <summary>
-            Enables concise diagnostics for platform alignment.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.platformAligned">
-            <summary>
-            Indicates that the platform has solved and saved its deck and pylon transforms.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.savedDeckLocalPosition">
-            <summary>
-            Saved local deck position.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.savedDeckLocalRotation">
-            <summary>
-            Saved local deck rotation.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.savedPylonLocalPositions">
-            <summary>
-            Saved local pylon shaft positions.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.savedPylonLocalRotations">
-            <summary>
-            Saved local pylon shaft rotations.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.savedPylonLocalScales">
-            <summary>
-            Saved local pylon shaft scales.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.savedFootLocalPositions">
-            <summary>
-            Saved local pylon foot positions.
-            </summary>
-        </member>
-        <member name="F:Sandcastle.WBIGroundPlatform.savedFootLocalRotations">
-            <summary>
-            Saved local pylon foot rotations.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.OnStart(PartModule.StartState)">
-            <summary>
-            Resolves configured transforms and restores saved geometry when the vessel loads.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.OnDestroy">
-            <summary>
-            Removes PAW field callbacks when KSP destroys the part module.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.OnUpdate">
-            <summary>
-            Waits for stock ModuleGroundPart to finish static attachment before doing first-time alignment.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.AlignPlatform">
-            <summary>
-            Manually reruns deck and pylon alignment when no configured attach nodes are occupied.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.AlignAfterGroundAttach">
-            <summary>
-            Delays alignment until the stock ground part coroutine has had time to freeze the vessel.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.RestoreSavedPlatform">
-            <summary>
-            Restores saved deck, pylon, and attach-node geometry after KSP rebuilds the loaded vessel.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ResolveConfiguration">
-            <summary>
-            Resolves all named model transforms and comma-separated node identifiers.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ConfigureMastHeightSlider">
-            <summary>
-            Configures the PAW slider from part config and subscribes to height changes.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.UnsubscribeMastHeightField">
-            <summary>
-            Removes the mast height callback from the PAW field.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.UpdateMastHeightFieldVisibility">
-            <summary>
-            Shows the mast height slider only when the platform can safely move its attach nodes.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.OnMastHeightModified(System.Object)">
-            <summary>
-            Re-solves the deck, pylons, and attach nodes when the PAW slider changes mast height.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.TryAlignPlatform">
-            <summary>
-            Levels the deck, projects pylons along each shaft's local pylon axis, and updates free attach nodes.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ProjectPylon(System.Int32,UnityEngine.Vector3)">
-            <summary>
-            Raycasts one pylon along its shaft axis, extends the shaft, and aligns its foot to terrain.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.SyncAttachNodesFromMarkers(System.Boolean)">
-            <summary>
-            Updates configured AttachNodes from marker transforms, optionally requiring the nodes to be empty.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.AreAttachNodesFree">
-            <summary>
-            Reports whether every configured AttachNode is empty and safe to move.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.SavePlatformState">
-            <summary>
-            Saves local transform state so the solved platform geometry survives reload.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.IsStaticGroundPart">
-            <summary>
-            Reports whether stock has completed the ModuleGroundPart static-attach sequence.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ResolveTransforms(System.String)">
-            <summary>
-            Finds every transform listed in a comma-separated field.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.SplitNames(System.String)">
-            <summary>
-            Splits comma-separated config names while trimming whitespace and empty entries.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ScaleAlongDominantAxis(UnityEngine.Vector3,UnityEngine.Vector3,System.Single)">
-            <summary>
-            Scales the component that most closely matches the configured pylon axis.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.GetLocalScales(UnityEngine.Transform[])">
-            <summary>
-            Captures model-authored local scales so pylon extension can be applied relatively.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ApplySavedTransform(UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion)">
-            <summary>
-            Applies saved local position and rotation to one transform.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ApplySavedTransforms(UnityEngine.Transform[],System.String,System.String,System.String)">
-            <summary>
-            Applies saved local transform lists to a matching transform array.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.WriteLocalPositions(UnityEngine.Transform[])">
-            <summary>
-            Serializes local positions for a transform list.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.WriteLocalRotations(UnityEngine.Transform[])">
-            <summary>
-            Serializes local rotations for a transform list.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.WriteLocalScales(UnityEngine.Transform[])">
-            <summary>
-            Serializes local scales for a transform list.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ReadVectorList(System.String)">
-            <summary>
-            Parses a semicolon-separated Vector3 list.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.ReadQuaternionList(System.String)">
-            <summary>
-            Parses a semicolon-separated Quaternion list.
-            </summary>
-        </member>
-        <member name="M:Sandcastle.WBIGroundPlatform.LogFailure(System.String)">
-            <summary>
-            Logs an alignment failure when diagnostics are enabled.
-            </summary>
         </member>
         <member name="T:Sandcastle.WBIGroundPartPositionStabilizer">
             <summary>
@@ -1997,6 +1770,30 @@
             <summary>
             Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
             </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIPrintShop.updateUIStatus(System.String)">
+            <summary>
+            Updates the print-job status shown in the print-shop UI when the UI exists.
+            Print jobs can run during catch-up before the window is opened, so this must
+            remain safe when the printer is operating headlessly.
+            </summary>
+            <param name="statusUpdate">The new localized or formatted status.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIPrintShop.updateUIStatus(System.Boolean)">
+            <summary>
+            Updates the running state shown in the print-shop UI when the UI exists.
+            Print jobs can run during catch-up before the window is opened, so this must
+            remain safe when the printer is operating headlessly.
+            </summary>
+            <param name="isPrinting">Whether the current queue is printing.</param>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIPrintShop.spaceRequirementsMet(Sandcastle.PrintShop.BuildItem)">
+            <summary>
+            Verifies that the vessel has room to store the completed cargo part unless
+            this printer is configured to spawn completed parts directly into the world.
+            </summary>
+            <param name="buildItem">The print job whose output needs inventory space.</param>
+            <returns>True when the completed part can be handled by this printer.</returns>
         </member>
         <member name="T:Sandcastle.PrintShop.WBIModuleEVAPrintShop">
             <summary>

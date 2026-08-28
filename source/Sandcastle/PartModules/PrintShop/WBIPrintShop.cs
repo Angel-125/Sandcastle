@@ -136,7 +136,7 @@ namespace Sandcastle.PrintShop
         public override void OnInactive()
         {
             base.OnInactive();
-            if (shopUI.IsVisible())
+            if (shopUI != null && shopUI.IsVisible())
                 shopUI.SetVisible(false);
         }
 
@@ -144,7 +144,7 @@ namespace Sandcastle.PrintShop
         {
             base.OnDestroy();
 
-            if (shopUI.IsVisible())
+            if (shopUI != null && shopUI.IsVisible())
                 shopUI.SetVisible(false);
         }
 
@@ -152,7 +152,7 @@ namespace Sandcastle.PrintShop
         {
             base.onVesselChange(newVessel);
 
-            if (shopUI.IsVisible())
+            if (shopUI != null && shopUI.IsVisible())
                 shopUI.SetVisible(false);
         }
 
@@ -187,7 +187,8 @@ namespace Sandcastle.PrintShop
             base.OnLoad(node);
 
             // KSP can replace the public queue during module load after OnAwake.
-            shopUI.printQueue = printQueue;
+            if (shopUI != null)
+                shopUI.printQueue = printQueue;
 
             if (node.HasNode("DOCKED_PART_INFO"))
             {
@@ -247,8 +248,9 @@ namespace Sandcastle.PrintShop
                     TimeWarp.SetRate(0, true);
 
                 // Update the GUI
-                shopUI.isPrinting = false;
-                shopUI.showPartSpawnButton = true;
+                updateUIStatus(false);
+                if (shopUI != null)
+                    shopUI.showPartSpawnButton = true;
 
                 // Record the part to spawn
                 buildItemToSpawn = buildItem;
@@ -257,29 +259,63 @@ namespace Sandcastle.PrintShop
             {
                 // Add the item to an inventory
                 Part inventoryPart = InventoryUtils.AddItem(part.vessel, buildItem.availablePart, buildItem.variantIndex, part.FindModuleImplementing<ModuleInventoryPart>(), buildItem.removeResources);
-                ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_storedPart", new string[2] { buildItem.availablePart.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
-                inventoryPart.Highlight(Color.cyan);
-                unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
+                if (inventoryPart != null)
+                {
+                    ScreenMessages.PostScreenMessage(Localizer.Format("#LOC_SANDCASTLE_storedPart", new string[2] { buildItem.availablePart.title, inventoryPart.partInfo.title }), kMsgDuration, ScreenMessageStyle.UPPER_LEFT);
+                    inventoryPart.Highlight(Color.cyan);
+                    unHighlightList.Add(lastUpdateTime + kMsgDuration, inventoryPart);
+                }
+                else
+                {
+                    Debug.LogWarning("[Sandcastle] - Unable to store printed part " + buildItem.partName + " in an inventory.");
+                    updateUIStatus(Localizer.Format("#LOC_SANDCASTLE_needsSpace", new string[1] { string.Format("{0:n3}", buildItem.packedVolume) }));
+                }
             }
         }
 
+        /// <summary>
+        /// Updates the print-job status shown in the print-shop UI when the UI exists.
+        /// Print jobs can run during catch-up before the window is opened, so this must
+        /// remain safe when the printer is operating headlessly.
+        /// </summary>
+        /// <param name="statusUpdate">The new localized or formatted status.</param>
         protected override void updateUIStatus(string statusUpdate)
         {
-            shopUI.jobStatus = statusUpdate;
+            if (shopUI != null)
+                shopUI.jobStatus = statusUpdate;
         }
 
+        /// <summary>
+        /// Updates the running state shown in the print-shop UI when the UI exists.
+        /// Print jobs can run during catch-up before the window is opened, so this must
+        /// remain safe when the printer is operating headlessly.
+        /// </summary>
+        /// <param name="isPrinting">Whether the current queue is printing.</param>
         protected override void updateUIStatus(bool isPrinting)
         {
-            shopUI.isPrinting = isPrinting;
+            if (shopUI != null)
+                shopUI.isPrinting = isPrinting;
         }
 
+        /// <summary>
+        /// Verifies that the vessel has room to store the completed cargo part unless
+        /// this printer is configured to spawn completed parts directly into the world.
+        /// </summary>
+        /// <param name="buildItem">The print job whose output needs inventory space.</param>
+        /// <returns>True when the completed part can be handled by this printer.</returns>
         protected override bool spaceRequirementsMet(BuildItem buildItem)
         {
-            ModuleCargoPart cargoPart = buildItem.availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
-
-            if (!InventoryUtils.HasEnoughSpace(part.vessel, buildItem.availablePart) && !enablePartSpawn)
+            if (buildItem == null || buildItem.availablePart == null || buildItem.availablePart.partPrefab == null || part == null || part.vessel == null)
             {
-                shopUI.jobStatus = Localizer.Format("#LOC_SANDCASTLE_needsSpace", new string[1] { string.Format("{0:n3}", cargoPart.packedVolume) });
+                Debug.LogWarning("[Sandcastle] - Unable to check inventory space for an invalid print job.");
+                return false;
+            }
+
+            if (!enablePartSpawn && !InventoryUtils.HasEnoughSpace(part.vessel, buildItem.availablePart))
+            {
+                ModuleCargoPart cargoPart = buildItem.availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
+                float requiredVolume = cargoPart != null ? cargoPart.packedVolume : buildItem.packedVolume;
+                updateUIStatus(Localizer.Format("#LOC_SANDCASTLE_needsSpace", new string[1] { string.Format("{0:n3}", requiredVolume) }));
                 return false;
             }
 

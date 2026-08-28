@@ -139,7 +139,6 @@
     <Compile Include="PartModules\Inventory\ModuleCargoCatcher.cs" />
     <Compile Include="PartModules\Inventory\ModuleDefaultInventoryStack.cs" />
     <Compile Include="PartModules\Inventory\ModuleStorablePart.cs" />
-    <Compile Include="PartModules\WBIGroundPlatform.cs" />
     <Compile Include="PartModules\ModuleMassFixer.cs" />
     <Compile Include="PartModules\WBIGroundPartPositionStabilizer.cs" />
     <Compile Include="PartModules\WBIUnderwaterSpawnBuoyancy.cs" />

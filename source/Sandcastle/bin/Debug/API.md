@@ -21,6 +21,20 @@ Shared state and stock-call adapters for vessel-hosted EVA Construction.
 ## Methods
 
 
+### IsActiveHostPart(Part)
+Reports whether a candidate part is the part currently hosting vessel-mounted EVA Construction.
+> #### Parameters
+> **candidatePart:** The part being considered by stock construction code.
+
+> #### Return value
+> True when the candidate is the active construction manipulator part.
+
+### ClearConstructionHighlight(Part)
+Clears construction highlighting on a part that stock is not allowed to manipulate.
+> #### Parameters
+> **candidatePart:** The part whose construction highlight should be cleared.
+
+
 ### IsStackNodeAlignmentEnabled
 Reports whether the active construction path has opted into complete stack-node alignment.
 
@@ -244,6 +258,44 @@ Locates the stock cargo-part update that highlights parts eligible for vessel de
 
 ### Transpiler(System.Collections.Generic.IEnumerable{HarmonyLib.CodeInstruction})
 Replaces the active-vessel origin and Kerbal range while leaving ordinary EVA behavior unchanged.
+
+# PartModules.EVAConstructionHostCargoHighlightBlockPatch
+            
+Prevents the vessel-mounted construction host from highlighting itself as a detachable cargo part.
+        
+## Methods
+
+
+### TargetMethod
+Locates the private stock highlight update used by ModuleCargoPart while construction is open.
+
+### Prefix(ModuleCargoPart)
+Suppresses stock construction highlighting for the active manipulator part.
+> #### Parameters
+> **__instance:** The cargo module being updated.
+
+> #### Return value
+> False when stock highlighting should be skipped.
+
+# PartModules.EVAConstructionHostPartSelectionBlockPatch
+            
+Prevents the stock editor from selecting the part that is hosting vessel-mounted EVA Construction.
+        
+## Methods
+
+
+### TargetMethod
+Locates the private stock editability gate used before a hovered cargo part becomes selected.
+
+### Prefix(Part,System.Boolean@)
+Rejects attempts to edit the active construction host part.
+> #### Parameters
+> **part:** The candidate part.
+
+> **__result:** The editability result returned to stock.
+
+> #### Return value
+> False when the stock editability check should be skipped.
 
 # PartModules.EVAConstructionInventoryDisplayPatch
             
@@ -623,152 +675,6 @@ Drops the desired part if it is in the inventory.
 > #### Parameters
 > **availablePart:** An AvailablePart containing the item to drop.
 
-
-# WBIGroundPlatform
-            
-Levels a deck above a ground-attached pivot and projects visual pylons into the terrain.
-        
-## Fields
-
-### pivotTransformName
-Transform used as the invisible mast pivot. If empty, the part transform is used.
-### deckTransformName
-Transform that represents the level platform deck.
-### mastHeight
-Height above the pivot point where the deck is placed after leveling.
-### minMastHeight
-Minimum in-flight mast height allowed by the PAW slider.
-### maxMastHeight
-Maximum in-flight mast height allowed by the PAW slider.
-### mastHeightStep
-Increment used by the in-flight mast height PAW slider.
-### pylonShaftTransformNames
-Comma-separated list of pylon shaft transforms. Each shaft raycasts along its local +Z axis.
-### pylonFootTransformNames
-Comma-separated list of pylon foot transforms, matching pylonShaftTransformNames by index.
-### pylonAxis
-Local shaft axis used for pylon length and terrain raycasts. Defaults to +Z.
-### footUpAxis
-Local foot axis that should point away from the terrain surface. Defaults to +Y.
-### pylonMaxLength
-Maximum raycast distance used to find terrain beneath each pylon.
-### pylonEmbedDepth
-Extra distance pushed below the terrain hit point so feet look embedded.
-### pylonModelLength
-Original model length represented by a shaft scale of 1.
-### attachNodeNames
-Comma-separated attach node names that should be synced after deck alignment.
-### attachNodeMarkerNames
-Comma-separated marker transform names that drive attachNodeNames by index.
-### showRealignEvent
-Enables a PAW event that reruns alignment when the configured attach nodes are empty.
-### debugLog
-Enables concise diagnostics for platform alignment.
-### platformAligned
-Indicates that the platform has solved and saved its deck and pylon transforms.
-### savedDeckLocalPosition
-Saved local deck position.
-### savedDeckLocalRotation
-Saved local deck rotation.
-### savedPylonLocalPositions
-Saved local pylon shaft positions.
-### savedPylonLocalRotations
-Saved local pylon shaft rotations.
-### savedPylonLocalScales
-Saved local pylon shaft scales.
-### savedFootLocalPositions
-Saved local pylon foot positions.
-### savedFootLocalRotations
-Saved local pylon foot rotations.
-## Methods
-
-
-### OnStart(PartModule.StartState)
-Resolves configured transforms and restores saved geometry when the vessel loads.
-
-### OnDestroy
-Removes PAW field callbacks when KSP destroys the part module.
-
-### OnUpdate
-Waits for stock ModuleGroundPart to finish static attachment before doing first-time alignment.
-
-### AlignPlatform
-Manually reruns deck and pylon alignment when no configured attach nodes are occupied.
-
-### AlignAfterGroundAttach
-Delays alignment until the stock ground part coroutine has had time to freeze the vessel.
-
-### RestoreSavedPlatform
-Restores saved deck, pylon, and attach-node geometry after KSP rebuilds the loaded vessel.
-
-### ResolveConfiguration
-Resolves all named model transforms and comma-separated node identifiers.
-
-### ConfigureMastHeightSlider
-Configures the PAW slider from part config and subscribes to height changes.
-
-### UnsubscribeMastHeightField
-Removes the mast height callback from the PAW field.
-
-### UpdateMastHeightFieldVisibility
-Shows the mast height slider only when the platform can safely move its attach nodes.
-
-### OnMastHeightModified(System.Object)
-Re-solves the deck, pylons, and attach nodes when the PAW slider changes mast height.
-
-### TryAlignPlatform
-Levels the deck, projects pylons along each shaft's local pylon axis, and updates free attach nodes.
-
-### ProjectPylon(System.Int32,UnityEngine.Vector3)
-Raycasts one pylon along its shaft axis, extends the shaft, and aligns its foot to terrain.
-
-### SyncAttachNodesFromMarkers(System.Boolean)
-Updates configured AttachNodes from marker transforms, optionally requiring the nodes to be empty.
-
-### AreAttachNodesFree
-Reports whether every configured AttachNode is empty and safe to move.
-
-### SavePlatformState
-Saves local transform state so the solved platform geometry survives reload.
-
-### IsStaticGroundPart
-Reports whether stock has completed the ModuleGroundPart static-attach sequence.
-
-### ResolveTransforms(System.String)
-Finds every transform listed in a comma-separated field.
-
-### SplitNames(System.String)
-Splits comma-separated config names while trimming whitespace and empty entries.
-
-### ScaleAlongDominantAxis(UnityEngine.Vector3,UnityEngine.Vector3,System.Single)
-Scales the component that most closely matches the configured pylon axis.
-
-### GetLocalScales(UnityEngine.Transform[])
-Captures model-authored local scales so pylon extension can be applied relatively.
-
-### ApplySavedTransform(UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion)
-Applies saved local position and rotation to one transform.
-
-### ApplySavedTransforms(UnityEngine.Transform[],System.String,System.String,System.String)
-Applies saved local transform lists to a matching transform array.
-
-### WriteLocalPositions(UnityEngine.Transform[])
-Serializes local positions for a transform list.
-
-### WriteLocalRotations(UnityEngine.Transform[])
-Serializes local rotations for a transform list.
-
-### WriteLocalScales(UnityEngine.Transform[])
-Serializes local scales for a transform list.
-
-### ReadVectorList(System.String)
-Parses a semicolon-separated Vector3 list.
-
-### ReadQuaternionList(System.String)
-Parses a semicolon-separated Quaternion list.
-
-### LogFailure(System.String)
-Logs an alignment failure when diagnostics are enabled.
 
 # WBIGroundPartPositionStabilizer
             
@@ -1327,6 +1233,28 @@ Flag indicating that part spawn is enabled. This lets the printer spawn parts in
 Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
 ### repositionCraftBeforeSpawning
 Flag to indicate if it should offset the printed vessel to avoid collisions. Recommended to set to FALSE for printers with enclosed printing spaces.
+## Methods
+
+
+### updateUIStatus(System.String)
+Updates the print-job status shown in the print-shop UI when the UI exists. Print jobs can run during catch-up before the window is opened, so this must remain safe when the printer is operating headlessly.
+> #### Parameters
+> **statusUpdate:** The new localized or formatted status.
+
+
+### updateUIStatus(System.Boolean)
+Updates the running state shown in the print-shop UI when the UI exists. Print jobs can run during catch-up before the window is opened, so this must remain safe when the printer is operating headlessly.
+> #### Parameters
+> **isPrinting:** Whether the current queue is printing.
+
+
+### spaceRequirementsMet(Sandcastle.PrintShop.BuildItem)
+Verifies that the vessel has room to store the completed cargo part unless this printer is configured to spawn completed parts directly into the world.
+> #### Parameters
+> **buildItem:** The print job whose output needs inventory space.
+
+> #### Return value
+> True when the completed part can be handled by this printer.
 
 # PrintShop.WBIModuleEVAPrintShop
             

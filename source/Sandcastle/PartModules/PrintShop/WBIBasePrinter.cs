@@ -582,9 +582,14 @@ namespace Sandcastle.PrintShop
                     {
                         allMaterialsPrinted = false;
 
+                        // Never consume more than this material needs or more than the build has left to print.
+                        // Keep this separate from consumptionRate so each material gets the full per-update rate.
+                        double materialConsumption = Math.Min(consumptionRate, material.amount);
+                        materialConsumption = Math.Min(materialConsumption, buildItem.totalUnitsRequired - buildItem.totalUnitsPrinted);
+
                         // Make sure that we have enough of the resource
                         part.GetConnectedResourceTotals(material.resourceDef.id, out amount, out maxAmount);
-                        if (amount < consumptionRate)
+                        if (amount < materialConsumption)
                         {
                             requirementsStatus = Localizer.Format("#LOC_SANDCASTLE_needsResource", new string[1] { material.resourceDef.displayName });
                             updateUIStatus(requirementsStatus);
@@ -595,31 +600,25 @@ namespace Sandcastle.PrintShop
                             return;
                         }
 
-                        // Adjust consumption rate if needed.
-                        if (buildItem.totalUnitsPrinted + consumptionRate > buildItem.totalUnitsRequired)
-                        {
-                            consumptionRate = buildItem.totalUnitsPrinted + consumptionRate - buildItem.totalUnitsRequired;
-                        }
-                        buildItem.totalUnitsPrinted += consumptionRate;
+                        buildItem.totalUnitsPrinted += materialConsumption;
 
                         // Update material amount.
-                        material.amount -= consumptionRate;
+                        material.amount -= materialConsumption;
                         if (material.amount < 0)
                             material.amount = 0;
 
                         // Consume the resource
-                        part.RequestResource(material.resourceDef.id, consumptionRate, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
+                        part.RequestResource(material.resourceDef.id, materialConsumption, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
 
                         // Update units printed.
-                        updateUnitsPrinted(buildItem, consumptionRate);
-                    }
-
-                    // Edge case: we might not have printed all the units yet but we have printed all the materials. In this case, update our total units printed.
-                    else if (allMaterialsPrinted && buildItem.totalUnitsPrinted < buildItem.totalUnitsRequired)
-                    {
-                        buildItem.totalUnitsPrinted = buildItem.totalUnitsRequired;
+                        updateUnitsPrinted(buildItem, materialConsumption);
                     }
                 }
+
+                // Edge case: rounding might leave totalUnitsPrinted just short after every material has been consumed.
+                // Evaluate this only after examining the entire collection.
+                if (allMaterialsPrinted && buildItem.totalUnitsPrinted < buildItem.totalUnitsRequired)
+                    buildItem.totalUnitsPrinted = buildItem.totalUnitsRequired;
             }
 
             // Update progress
