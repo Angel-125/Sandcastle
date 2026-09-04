@@ -2231,6 +2231,13 @@
             Name of the animation to play during printing.
             </summary>
         </member>
+        <member name="P:Sandcastle.PrintShop.WBIBasePrinter.infinitePrintResourcesEnabled">
+            <summary>
+            Indicates whether KSP's Infinite Propellant cheat should make build-item
+            materials and required components free. Infinite Electricity remains
+            limited to ElectricCharge through KSP's stock resource-request logic.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.WBIBasePrinter.calculateSpecialistBonus">
             <summary>
             Calculates the print-speed multiplier contributed by qualified specialists.

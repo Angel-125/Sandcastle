@@ -364,6 +364,19 @@ namespace Sandcastle.PrintShop
             return false;
         }
 
+        /// <summary>
+        /// Indicates whether KSP's Infinite Propellant cheat should make build-item
+        /// materials and required components free. Infinite Electricity remains
+        /// limited to ElectricCharge through KSP's stock resource-request logic.
+        /// </summary>
+        protected bool infinitePrintResourcesEnabled
+        {
+            get
+            {
+                return CheatOptions.InfinitePropellant;
+            }
+        }
+
         protected virtual void processPrintQueue()
         {
             // Check the print queue again.
@@ -589,7 +602,7 @@ namespace Sandcastle.PrintShop
 
                         // Make sure that we have enough of the resource
                         part.GetConnectedResourceTotals(material.resourceDef.id, out amount, out maxAmount);
-                        if (amount < materialConsumption)
+                        if (!infinitePrintResourcesEnabled && amount < materialConsumption)
                         {
                             requirementsStatus = Localizer.Format("#LOC_SANDCASTLE_needsResource", new string[1] { material.resourceDef.displayName });
                             updateUIStatus(requirementsStatus);
@@ -608,7 +621,8 @@ namespace Sandcastle.PrintShop
                             material.amount = 0;
 
                         // Consume the resource
-                        part.RequestResource(material.resourceDef.id, materialConsumption, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
+                        if (!infinitePrintResourcesEnabled)
+                            part.RequestResource(material.resourceDef.id, materialConsumption, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
 
                         // Update units printed.
                         updateUnitsPrinted(buildItem, materialConsumption);
@@ -632,31 +646,38 @@ namespace Sandcastle.PrintShop
             }
 
             // Consume required components
-            count = buildItem.requiredComponents.Count;
-            PartRequiredComponent requiredPart;
-            List<PartRequiredComponent> doomed = new List<PartRequiredComponent>();
-            int partsFound = 0;
-            for (int index = 0; index < count; index++)
+            if (infinitePrintResourcesEnabled)
             {
-                requiredPart = buildItem.requiredComponents[index];
-                partsFound = InventoryUtils.GetInventoryItemCount(part.vessel, requiredPart.name);
-                if (partsFound >= requiredPart.amount)
-                {
-                    InventoryUtils.RemoveItem(part.vessel, requiredPart.name, requiredPart.amount);
-                    doomed.Add(requiredPart);
-                }
-                else
-                {
-                    AvailablePart availablePart = PartLoader.getPartInfoByName(requiredPart.name);
-                    updateUIStatus(Localizer.Format("#LOC_SANDCASTLE_needsPart", new string[1] { availablePart.title }));
-                    lastUpdateTime = Planetarium.GetUniversalTime();
-                    missingRequirements = true;
-                    return;
-                }
+                buildItem.requiredComponents.Clear();
             }
-            count = doomed.Count;
-            for (int index = 0; index < count; index++)
-                buildItem.requiredComponents.Remove(doomed[index]);
+            else
+            {
+                count = buildItem.requiredComponents.Count;
+                PartRequiredComponent requiredPart;
+                List<PartRequiredComponent> doomed = new List<PartRequiredComponent>();
+                int partsFound = 0;
+                for (int index = 0; index < count; index++)
+                {
+                    requiredPart = buildItem.requiredComponents[index];
+                    partsFound = InventoryUtils.GetInventoryItemCount(part.vessel, requiredPart.name);
+                    if (partsFound >= requiredPart.amount)
+                    {
+                        InventoryUtils.RemoveItem(part.vessel, requiredPart.name, requiredPart.amount);
+                        doomed.Add(requiredPart);
+                    }
+                    else
+                    {
+                        AvailablePart availablePart = PartLoader.getPartInfoByName(requiredPart.name);
+                        updateUIStatus(Localizer.Format("#LOC_SANDCASTLE_needsPart", new string[1] { availablePart.title }));
+                        lastUpdateTime = Planetarium.GetUniversalTime();
+                        missingRequirements = true;
+                        return;
+                    }
+                }
+                count = doomed.Count;
+                for (int index = 0; index < count; index++)
+                    buildItem.requiredComponents.Remove(doomed[index]);
+            }
 
             // If we've finished printing then signal completion and remove the build item from the print queue.
             lastUpdateTime = Planetarium.GetUniversalTime();
