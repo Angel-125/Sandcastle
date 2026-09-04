@@ -4,14 +4,6 @@ An inventory helper class
 ## Methods
 
 
-### GetPartFromAvailablePart(AvailablePart)
-Retrieves an instantiated part from the supplied available part.
-> #### Parameters
-> **availablePart:** The AvailablePart
-
-> #### Return value
-> 
-
 ### GetInventoryWithCargoSpace(Vessel,AvailablePart)
 Gets an inventory with enough storage space and storage mass for the desired part.
 > #### Parameters
@@ -122,6 +114,26 @@ Retrieves a list of parts that can be printed by the specified max print volume.
 > #### Return value
 > A List of AvailablePart objects that can be printed.
 
+### GetWorldSpawnPrintableParts(System.Single,System.String)
+Retrieves parts that can be printed directly into the world. Unlike , this includes cargo parts whose packed volume is negative because world-spawned parts do not need to fit in a stock inventory.
+> #### Parameters
+> **maxPrintVolume:** Maximum bounding-box volume in liters, or a non-positive value for no volume limit.
+
+> **maxPartDimensions:** Optional maximum part dimensions in meters.
+
+> #### Return value
+> A list of parts eligible for direct world spawning.
+
+### TryGetPartBounds(AvailablePart,UnityEngine.Bounds@)
+Calculates a part prefab's active model bounds in part-local space.
+> #### Parameters
+> **availablePart:** The part definition to measure.
+
+> **partBounds:** The calculated local bounds.
+
+> #### Return value
+> True when at least one active model mesh was measured.
+
 ### GetTexture(System.String)
 Retrieves the thumbnail texture that depicts the specified part name.
 > #### Parameters
@@ -152,8 +164,8 @@ Returns the full path to the part's thumbnail image.
 > #### Return value
 > 
 
-### SpawnPart(AvailablePart,Part,UnityEngine.Transform,System.Boolean,Callback{DockedVesselInfo})
-Spawns a completed print at a printer transform and optionally couples it to the printer vessel.
+### SpawnGroundPart(AvailablePart,Part,UnityEngine.Transform,System.Boolean)
+Drops a completed print onto the ground using KSP's stock EVA construction proto-vessel path. This API intentionally does not support orbital spawning; use for that case.
 > #### Parameters
 > **availablePart:** The part definition to place into the world.
 
@@ -163,17 +175,44 @@ Spawns a completed print at a printer transform and optionally couples it to the
 
 > **repositionPart:** Whether to move the print beyond the spawn boundary.
 
-> **onPartCoupled:** An optional callback used after the new part is coupled.
+> #### Return value
+> True if the ground-drop request was accepted.
 
+### SpawnOrbitalPart(AvailablePart,System.Int32,Part,UnityEngine.Transform,System.Boolean,System.Boolean,Callback{DockedVesselInfo})
+Spawns a one-part vessel in a stable orbit and couples it to its printer. The part is wrapped in a so it uses the same launch, orbit synchronization, and coupling path as WBIShipwright.
+> #### Parameters
+> **availablePart:** The part definition to place into the world.
 
-### stabilizeSpawnedPart(Vessel,Part,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Callback{DockedVesselInfo})
-Keeps a newly spawned orbital part synchronized with the live printer frame until KSP has initialized it and it can safely enter physics.
+> **variantIndex:** The selected part variant index.
+
+> **parentPart:** The printer part whose vessel supplies the orbit.
+
+> **dropTransform:** The printer transform that defines position and orientation.
+
+> **repositionPart:** Whether to move the print beyond the spawn boundary.
+
+> **removeResources:** Whether printable resources should be emptied.
+
+> **onPartCoupled:** Callback invoked after the part is coupled.
+
+> #### Return value
+> True if orbital construction and spawning started.
 
 ### TryGetPartLocalBounds(Part,UnityEngine.Transform,UnityEngine.Bounds@)
 Calculates the bounds of a part in the coordinate system of the supplied reference transform.
 
 ### movePartAboveTerrain(UnityEngine.Vector3@,UnityEngine.Quaternion,UnityEngine.Bounds,CelestialBody)
 Raises a prospective part placement until its lowest bounds point is one meter above the local terrain.
+
+### CreateSinglePartConstruct(AvailablePart,System.Int32)
+Creates an independent one-part construct from a part-loader prefab. Saving and reloading the temporary construct clones the prefab into the initialized form expected by .
+> #### Parameters
+> **availablePart:** The part definition to clone.
+
+> **variantIndex:** The selected variant index.
+
+> #### Return value
+> A launchable one-part construct, or null on failure.
 
 ### TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)
 Positions an unassembled craft relative to a printer and optionally keeps its complete bounds beyond the spawn transform's virtual boundary.
@@ -187,34 +226,10 @@ Calculates construct bounds in the coordinate system of a supplied reference tra
 ### TryGetConstructBounds(ShipConstruct,UnityEngine.Bounds@)
 Calculates world-space bounds for a ShipConstruct before it has been assembled into a Vessel. Collider bounds are preferred because they match the coordinate space used by the spawn collision checks.
 
-### GetBounds(Part)
-Courtesy of MechJeb by Sarbian Licensed under GPLV3 Computes the Bounds of the supplied part. This works both in the editor and flight. EX: Bounds partBounds = FlightGlobals.ActiveVessel.rootPart.GetBounds();
+### refreshVesselControl(Vessel)
+Rebuilds command-source registration after KSP creates a vessel by undocking already-started parts. ModuleCommand.Start does not run a second time, so its CommNet registration can otherwise remain tied to the vessel that temporarily contained the printed craft.
 > #### Parameters
-> **part:** A Part object to compute the Bounds for.
-
-> #### Return value
-> A Bounds object containing the part's bounds.
-
-### GetBounds(Vessel)
-Courtesy of MechJeb by Sarbian Licensed under GPLV3 Computes the Bounds of the supplied vessel. This works both in the editor and in flight. EX: Bounds vesselBounds = FlightGlobals.ActiveVessel.GetBounds();
-> #### Parameters
-> **vessel:** A Vessel object to compute the bounds for.
-
-> #### Return value
-> A Bounds object containing the vessel's bounds.
-
-### releaseOrbitalPrintedPart(Part,DockedVesselInfo,Part,UnityEngine.Transform,System.Boolean)
-Releases a printed part in orbit while preserving its position and synchronizing its orbit and velocity with the printing vessel.
-> #### Parameters
-> **rootPart:** The root part of the coupled printed part.
-
-> **dockedVesselInfo:** The information used to undock the part.
-
-> **parentPart:** A part on the printing vessel.
-
-> **anchorTransform:** The transform used to position the printed part.
-
-> **switchToVessel:** Whether to make the released part's vessel active.
+> **vessel:** The vessel created by the undock operation.
 
 
 ### normalizePersistentStringFields(Part)

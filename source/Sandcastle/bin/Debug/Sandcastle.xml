@@ -559,13 +559,6 @@
             An inventory helper class
             </summary>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.GetPartFromAvailablePart(AvailablePart)">
-            <summary>
-            Retrieves an instantiated part from the supplied available part.
-            </summary>
-            <param name="availablePart">The AvailablePart</param>
-            <returns></returns>
-        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.GetInventoryWithCargoSpace(Vessel,AvailablePart)">
             <summary>
             Gets an inventory with enough storage space and storage mass for the desired part.
@@ -651,6 +644,30 @@
             <param name="maxPartDimensions">An optional string containing the max possible print dimensions.</param>
             <returns>A List of AvailablePart objects that can be printed.</returns>
         </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.GetWorldSpawnPrintableParts(System.Single,System.String)">
+            <summary>
+            Retrieves parts that can be printed directly into the world. Unlike
+            <see cref="M:Sandcastle.Inventory.InventoryUtils.GetPrintableParts(System.Single,System.String)"/>, this includes cargo parts whose
+            packed volume is negative because world-spawned parts do not need to
+            fit in a stock inventory.
+            </summary>
+            <param name="maxPrintVolume">
+            Maximum bounding-box volume in liters, or a non-positive value for
+            no volume limit.
+            </param>
+            <param name="maxPartDimensions">
+            Optional maximum part dimensions in meters.
+            </param>
+            <returns>A list of parts eligible for direct world spawning.</returns>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.TryGetPartBounds(AvailablePart,UnityEngine.Bounds@)">
+            <summary>
+            Calculates a part prefab's active model bounds in part-local space.
+            </summary>
+            <param name="availablePart">The part definition to measure.</param>
+            <param name="partBounds">The calculated local bounds.</param>
+            <returns>True when at least one active model mesh was measured.</returns>
+        </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.GetTexture(System.String)">
             <summary>
             Retrieves the thumbnail texture that depicts the specified part name.
@@ -675,21 +692,32 @@
             <param name="useDefaultPath">A bool indicating whether or not to use the default thumbnails path.</param>
             <returns></returns>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.SpawnPart(AvailablePart,Part,UnityEngine.Transform,System.Boolean,Callback{DockedVesselInfo})">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.SpawnGroundPart(AvailablePart,Part,UnityEngine.Transform,System.Boolean)">
             <summary>
-            Spawns a completed print at a printer transform and optionally couples it to the printer vessel.
+            Drops a completed print onto the ground using KSP's stock EVA construction
+            proto-vessel path. This API intentionally does not support orbital spawning;
+            use <see cref="M:Sandcastle.Inventory.InventoryUtils.SpawnOrbitalPart(AvailablePart,System.Int32,Part,UnityEngine.Transform,System.Boolean,System.Boolean,Callback{DockedVesselInfo})"/> for that case.
             </summary>
             <param name="availablePart">The part definition to place into the world.</param>
             <param name="parentPart">The printer part whose vessel supplies the spawn environment.</param>
             <param name="dropTransform">The printer transform that defines position and orientation.</param>
             <param name="repositionPart">Whether to move the print beyond the spawn boundary.</param>
-            <param name="onPartCoupled">An optional callback used after the new part is coupled.</param>
+            <returns>True if the ground-drop request was accepted.</returns>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.stabilizeSpawnedPart(Vessel,Part,UnityEngine.Transform,UnityEngine.Vector3,UnityEngine.Quaternion,Callback{DockedVesselInfo})">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.SpawnOrbitalPart(AvailablePart,System.Int32,Part,UnityEngine.Transform,System.Boolean,System.Boolean,Callback{DockedVesselInfo})">
             <summary>
-            Keeps a newly spawned orbital part synchronized with the live printer
-            frame until KSP has initialized it and it can safely enter physics.
+            Spawns a one-part vessel in a stable orbit and couples it to its printer.
+            The part is wrapped in a <see cref="T:ShipConstruct"/> so it uses the same
+            launch, orbit synchronization, and coupling path as <c>WBIShipwright</c>.
             </summary>
+            <param name="availablePart">The part definition to place into the world.</param>
+            <param name="variantIndex">The selected part variant index.</param>
+            <param name="parentPart">The printer part whose vessel supplies the orbit.</param>
+            <param name="dropTransform">The printer transform that defines position and orientation.</param>
+            <param name="repositionPart">Whether to move the print beyond the spawn boundary.</param>
+            <param name="removeResources">Whether printable resources should be emptied.</param>
+            <param name="onPartCoupled">Callback invoked after the part is coupled.</param>
+            <returns>True if orbital construction and spawning started.</returns>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.TryGetPartLocalBounds(Part,UnityEngine.Transform,UnityEngine.Bounds@)">
             <summary>
@@ -702,6 +730,16 @@
             Raises a prospective part placement until its lowest bounds point is
             one meter above the local terrain.
             </summary>
+        </member>
+        <member name="M:Sandcastle.Inventory.InventoryUtils.CreateSinglePartConstruct(AvailablePart,System.Int32)">
+            <summary>
+            Creates an independent one-part construct from a part-loader prefab.
+            Saving and reloading the temporary construct clones the prefab into the
+            initialized form expected by <see cref="M:ShipConstruction.AssembleForLaunch(ShipConstruct,System.String,System.String,System.String,Game,VesselCrewManifest)"/>.
+            </summary>
+            <param name="availablePart">The part definition to clone.</param>
+            <param name="variantIndex">The selected variant index.</param>
+            <returns>A launchable one-part construct, or null on failure.</returns>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.TryPositionShipConstruct(ShipConstruct,Part,UnityEngine.Transform,System.Boolean,UnityEngine.Vector3@,UnityEngine.Quaternion@,UnityEngine.Bounds@)">
             <summary>
@@ -728,40 +766,14 @@
             match the coordinate space used by the spawn collision checks.
             </summary>
         </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.GetBounds(Part)">
+        <member name="M:Sandcastle.Inventory.InventoryUtils.refreshVesselControl(Vessel)">
             <summary>
-            Courtesy of MechJeb by Sarbian
-            Licensed under GPLV3
-            Computes the Bounds of the supplied part.
-            This works both in the editor and flight.
-            EX: Bounds partBounds = FlightGlobals.ActiveVessel.rootPart.GetBounds();
+            Rebuilds command-source registration after KSP creates a vessel by
+            undocking already-started parts. ModuleCommand.Start does not run a
+            second time, so its CommNet registration can otherwise remain tied
+            to the vessel that temporarily contained the printed craft.
             </summary>
-            <param name="part">A Part object to compute the Bounds for.</param>
-            <returns>A Bounds object containing the part's bounds.</returns>
-        </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.GetBounds(Vessel)">
-            <summary>
-            Courtesy of MechJeb by Sarbian
-            Licensed under GPLV3
-            Computes the Bounds of the supplied vessel.
-            This works both in the editor and in flight.
-            EX: Bounds vesselBounds = FlightGlobals.ActiveVessel.GetBounds();
-            </summary>
-            <param name="vessel">A Vessel object to compute the bounds for.</param>
-            <returns>A Bounds object containing the vessel's bounds.</returns>
-        </member>
-        <member name="M:Sandcastle.Inventory.InventoryUtils.releaseOrbitalPrintedPart(Part,DockedVesselInfo,Part,UnityEngine.Transform,System.Boolean)">
-            <summary>
-            Releases a printed part in orbit while preserving its position and
-            synchronizing its orbit and velocity with the printing vessel.
-            </summary>
-            <param name="rootPart">The root part of the coupled printed part.</param>
-            <param name="dockedVesselInfo">The information used to undock the part.</param>
-            <param name="parentPart">A part on the printing vessel.</param>
-            <param name="anchorTransform">The transform used to position the printed part.</param>
-            <param name="switchToVessel">
-            Whether to make the released part's vessel active.
-            </param>
+            <param name="vessel">The vessel created by the undock operation.</param>
         </member>
         <member name="M:Sandcastle.Inventory.InventoryUtils.normalizePersistentStringFields(Part)">
             <summary>
@@ -1029,6 +1041,32 @@
             Callback to tell the controller to cancel the build.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onDecoupleShip">
+            <summary>
+            Callback to stop deconstruction and release the captured vessel remains.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onToggleCaptureState">
+            <summary>
+            Callback to toggle capture state for recycling.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onToggleAutoStarRecycling">
+            <summary>
+             Delegate to toggle auto-recycling state. If enabled, craft will automatically be recycled upon captured.
+             If disabled, the player must manually start the recycling process.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onRecycleStatusUpdate">
+            <summary>
+            Callback to let the controller know about the recycle state.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onTogglePreferStorageToRecycle">
+            <summary>
+             Delegate to toggle preferring storage over recycling.
+            </summary>
+        </member>
         <member name="F:Sandcastle.PrintShop.ShipbreakerUI.isRecycling">
             <summary>
             Flag indicating that the printer is recycling
@@ -1059,11 +1097,6 @@
             Flag to indicate if an alarm shoudl be created for print job completion.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.onRecycleStatusUpdate">
-            <summary>
-            Callback to let the controller know about the recycle state.
-            </summary>
-        </member>
         <member name="F:Sandcastle.PrintShop.ShipbreakerUI.resourceRecylePercent">
             <summary>
             Percentage of the resources that can be recycled.
@@ -1072,6 +1105,21 @@
         <member name="F:Sandcastle.PrintShop.ShipbreakerUI.supportShipbreakers">
             <summary>
             List of support shipbreakers
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.autoStartRecycling">
+            <summary>
+            Flag indicating if the recycler should immediately start recycling upon capturing a craft.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.enableVesselCapture">
+            <summary>
+            Flag indicating if the recycler should enable its vessel capturing.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.ShipbreakerUI.preferStoreBeforeRecycle">
+            <summary>
+            Flag to indicate whether or not to try to store parts before recyling them.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.ShipbreakerUI.SetVisible(System.Boolean)">
@@ -1105,6 +1153,24 @@
             <summary>
             Delegate to cancel the build.
             </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.ToggleCaptureState">
+            <summary>
+            Delegate to toggle the vessel capture state for recycling.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PrintShop.ToggleAutoStarRecycling">
+            <summary>
+             Delegate to toggle auto-recycling state. If enabled, craft will automatically be recycled upon captured.
+             If disabled, the player must manually start the recycling process.
+            </summary>
+            <param name="isEnabled"></param>
+        </member>
+        <member name="T:Sandcastle.PrintShop.TogglePreferStorageToRecycle">
+            <summary>
+             Delegate to toggle preferring storage over recycling.
+            </summary>
+            <param name="isEnabled"></param>
         </member>
         <member name="T:Sandcastle.PrintShop.ShipwrightUI">
             <summary>
@@ -1360,6 +1426,11 @@
             Flag to indicate whether or not to show the part spawn button.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.partToSpawnTitle">
+            <summary>
+            Localized title of the completed part awaiting finalization.
+            </summary>
+        </member>
         <member name="F:Sandcastle.PrintShop.PrintShopUI.showPartDecoupleButton">
             <summary>
             Flag indicating whether to show the printed-part release button.
@@ -1447,6 +1518,13 @@
             Flag to indicate if vessel capture is enabled.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.recycleTransformName">
+            <summary>
+            Name of the model transform containing the vessel-capture trigger.
+            The transform and its trigger colliders are active only while vessel
+            capture is enabled.
+            </summary>
+        </member>
         <member name="F:Sandcastle.PrintShop.WBIShipbreaker.maxBuildingDistance">
             <summary>
             Maximum distance allowed for other shipbreakers to help break up a vessel.
@@ -1475,6 +1553,51 @@
         <member name="F:Sandcastle.PrintShop.WBIShipbreaker.currentJob">
             <summary>
             Current job being recycled.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.autoStartRecycling">
+            <summary>
+            Flag indicating whether or not to automatically start recyling a craft upon capture.
+            Defaults to true.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIShipbreaker.preferStoreBeforeRecycle">
+            <summary>
+            Flag to indicate whether or not to try to store parts before recyling them.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.setupRecycleTarget">
+            <summary>
+            Locates and caches the model transform and trigger colliders used to
+            capture vessels for recycling.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.setRecycleTargetActive(System.Boolean)">
+            <summary>
+            Enables or disables the capture transform and every trigger collider
+            beneath it.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.setVesselCaptureEnabled(System.Boolean)">
+            <summary>
+            Sets the persistent vessel-capture state and keeps the capture UI and
+            trigger volume synchronized with it.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.onReleaseVessel">
+            <summary>
+            Stops all work associated with the captured vessel and releases the
+            portion that has not yet been recycled.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.cancelSupportRecycleJobs">
+            <summary>
+            Removes jobs delegated by this lead shipbreaker from its support units.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.enableReleasedVesselModules(Part)">
+            <summary>
+            Re-enables functional modules on the surviving captured-vessel subtree.
             </summary>
         </member>
         <member name="T:Sandcastle.PrintShop.WBICargoRecycler">
@@ -1760,6 +1883,13 @@
             Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.WBIPrintShop.enableOrbitalPartSpawn">
+            <summary>
+            Flag indicating that world-spawned parts may be printed while the
+            printer vessel is in the ORBITING situation. Sub-orbital and escaping
+            vessels are intentionally excluded.
+            </summary>
+        </member>
         <member name="F:Sandcastle.PrintShop.WBIPrintShop.maxPartDimensions">
             <summary>
             Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z).
@@ -1790,7 +1920,7 @@
         <member name="M:Sandcastle.PrintShop.WBIPrintShop.spaceRequirementsMet(Sandcastle.PrintShop.BuildItem)">
             <summary>
             Verifies that the vessel has room to store the completed cargo part unless
-            this printer is configured to spawn completed parts directly into the world.
+            this printer spawns completed parts or the job belongs to a lead Shipwright.
             </summary>
             <param name="buildItem">The print job whose output needs inventory space.</param>
             <returns>True when the completed part can be handled by this printer.</returns>

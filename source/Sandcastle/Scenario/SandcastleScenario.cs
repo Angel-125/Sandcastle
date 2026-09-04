@@ -52,7 +52,6 @@ namespace Sandcastle
         {
             base.OnAwake();
             shared = this;
-            InventoryUtils.debugMode = debugMode;
 
             debugMode = SandcastleSettings.DebugModeEnabled;
             checkForKerbals = SandcastleSettings.CheckForKerbals;
@@ -96,7 +95,7 @@ namespace Sandcastle
         private void onGameSettingsApplied()
         {
             debugMode = SandcastleSettings.DebugModeEnabled;
-            debugMode = SandcastleSettings.CheckForKerbals;
+            checkForKerbals = SandcastleSettings.CheckForKerbals;
         }
 
         private void onVesselGoOffRails(Vessel vessel)

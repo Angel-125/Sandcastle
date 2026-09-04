@@ -31,6 +31,32 @@ namespace Sandcastle.PrintShop
         public CancelBuildDelegate onCancelVesselBuild;
 
         /// <summary>
+        /// Callback to stop deconstruction and release the captured vessel remains.
+        /// </summary>
+        public DecoupleShipDelegate onDecoupleShip;
+
+        /// <summary>
+        /// Callback to toggle capture state for recycling.
+        /// </summary>
+        public ToggleCaptureState onToggleCaptureState;
+
+        /// <summary>
+        ///  Delegate to toggle auto-recycling state. If enabled, craft will automatically be recycled upon captured.
+        ///  If disabled, the player must manually start the recycling process.
+        /// </summary>
+        public ToggleAutoStarRecycling onToggleAutoStarRecycling;
+
+        /// <summary>
+        /// Callback to let the controller know about the recycle state.
+        /// </summary>
+        public UpdatePrintStatusDelegate onRecycleStatusUpdate;
+
+        /// <summary>
+        ///  Delegate to toggle preferring storage over recycling.
+        /// </summary>
+        public TogglePreferStorageToRecycle onTogglePreferStorageToRecycle;
+
+        /// <summary>
         /// Flag indicating that the printer is recycling
         /// </summary>
         public bool isRecycling;
@@ -61,11 +87,6 @@ namespace Sandcastle.PrintShop
         public bool createAlarm = true;
 
         /// <summary>
-        /// Callback to let the controller know about the recycle state.
-        /// </summary>
-        public UpdatePrintStatusDelegate onRecycleStatusUpdate;
-
-        /// <summary>
         /// Percentage of the resources that can be recycled.
         /// </summary>
         public double resourceRecylePercent = 1;
@@ -74,6 +95,21 @@ namespace Sandcastle.PrintShop
         /// List of support shipbreakers
         /// </summary>
         public List<WBIShipbreaker> supportShipbreakers = null;
+
+        /// <summary>
+        /// Flag indicating if the recycler should immediately start recycling upon capturing a craft.
+        /// </summary>
+        public bool autoStartRecycling = true;
+
+        /// <summary>
+        /// Flag indicating if the recycler should enable its vessel capturing.
+        /// </summary>
+        public bool enableVesselCapture = false;
+
+        /// <summary>
+        /// Flag to indicate whether or not to try to store parts before recyling them.
+        /// </summary>
+        public bool preferStoreBeforeRecycle = true;
         #endregion
 
         #region Housekeeping
@@ -216,6 +252,30 @@ namespace Sandcastle.PrintShop
 
             GUILayout.BeginVertical();
 
+            // Vessel Capture On/Off
+            bool vesselCaptureToggleValue = GUILayout.Toggle(enableVesselCapture, Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn"));
+            if (vesselCaptureToggleValue != enableVesselCapture)
+            {
+                enableVesselCapture = vesselCaptureToggleValue;
+                onToggleCaptureState(enableVesselCapture);
+            }
+
+            // Toggle to auto-recycle craft upon capture.
+            bool autoStarRecylingToggleValue = GUILayout.Toggle(autoStartRecycling, Localizer.Format("#LOC_SANDCASTLE_autoRecycleEnabled"));
+            if (autoStarRecylingToggleValue != autoStartRecycling)
+            {
+                autoStartRecycling = autoStarRecylingToggleValue;
+                onToggleAutoStarRecycling(autoStartRecycling);
+            }
+
+            // Toggle to prefer storage over recycling.
+            bool preferStorageToRecylingToggle = GUILayout.Toggle(preferStoreBeforeRecycle, Localizer.Format("#LOC_SANDCASTLE_preferStoringParts"));
+            if (preferStorageToRecylingToggle != preferStoreBeforeRecycle)
+            {
+                preferStoreBeforeRecycle = preferStorageToRecylingToggle;
+                onTogglePreferStorageToRecycle(preferStoreBeforeRecycle);
+            }
+
             GUILayout.BeginHorizontal();
 
             GUILayout.BeginVertical();
@@ -225,7 +285,10 @@ namespace Sandcastle.PrintShop
             GUILayout.EndHorizontal();
 
             // Recycle status
-            drawPrintStatus();
+            drawRecycleStatus();
+
+            if (showDecoupleButton)
+                drawDecoupleButton();
 
             GUILayout.EndVertical();
 
@@ -259,7 +322,7 @@ namespace Sandcastle.PrintShop
 
             partsScrollPos = GUILayout.BeginScrollView(partsScrollPos, partInfoHeight);
 
-            // Show list of parts that will be printed/required in inventory.
+            // Show list of parts that will be recycled.
             int count = recycleQueue.Count;
             BuildItem item = null;
             string itemTitle;
@@ -267,7 +330,7 @@ namespace Sandcastle.PrintShop
             {
                 item = recycleQueue[index];
 
-                // First item is bold. It's the one being printed.
+                // First item is bold. It's the one being recycled.
                 if (index == 0)
                     itemTitle = "<color=white><b>" + item.availablePart.title + "</b></color>";
                 else
@@ -349,7 +412,7 @@ namespace Sandcastle.PrintShop
             previewPartImage = iconSet["Blank"];
         }
 
-        private void drawPrintStatus()
+        private void drawRecycleStatus()
         {
             GUILayout.BeginHorizontal();
             // Pause/print button
@@ -360,7 +423,7 @@ namespace Sandcastle.PrintShop
                 onRecycleStatusUpdate(isRecycling);
             }
 
-            // Cancel print job button
+            // Cancel recycle job button
             if (GUILayout.Button(iconSet["Trash"], buttonDimensions))
             {
                 clearUI();
@@ -376,6 +439,17 @@ namespace Sandcastle.PrintShop
             GUILayout.Label(Localizer.Format("#LOC_SANDCASTLE_jobStatus", new string[1] { jobStatus } ));
             GUILayout.EndVertical();
 
+            GUILayout.EndHorizontal();
+        }
+
+        private void drawDecoupleButton()
+        {
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button(Localizer.Format("#LOC_SANDCASTLE_decoupleShip")))
+            {
+                showDecoupleButton = false;
+                onDecoupleShip();
+            }
             GUILayout.EndHorizontal();
         }
 

@@ -100,6 +100,11 @@ namespace Sandcastle.PrintShop
         public bool showPartSpawnButton = false;
 
         /// <summary>
+        /// Localized title of the completed part awaiting finalization.
+        /// </summary>
+        public string partToSpawnTitle = string.Empty;
+
+        /// <summary>
         /// Flag indicating whether to show the printed-part release button.
         /// </summary>
         public bool showPartDecoupleButton = false;
@@ -255,7 +260,11 @@ namespace Sandcastle.PrintShop
             GUILayout.BeginHorizontal();
             if (showPartSpawnButton)
             {
-                if (GUILayout.Button("Finalize Printing"))
+                string buttonLabel = Localizer.Format("#LOC_SANDCASTLE_finalizePrinting");
+                if (!string.IsNullOrEmpty(partToSpawnTitle))
+                    buttonLabel += " " + partToSpawnTitle;
+
+                if (GUILayout.Button(buttonLabel))
                 {
                     onSpawnPrintedPart();
                 }
@@ -592,7 +601,11 @@ namespace Sandcastle.PrintShop
 
             // Part mass and volume
             ModuleCargoPart cargoPart = previewPart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
-            if (cargoPart != null)
+            if (cargoPart != null && cargoPart.packedVolume < 0f)
+                previewPartMassVolume = Localizer.Format(
+                    "#LOC_SANDCASTLE_partMassNotStorable",
+                    new string[1] { string.Format("{0:n3}", previewPart.partPrefab.mass) });
+            else if (cargoPart != null)
                 previewPartMassVolume = Localizer.Format("#LOC_SANDCASTLE_partMassVolume", new string[2] { string.Format("{0:n3}", previewPart.partPrefab.mass), string.Format("{0:n3}", cargoPart.packedVolume) });
             else
                 previewPartMassVolume = Localizer.Format("#LOC_SANDCASTLE_partMass", new string[1] { string.Format("{0:n3}", previewPart.partPrefab.mass) });

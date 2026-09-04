@@ -127,7 +127,10 @@ namespace Sandcastle.PrintShop
                 spawnTransform = part.FindModelTransform(spawnTransformName);
 
             if (HighLogic.LoadedSceneIsFlight)
+            {
                 SandcastleScenario.onPartPrinted.Add(onPartPrinted);
+                shipwrightUI.craftName = shipName;
+            }
 
             if (HighLogic.LoadedSceneIsFlight && printQueue != null && printQueue.Count > 0)
             {
@@ -135,7 +138,6 @@ namespace Sandcastle.PrintShop
                     Debug.Log("[Sandcastle] - Setting up shipwrightUI OnStart");
                 shipwrightUI.UpdateResourceRequirements();
                 shipwrightUI.SetPrintTotals(totalPartsToPrint, totalPartsPrinted, shipTotalUnitsRequired, shipTotalUnitsPrinted);
-                shipwrightUI.craftName = shipName;
             }
 
             // OnLoad restores dockedVesselInfo, but ShipwrightUI is recreated in
@@ -684,6 +686,7 @@ namespace Sandcastle.PrintShop
             if (shipNode.HasValue("ship"))
             {
                 shipName = shipNode.GetValue("ship");
+                shipwrightUI.craftName = shipName;
                 if (debugMode)
                     Debug.Log("[Sandcastle] - Ship Name: " + shipName);
             }
@@ -856,11 +859,14 @@ namespace Sandcastle.PrintShop
             if (printQueue.Count > 1)
             {
                 BuildItem item = printQueue[printQueue.Count - 1];
-                sender.printQueue.Add(new BuildItem(item));
 
                 // Yes we're doing this deliberately. We want the support printer to print the item but we need to wait for that print job to be completed.
                 item.waitForSupportCompletion = true;
                 item.skipInventoryAdd = true;
+
+                // Set the handoff flags before cloning the item so the support
+                // printer does not place the completed part into inventory.
+                sender.printQueue.Add(new BuildItem(item));
 
                 if (debugMode)
                     Debug.Log("[WBIShipwright " + part.flightID + "] - " + "Asking support printer " + sender.part.flightID + " to print " + item.partName);

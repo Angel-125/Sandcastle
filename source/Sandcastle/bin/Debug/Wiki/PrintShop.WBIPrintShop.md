@@ -13,6 +13,8 @@ Title to use for the print shop dialog
 Current print state.
 ### enablePartSpawn
 Flag indicating that part spawn is enabled. This lets the printer spawn parts into the world instead of putting them into an inventory.
+### enableOrbitalPartSpawn
+Flag indicating that world-spawned parts may be printed while the printer vessel is in the ORBITING situation. Sub-orbital and escaping vessels are intentionally excluded.
 ### maxPartDimensions
 Maximum possible craft size that can be printed: Height (X) Width (Y) Length (Z). Leave empty for unlimited printing.
 ### repositionCraftBeforeSpawning
@@ -33,7 +35,7 @@ Updates the running state shown in the print-shop UI when the UI exists. Print j
 
 
 ### spaceRequirementsMet(Sandcastle.PrintShop.BuildItem)
-Verifies that the vessel has room to store the completed cargo part unless this printer is configured to spawn completed parts directly into the world.
+Verifies that the vessel has room to store the completed cargo part unless this printer spawns completed parts or the job belongs to a lead Shipwright.
 > #### Parameters
 > **buildItem:** The print job whose output needs inventory space.
 

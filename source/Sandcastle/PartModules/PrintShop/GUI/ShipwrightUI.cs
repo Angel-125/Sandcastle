@@ -30,6 +30,24 @@ namespace Sandcastle.PrintShop
     public delegate void CancelBuildDelegate();
 
     /// <summary>
+    /// Delegate to toggle the vessel capture state for recycling.
+    /// </summary>
+    public delegate void ToggleCaptureState(bool isEnabled);
+
+    /// <summary>
+    ///  Delegate to toggle auto-recycling state. If enabled, craft will automatically be recycled upon captured.
+    ///  If disabled, the player must manually start the recycling process.
+    /// </summary>
+    /// <param name="isEnabled"></param>
+    public delegate void ToggleAutoStarRecycling(bool isEnabled);
+
+    /// <summary>
+    ///  Delegate to toggle preferring storage over recycling.
+    /// </summary>
+    /// <param name="isEnabled"></param>
+    public delegate void TogglePreferStorageToRecycle(bool isEnabled);
+
+    /// <summary>
     /// Represents the Print Shop UI
     /// </summary>
     public class ShipwrightUI: Dialog<ShipwrightUI>
@@ -406,7 +424,11 @@ namespace Sandcastle.PrintShop
         private void drawSpawnButton()
         {
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button(Localizer.Format("#LOC_SANDCASTLE_finalizePrinting")))
+            string buttonLabel = Localizer.Format("#LOC_SANDCASTLE_finalizePrinting");
+            if (!string.IsNullOrEmpty(craftName))
+                buttonLabel += " " + craftName;
+
+            if (GUILayout.Button(buttonLabel))
             {
                 base.SetVisible(false);
                 clearUI();

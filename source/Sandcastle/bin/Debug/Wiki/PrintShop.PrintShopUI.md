@@ -27,6 +27,8 @@ The Part associated with the UI.
 Whitelisted categories that the printer can print from.
 ### showPartSpawnButton
 Flag to indicate whether or not to show the part spawn button.
+### partToSpawnTitle
+Localized title of the completed part awaiting finalization.
 ### showPartDecoupleButton
 Flag indicating whether to show the printed-part release button.
 ## Methods

@@ -214,7 +214,14 @@ The above should go right after the existing MODEL object. Next add the followin
 		name = WBIPrintShop
 
 		// Prints parts of any size
+		// For world-spawn printers, positive limits are checked against the
+		// part model's bounding-box volume in liters. Parts with packedVolume < 0
+		// are eligible because they do not need to fit in an inventory.
 		maxPrintVolume = -1
+
+		// Optional maximum part dimensions in meters: Height (X), Width (Y), Length (Z).
+		// World-spawn printers calculate these dimensions from the part model.
+		// maxPartDimensions = 5,5,10
 
 		printSpeedUSec = 0.25
 
@@ -222,6 +229,10 @@ The above should go right after the existing MODEL object. Next add the followin
 
 		// Spawns the part into the world instead of placing it into an inventory
 		enablePartSpawn = true
+
+		// Allows spawned parts while the vessel situation is ORBITING.
+		// SUB_ORBITAL and ESCAPING are not supported.
+		enableOrbitalPartSpawn = true
 
 		// Where to spawn the printed part.
 		spawnTransformName = VesselSpawnPoint

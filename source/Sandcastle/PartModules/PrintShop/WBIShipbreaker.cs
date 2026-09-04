@@ -74,6 +74,14 @@ namespace Sandcastle.PrintShop
         public bool vesselCaptureEnabled;
 
         /// <summary>
+        /// Name of the model transform containing the vessel-capture trigger.
+        /// The transform and its trigger colliders are active only while vessel
+        /// capture is enabled.
+        /// </summary>
+        [KSPField]
+        public string recycleTransformName = "RecycleTarget";
+
+        /// <summary>
         /// Maximum distance allowed for other shipbreakers to help break up a vessel.
         /// </summary>
         [KSPField]
@@ -110,6 +118,19 @@ namespace Sandcastle.PrintShop
         [KSPField(isPersistant = true)]
         public string currentJob = string.Empty;
 
+        /// <summary>
+        /// Flag indicating whether or not to automatically start recyling a craft upon capture.
+        /// Defaults to true.
+        /// </summary>
+        [KSPField(isPersistant = true)]
+        public bool autoStartRecycling = true;
+
+        /// <summary>
+        /// Flag to indicate whether or not to try to store parts before recyling them.
+        /// </summary>
+        [KSPField(isPersistant = true)]
+        public bool preferStoreBeforeRecycle = true;
+
         ShipbreakerUI recyclerUI = null;
         bool missingRequirements = false;
         Dictionary<double, Part> unHighlightList = null;
@@ -125,6 +146,8 @@ namespace Sandcastle.PrintShop
         bool tryToCoupleVessel = false;
         List<BuildItem> partsNeedingRecycling = null;
         List<WBIShipbreaker> supportShipbreakers = null;
+        Transform recycleTransform = null;
+        Collider[] recycleTriggerColliders = null;
         #endregion
 
         #region FixedUpdate
@@ -210,15 +233,14 @@ namespace Sandcastle.PrintShop
             // Setup animation
             setupAnimation();
 
-            // Setup vessel capture toggle button
-            if (vesselCaptureEnabled)
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOff");
-            else
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
+            // The capture volume should exist only while the shipbreaker is armed.
+            setupRecycleTarget();
+            setVesselCaptureEnabled(vesselCaptureEnabled);
 
             // Make the sure the printer didn't get stuck with an unprocessed vessel.
             if (dockedVesselInfo != null)
             {
+                recyclerUI.showDecoupleButton = true;
                 if (debugMode)
                 {
                     Debug.Log(formatPartID() + " - Docked vessel still needs processing.");
@@ -235,17 +257,28 @@ namespace Sandcastle.PrintShop
             recyclerUI = new ShipbreakerUI();
             recyclerUI.part = part;
             recyclerUI.onRecycleStatusUpdate = onRecycleStatusUpdate;
+            recyclerUI.onToggleCaptureState = onToggleCaptureState;
+            recyclerUI.onToggleAutoStarRecycling = onToggleAutoStarRecycling;
             recyclerUI.recycleQueue = new List<BuildItem>();
             recyclerUI.resourceRecylePercent = recyclePercentage;
             recyclerUI.onCancelVesselBuild = onCancelVesselBuild;
+            recyclerUI.onDecoupleShip = onReleaseVessel;
             recyclerUI.supportShipbreakers = supportShipbreakers;
+            recyclerUI.onTogglePreferStorageToRecycle = onTogglePreferStorageToRecycle;
         }
 
         public override void OnInactive()
         {
             base.OnInactive();
+            setRecycleTargetActive(false);
             if (recyclerUI.IsVisible())
                 recyclerUI.SetVisible(false);
+        }
+
+        public override void OnActive()
+        {
+            base.OnActive();
+            setVesselCaptureEnabled(vesselCaptureEnabled);
         }
 
         public virtual void OnDestroy()
@@ -379,18 +412,10 @@ namespace Sandcastle.PrintShop
         [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_shipbreakerGroupName", groupDisplayName = "#LOC_SANDCASTLE_shipbreakerGroupName", guiName = "#LOC_SANDCASTLE_openShpbreaker")]
         public void OpenGUI()
         {
+            recyclerUI.autoStartRecycling = autoStartRecycling;
+            recyclerUI.enableVesselCapture = vesselCaptureEnabled;
+            recyclerUI.preferStoreBeforeRecycle = preferStoreBeforeRecycle;
             recyclerUI.SetVisible(true);
-        }
-
-        [KSPEvent(guiActive = true, groupName = "#LOC_SANDCASTLE_shipbreakerGroupName", groupDisplayName = "#LOC_SANDCASTLE_shipbreakerGroupName", guiName = "#LOC_SANDCASTLE_vesselCaptureOn")]
-        public void ToggleActiveState()
-        {
-            vesselCaptureEnabled = !vesselCaptureEnabled;
-
-            if (vesselCaptureEnabled)
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOff");
-            else
-                Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
         }
         #endregion
 
@@ -398,13 +423,15 @@ namespace Sandcastle.PrintShop
 
         public void DisableRecycler()
         {
-            vesselCaptureEnabled = false;
+            setVesselCaptureEnabled(false);
             recycleState = WBIPrintStates.Idle;
-            Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
         }
 
         protected void updateUIStatus()
         {
+            recyclerUI.autoStartRecycling = autoStartRecycling;
+            recyclerUI.enableVesselCapture = vesselCaptureEnabled;
+            recyclerUI.preferStoreBeforeRecycle = preferStoreBeforeRecycle;
             recyclerUI.isRecycling = recycleState == WBIPrintStates.Recycling;
             recyclerUI.UpdateResourceRequirements();
             recyclerUI.SetPrintTotals(totalPartsToRecycle, totalPartsRecycled);
@@ -417,6 +444,68 @@ namespace Sandcastle.PrintShop
         private string formatPartID()
         {
             return "[Shipbreaker " + part.flightID + "]";
+        }
+
+        /// <summary>
+        /// Locates and caches the model transform and trigger colliders used to
+        /// capture vessels for recycling.
+        /// </summary>
+        private void setupRecycleTarget()
+        {
+            recycleTransform = null;
+            recycleTriggerColliders = null;
+            if (part == null || string.IsNullOrEmpty(recycleTransformName))
+                return;
+
+            recycleTransform = part.FindModelTransform(recycleTransformName);
+            if (recycleTransform == null)
+            {
+                if (debugMode)
+                    Debug.LogWarning(formatPartID() + " - Cannot find recycle transform " +
+                        recycleTransformName + ".");
+                return;
+            }
+
+            recycleTriggerColliders = recycleTransform
+                .GetComponentsInChildren<Collider>(true)
+                .Where(collider => collider != null && collider.isTrigger)
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Enables or disables the capture transform and every trigger collider
+        /// beneath it.
+        /// </summary>
+        private void setRecycleTargetActive(bool isActive)
+        {
+            if (recycleTransform == null)
+                setupRecycleTarget();
+            if (recycleTransform == null)
+                return;
+
+            if (recycleTriggerColliders != null)
+            {
+                for (int index = 0; index < recycleTriggerColliders.Length; index++)
+                {
+                    if (recycleTriggerColliders[index] != null)
+                        recycleTriggerColliders[index].enabled = isActive;
+                }
+            }
+
+            recycleTransform.gameObject.SetActive(isActive);
+        }
+
+        /// <summary>
+        /// Sets the persistent vessel-capture state and keeps the capture UI and
+        /// trigger volume synchronized with it.
+        /// </summary>
+        private void setVesselCaptureEnabled(bool isCaptureEnabled)
+        {
+            vesselCaptureEnabled = isCaptureEnabled;
+            if (recyclerUI != null)
+                recyclerUI.enableVesselCapture = isCaptureEnabled;
+
+            setRecycleTargetActive(isCaptureEnabled && isEnabled);
         }
 
         public bool IsRecycling(BuildItem buildItem)
@@ -602,11 +691,15 @@ namespace Sandcastle.PrintShop
             Debug.Log(formatPartID() + " - onVesselCoupled");
 
             // Disable vessel capture.
-            vesselCaptureEnabled = false;
-            Events["ToggleActiveState"].guiName = Localizer.Format("#LOC_SANDCASTLE_vesselCaptureOn");
+            setVesselCaptureEnabled(false);
+            recyclerUI.showDecoupleButton = true;
 
             if (recycleQueue.Count <= 0)
                 processVesselToRecycle();
+
+            // Pause the recycler if auto-recycle is off
+            if (!autoStartRecycling)
+                recycleState = WBIPrintStates.Paused;
         }
 
         protected virtual void processVesselToRecycle()
@@ -918,6 +1011,7 @@ namespace Sandcastle.PrintShop
                 {
                     InventoryUtils.decoupleVessel(partToRecycle, dockedVesselInfo);
                     dockedVesselInfo = null;
+                    recyclerUI.showDecoupleButton = false;
                 }
 
                 // Dispose of the part.
@@ -1107,7 +1201,7 @@ namespace Sandcastle.PrintShop
             // See if we can find an inventory that has space for the part. If we do, then add the part to the inventory.
             ModuleCargoPart cargoPart = buildItem.availablePart.partPrefab.FindModuleImplementing<ModuleCargoPart>();
             float partVolume = buildItem.isUnpacked ? (float)buildItem.unpackedVolume : -1f;
-            if (!buildItem.isBeingRecycled && cargoPart != null && InventoryUtils.HasEnoughSpace(part.vessel, buildItem.availablePart, 1, buildItem.mass, partVolume))
+            if (preferStoreBeforeRecycle && !buildItem.isBeingRecycled && cargoPart != null && InventoryUtils.HasEnoughSpace(part.vessel, buildItem.availablePart, 1, buildItem.mass, partVolume))
             {
                 InventoryUtils.AddItem(part.vessel, buildItem.availablePart, buildItem.variantIndex);
                 if (debugMode)
@@ -1262,6 +1356,16 @@ namespace Sandcastle.PrintShop
             updateUIStatus();
         }
 
+        private void onToggleCaptureState(bool isEnabled)
+        {
+            setVesselCaptureEnabled(isEnabled);
+        }
+
+        private void onToggleAutoStarRecycling(bool isEnabled)
+        {
+            autoStartRecycling = isEnabled;
+        }
+
         private void onRecycleStatusUpdate(bool isRecycling)
         {
             if (isRecycling)
@@ -1274,11 +1378,46 @@ namespace Sandcastle.PrintShop
             }
         }
 
+        private void onTogglePreferStorageToRecycle(bool isPreferred)
+        {
+            preferStoreBeforeRecycle = isPreferred;
+        }
+
         private void onCancelVesselBuild()
         {
-            if (recycleState != WBIPrintStates.Recycling)
-                return;
             Debug.Log(formatPartID() + " - onCancelVesselBuild");
+
+            onReleaseVessel();
+        }
+
+        /// <summary>
+        /// Stops all work associated with the captured vessel and releases the
+        /// portion that has not yet been recycled.
+        /// </summary>
+        private void onReleaseVessel()
+        {
+            if (dockedVesselInfo == null)
+                return;
+
+            Part dockedVesselRootPart = part.vessel[dockedVesselInfo.rootPartUId];
+            if (dockedVesselRootPart == null)
+            {
+                ScreenMessages.PostScreenMessage("dockedVesselRootPart == null", kMsgDuration, ScreenMessageStyle.UPPER_CENTER);
+                return;
+            }
+
+            // Stop processing before changing any queues or vessel topology.
+            recycleState = WBIPrintStates.Paused;
+            recyclerUI.isRecycling = false;
+            lastUpdateTime = Planetarium.GetUniversalTime();
+            part.Effect(runningEffect, 0);
+            if (animation != null)
+            {
+                animation[animationName].speed = 0f;
+                animation.Stop();
+            }
+
+            cancelSupportRecycleJobs();
 
             // Disable recycling
             DisableRecycler();
@@ -1292,27 +1431,99 @@ namespace Sandcastle.PrintShop
             shipName = string.Empty;
             recycleQueue.Clear();
             partsNeedingRecycling.Clear();
+            recycleStatusText = recycleState.ToString();
+            recyclerUI.isRecycling = false;
+            recyclerUI.showDecoupleButton = false;
+            tryToCoupleVessel = false;
 
-            // Decouple what's left of the carcass
-            if (dockedVesselInfo == null)
-            {
-                ScreenMessages.PostScreenMessage("dockedVesselInfo == null", kMsgDuration, ScreenMessageStyle.UPPER_CENTER);
-                return;
-            }
-
-            // Get the docked vessel's root part.
-            Part dockedVesselRootPart = part.vessel[dockedVesselInfo.rootPartUId];
-            if (dockedVesselRootPart == null)
-            {
-                ScreenMessages.PostScreenMessage("dockedVesselRootPart == null", kMsgDuration, ScreenMessageStyle.UPPER_CENTER);
-                return;
-            }
+            // Modules and inventories on the captured craft were disabled when
+            // it entered the recycler. Restore the surviving subtree before it
+            // becomes an independent vessel again.
+            enableReleasedVesselModules(dockedVesselRootPart);
 
             Debug.Log(formatPartID() + " - Calling decoupleVessel");
-            part.StartCoroutine(InventoryUtils.decoupleVessel(dockedVesselRootPart, dockedVesselInfo, false));
+            DockedVesselInfo vesselInfo = dockedVesselInfo;
+            part.StartCoroutine(InventoryUtils.decoupleVessel(dockedVesselRootPart, vesselInfo, false));
 
             dockedVesselInfo = null;
             vesselToRecycle = null;
+        }
+
+        /// <summary>
+        /// Removes jobs delegated by this lead shipbreaker from its support units.
+        /// </summary>
+        private void cancelSupportRecycleJobs()
+        {
+            if (supportShipbreakers == null || supportShipbreakers.Count == 0)
+                return;
+
+            HashSet<BuildItem> canceledJobs = new HashSet<BuildItem>(recycleQueue);
+            HashSet<uint> canceledFlightIds = new HashSet<uint>();
+            for (int index = 0; index < recycleQueue.Count; index++)
+            {
+                if (recycleQueue[index].flightId != 0)
+                    canceledFlightIds.Add(recycleQueue[index].flightId);
+            }
+            if (partsNeedingRecycling != null)
+            {
+                for (int index = 0; index < partsNeedingRecycling.Count; index++)
+                {
+                    canceledJobs.Add(partsNeedingRecycling[index]);
+                    if (partsNeedingRecycling[index].flightId != 0)
+                        canceledFlightIds.Add(partsNeedingRecycling[index].flightId);
+                }
+            }
+
+            for (int index = 0; index < supportShipbreakers.Count; index++)
+            {
+                WBIShipbreaker supportShipbreaker = supportShipbreakers[index];
+                if (supportShipbreaker == null || supportShipbreaker.recycleQueue == null)
+                    continue;
+
+                supportShipbreaker.recycleQueue.RemoveAll(item =>
+                    item != null &&
+                    (canceledJobs.Contains(item) ||
+                    (item.flightId != 0 && canceledFlightIds.Contains(item.flightId))));
+                if (supportShipbreaker.recycleQueue.Count == 0)
+                {
+                    supportShipbreaker.recycleState = WBIPrintStates.Idle;
+                    supportShipbreaker.recycleStatusText = WBIPrintStates.Idle.ToString();
+                    supportShipbreaker.lastUpdateTime = Planetarium.GetUniversalTime();
+                    supportShipbreaker.part.Effect(supportShipbreaker.runningEffect, 0);
+                }
+
+                supportShipbreaker.updateRecyclerUIQueue();
+                supportShipbreaker.updateUIStatus();
+            }
+        }
+
+        /// <summary>
+        /// Re-enables functional modules on the surviving captured-vessel subtree.
+        /// </summary>
+        private void enableReleasedVesselModules(Part rootPart)
+        {
+            List<Part> remainingParts = new List<Part>();
+            addParentChildPartsToList(rootPart, remainingParts);
+            for (int partIndex = 0; partIndex < remainingParts.Count; partIndex++)
+            {
+                Part remainingPart = remainingParts[partIndex];
+                for (int moduleIndex = 0; moduleIndex < remainingPart.Modules.Count; moduleIndex++)
+                {
+                    PartModule module = remainingPart.Modules[moduleIndex];
+                    if (module is WBIBasePrinter ||
+                        module is WBIShipbreaker ||
+                        module is ModuleInventoryPart)
+                    {
+                        module.enabled = true;
+                        module.isEnabled = true;
+                    }
+
+                    WBIShipbreaker releasedShipbreaker = module as WBIShipbreaker;
+                    if (releasedShipbreaker != null)
+                        releasedShipbreaker.setRecycleTargetActive(
+                            releasedShipbreaker.vesselCaptureEnabled);
+                }
+            }
         }
 
         private float calculateSpecialistBonus()
