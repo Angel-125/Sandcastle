@@ -965,6 +965,24 @@ namespace Sandcastle.PartModules
     {
         private static readonly FieldInfo IsPlacementValidField =
             AccessTools.Field(typeof(EVAConstructionModeEditor), "isPlacementValid");
+        private static int cargoPanelPlacementDepth;
+
+        /// <summary>
+        /// Marks a stock proto-vessel request made by Sandcastle's Cargo-panel
+        /// seabed drop path, which has already raycast a valid terrain target.
+        /// </summary>
+        internal static void BeginCargoPanelPlacement()
+        {
+            cargoPanelPlacementDepth++;
+        }
+
+        /// <summary>
+        /// Ends the current Cargo-panel proto-vessel request.
+        /// </summary>
+        internal static void EndCargoPanelPlacement()
+        {
+            cargoPanelPlacementDepth = Math.Max(0, cargoPanelPlacementDepth - 1);
+        }
 
         /// <summary>
         /// Remembers the live EVA vessel state while stock serializes a seabed placement as landed.
@@ -1047,14 +1065,17 @@ namespace Sandcastle.PartModules
         {
             bool isActiveManipulator = EVAConstructionBridge.HasActiveHost &&
                 EVAConstructionBridge.ActiveHost.part.vessel == vessel;
+            bool isCargoPanelPlacement = cargoPanelPlacementDepth > 0;
+            bool isValidPlacement = isCargoPanelPlacement ||
+                (editor != null && IsPlacementValidField != null &&
+                    (bool)IsPlacementValidField.GetValue(editor) &&
+                    EVAConstructionGroundPartDeploymentPatch.IsTerrainPlacement(editor, part));
 
             if (editor == null || vessel == null || part == null ||
                 (!vessel.isEVA && !isActiveManipulator) ||
                 vessel.situation != Vessel.Situations.SPLASHED ||
                 vessel.mainBody == null || !vessel.mainBody.ocean ||
-                IsPlacementValidField == null ||
-                !(bool)IsPlacementValidField.GetValue(editor) ||
-                !EVAConstructionGroundPartDeploymentPatch.IsTerrainPlacement(editor, part))
+                !isValidPlacement)
             {
                 return false;
             }

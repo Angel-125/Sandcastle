@@ -1,6 +1,28 @@
 ﻿# Sandcastle
 
 
+# PartModules.EVACargoGroundDropper
+            
+Lets any landed or splashed EVA kerbal pick up and drop single cargo items from the stock Cargo panel without granting access to EVA Construction.
+        
+## Methods
+
+
+### Update
+Picks up a nearby one-part DroppedPart vessel, or converts a terrain click into one while the Cargo panel owns a single inventory item.
+
+### TryPickupCargoPart(EVAConstructionModeController,UIPartActionControllerInventory,Vessel)
+Converts a nearby one-part DroppedPart vessel into stock held cargo. The stock inventory UI subsequently enforces slot, volume, and mass limits when the player chooses an inventory.
+
+### TryDropCargoPart(EVAConstructionModeController,UIPartActionControllerInventory,Vessel,Part)
+Converts stock held cargo into a one-part DroppedPart vessel.
+
+### IsCargoPanelOpen(EVAConstructionModeController)
+Reports whether stock is showing its inventory-only Cargo panel.
+
+### GetGroundRotation(Vessel,UnityEngine.Vector3)
+Aligns the dropped part with local up while retaining the kerbal's heading.
+
 # PartModules.WBIModuleEVAVariants
             
 This helper part module makes it possible to change part variants during EVA Construction.
@@ -197,6 +219,12 @@ Allows submerged EVA actors to place loose parts on the seabed and applies persi
 ## Methods
 
 
+### BeginCargoPanelPlacement
+Marks a stock proto-vessel request made by Sandcastle's Cargo-panel seabed drop path, which has already raycast a valid terrain target.
+
+### EndCargoPanelPlacement
+Ends the current Cargo-panel proto-vessel request.
+
 ### TargetMethod
 Locates the stock method that builds the proto-vessel for a loose construction part.
 
@@ -366,6 +394,14 @@ Model transform used as the center of the stock construction workspace.
 Maximum movable part mass, including resources, in metric tons.
 ### maxConstructionDistance
 Maximum distance from the construction transform at which parts can be manipulated, in meters.
+### showConstructionRange
+Shows a field effect that marks the stock EVA Construction workspace.
+### constructionRangeColorPicker
+Stock PAW color picker for the construction range field effect.
+### constructionRangeColor
+Construction range RGB color encoded as #RRGGBB.
+### constructionRangeOpacity
+Controls the opacity of the three great-circle outlines that visualize the EVA Construction range. Valid values are 0.0 (invisible) through 1.0 (fully opaque). This can be overridden in the part's WBIEVAConstructionManipulator config node.
 ## Properties
 
 ### ConstructionTransform
@@ -382,8 +418,25 @@ Resolves the configured construction transform and initializes PAW visibility.
 > **state:** KSP's current part-module startup state.
 
 
+### PresetColors
+Returns the stock light-color presets for the construction range picker.
+
+### GetCurrentColor(System.String)
+Supplies the persisted construction range color to the stock picker.
+
+### OnColorChanged(UnityEngine.Color,System.String)
+Persists construction range color changes made with the stock picker.
+
+### LateUpdate
+Keeps the construction range effect centered on the configured transform.
+
 ### OnDestroy
 Releases this part as the construction host if its part or vessel is destroyed.
+
+# PartModules.ConstructionRangeVisualizer
+            
+Draws three great-circle guides in world space.
+        
 
 # Inventory.InventoryUtils
             

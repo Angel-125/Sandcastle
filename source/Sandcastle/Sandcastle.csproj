@@ -52,6 +52,8 @@
     <Publicize Include="Assembly-CSharp:FlagDecalBackground.uI_ChooseOption" />
     <Publicize Include="Assembly-CSharp:FlagDecalBackground.UpdateUIChooseOptions" />
     <Publicize Include="Assembly-CSharp:EditorLogicBase.selectedPart" />
+    <Publicize Include="Assembly-CSharp:EditorLogicBase.CreateSelectedPartIcon" />
+    <Publicize Include="Assembly-CSharp:Part.GetBoundsPoints" />
     <Publicize Include="Assembly-CSharp:Attachment" />
     <Publicize Include="Assembly-CSharp:EVAConstructionModeEditor.DropAttachablePart" />
     <Publicize Include="Assembly-CSharp:EVAConstructionModeEditor.GetProtoVesselNode" />
@@ -137,6 +139,7 @@
     <Compile Include="PartModules\Inventory\ModulePartModuleFactory.cs" />
     <Compile Include="PartModules\Inventory\SupportClasses\InventoryUtils.cs" />
     <Compile Include="PartModules\Inventory\ModuleCargoCatcher.cs" />
+    <Compile Include="PartModules\Inventory\EVACargoGroundDropper.cs" />
     <Compile Include="PartModules\Inventory\ModuleDefaultInventoryStack.cs" />
     <Compile Include="PartModules\Inventory\ModuleStorablePart.cs" />
     <Compile Include="PartModules\ModuleMassFixer.cs" />

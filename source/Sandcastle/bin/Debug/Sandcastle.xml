@@ -4,6 +4,40 @@
         <name>Sandcastle</name>
     </assembly>
     <members>
+        <member name="T:Sandcastle.PartModules.EVACargoGroundDropper">
+            <summary>
+            Lets any landed or splashed EVA kerbal pick up and drop single cargo
+            items from the stock Cargo panel without granting access to EVA Construction.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.Update">
+            <summary>
+            Picks up a nearby one-part DroppedPart vessel, or converts a terrain
+            click into one while the Cargo panel owns a single inventory item.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.TryPickupCargoPart(EVAConstructionModeController,UIPartActionControllerInventory,Vessel)">
+            <summary>
+            Converts a nearby one-part DroppedPart vessel into stock held cargo.
+            The stock inventory UI subsequently enforces slot, volume, and mass
+            limits when the player chooses an inventory.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.TryDropCargoPart(EVAConstructionModeController,UIPartActionControllerInventory,Vessel,Part)">
+            <summary>
+            Converts stock held cargo into a one-part DroppedPart vessel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.IsCargoPanelOpen(EVAConstructionModeController)">
+            <summary>
+            Reports whether stock is showing its inventory-only Cargo panel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.GetGroundRotation(Vessel,UnityEngine.Vector3)">
+            <summary>
+            Aligns the dropped part with local up while retaining the kerbal's heading.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PartModules.WBIModuleEVAVariants">
             <summary>
             This helper part module makes it possible to change part variants during EVA Construction.
@@ -312,6 +346,17 @@
             Allows submerged EVA actors to place loose parts on the seabed and applies persistent zero buoyancy.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch.BeginCargoPanelPlacement">
+            <summary>
+            Marks a stock proto-vessel request made by Sandcastle's Cargo-panel
+            seabed drop path, which has already raycast a valid terrain target.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch.EndCargoPanelPlacement">
+            <summary>
+            Ends the current Cargo-panel proto-vessel request.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PartModules.EVAConstructionUnderwaterProtoVesselPatch.VesselSituationState">
             <summary>
             Remembers the live EVA vessel state while stock serializes a seabed placement as landed.
@@ -533,6 +578,29 @@
             Maximum distance from the construction transform at which parts can be manipulated, in meters.
             </summary>
         </member>
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.showConstructionRange">
+            <summary>
+            Shows a field effect that marks the stock EVA Construction workspace.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.constructionRangeColorPicker">
+            <summary>
+            Stock PAW color picker for the construction range field effect.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.constructionRangeColor">
+            <summary>
+            Construction range RGB color encoded as #RRGGBB.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PartModules.WBIEVAConstructionManipulator.constructionRangeOpacity">
+            <summary>
+            Controls the opacity of the three great-circle outlines that visualize
+            the EVA Construction range. Valid values are 0.0 (invisible) through
+            1.0 (fully opaque). This can be overridden in the part's
+            WBIEVAConstructionManipulator config node.
+            </summary>
+        </member>
         <member name="P:Sandcastle.PartModules.WBIEVAConstructionManipulator.ConstructionTransform">
             <summary>
             World-space transform used as the construction origin.
@@ -549,9 +617,34 @@
             </summary>
             <param name="state">KSP's current part-module startup state.</param>
         </member>
+        <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.PresetColors">
+            <summary>
+            Returns the stock light-color presets for the construction range picker.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.GetCurrentColor(System.String)">
+            <summary>
+            Supplies the persisted construction range color to the stock picker.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.OnColorChanged(UnityEngine.Color,System.String)">
+            <summary>
+            Persists construction range color changes made with the stock picker.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.LateUpdate">
+            <summary>
+            Keeps the construction range effect centered on the configured transform.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PartModules.WBIEVAConstructionManipulator.OnDestroy">
             <summary>
             Releases this part as the construction host if its part or vessel is destroyed.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.ConstructionRangeVisualizer">
+            <summary>
+            Draws three great-circle guides in world space.
             </summary>
         </member>
         <member name="T:Sandcastle.Inventory.InventoryUtils">
