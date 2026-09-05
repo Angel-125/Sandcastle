@@ -16,6 +16,12 @@
             click into one while the Cargo panel owns a single inventory item.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.LateUpdate">
+            <summary>
+            Replaces Cargo mode's cursor icon with the highlighted, full-scale
+            part preview that stock normally creates only in Construction mode.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.TryPickupCargoPart(EVAConstructionModeController,UIPartActionControllerInventory,Vessel)">
             <summary>
             Converts a nearby one-part DroppedPart vessel into stock held cargo.
@@ -28,6 +34,29 @@
             Converts stock held cargo into a one-part DroppedPart vessel.
             </summary>
         </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.TryGetGroundPlacement(Vessel,Part,UnityEngine.Vector3@,UnityEngine.Quaternion@)">
+            <summary>
+            Finds the same terrain placement used by the visible preview and the
+            final proto-vessel spawn.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.PrepareWorldPreview(UIPartActionControllerInventory,Part)">
+            <summary>
+            Configures the stock inventory clone as a non-physical flight-scene
+            preview. Collider triggers prevent the preview from affecting physics.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.SetPreviewVisibility(UIPartActionControllerInventory,Part,System.Boolean)">
+            <summary>
+            Switches between the full-size world preview and Cargo mode's icon.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.ResetWorldPreview(UIPartActionControllerInventory)">
+            <summary>
+            Restores Cargo mode's icon presentation when its panel or vessel
+            context is no longer eligible for a world preview.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.IsCargoPanelOpen(EVAConstructionModeController)">
             <summary>
             Reports whether stock is showing its inventory-only Cargo panel.
@@ -36,6 +65,31 @@
         <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.GetGroundRotation(Vessel,UnityEngine.Vector3)">
             <summary>
             Aligns the dropped part with local up while retaining the kerbal's heading.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.TryGetGroundPickedCargoMass(Part,System.Single@)">
+            <summary>
+            Returns stock's inventory mass for cargo picked up through this
+            Cargo-mode extension without changing the live preview part.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.EVACargoGroundDropper.NormalizeGroundPickedCargoSnapshot(ProtoPartSnapshot)">
+            <summary>
+            Replaces only the stored snapshot's flight-adjusted dry mass with
+            the configured prefab mass. Resource amounts remain those captured
+            from the ground part.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.GroundPickedCargoMassPatch">
+            <summary>
+            Keeps stock inventory capacity checks from using flight-adjusted mass for
+            a cargo item picked up from the ground outside Construction mode.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.GroundPickedCargoSnapshotMassPatch">
+            <summary>
+            Prevents a ground part's flight-adjusted dry mass from being persisted
+            after stock accepts it into an inventory.
             </summary>
         </member>
         <member name="T:Sandcastle.PartModules.WBIModuleEVAVariants">

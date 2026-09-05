@@ -11,11 +11,26 @@ Lets any landed or splashed EVA kerbal pick up and drop single cargo items from 
 ### Update
 Picks up a nearby one-part DroppedPart vessel, or converts a terrain click into one while the Cargo panel owns a single inventory item.
 
+### LateUpdate
+Replaces Cargo mode's cursor icon with the highlighted, full-scale part preview that stock normally creates only in Construction mode.
+
 ### TryPickupCargoPart(EVAConstructionModeController,UIPartActionControllerInventory,Vessel)
 Converts a nearby one-part DroppedPart vessel into stock held cargo. The stock inventory UI subsequently enforces slot, volume, and mass limits when the player chooses an inventory.
 
 ### TryDropCargoPart(EVAConstructionModeController,UIPartActionControllerInventory,Vessel,Part)
 Converts stock held cargo into a one-part DroppedPart vessel.
+
+### TryGetGroundPlacement(Vessel,Part,UnityEngine.Vector3@,UnityEngine.Quaternion@)
+Finds the same terrain placement used by the visible preview and the final proto-vessel spawn.
+
+### PrepareWorldPreview(UIPartActionControllerInventory,Part)
+Configures the stock inventory clone as a non-physical flight-scene preview. Collider triggers prevent the preview from affecting physics.
+
+### SetPreviewVisibility(UIPartActionControllerInventory,Part,System.Boolean)
+Switches between the full-size world preview and Cargo mode's icon.
+
+### ResetWorldPreview(UIPartActionControllerInventory)
+Restores Cargo mode's icon presentation when its panel or vessel context is no longer eligible for a world preview.
 
 ### IsCargoPanelOpen(EVAConstructionModeController)
 Reports whether stock is showing its inventory-only Cargo panel.
