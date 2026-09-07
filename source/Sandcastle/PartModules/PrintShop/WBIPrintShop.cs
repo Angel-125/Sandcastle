@@ -71,7 +71,7 @@ namespace Sandcastle.PrintShop
         public bool repositionCraftBeforeSpawning = true;
 
         List<AvailablePart> filteredParts = null;
-        PrintShopUI shopUI = null;
+        protected PrintShopUI shopUI = null;
         List<string> whitelistedCategories;
         BuildItem buildItemToSpawn = null;
         DockedVesselInfo dockedPartInfo = null;
@@ -92,6 +92,13 @@ namespace Sandcastle.PrintShop
             {
                 shopUI.showPartSpawnButton = false;
                 shopUI.showPartDecoupleButton = true;
+            }
+
+            // UI
+            if (enableUnfocusedUI)
+            {
+                Events["OpenGUI"].unfocusedRange = 3f;
+                Events["OpenGUI"].guiActiveUnfocused = enableUnfocusedUI;
             }
         }
 

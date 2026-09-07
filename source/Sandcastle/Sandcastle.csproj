@@ -156,7 +156,9 @@
     <Compile Include="PartModules\PrintShop\WBICargoRecycler.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\BuildItem.cs" />
     <Compile Include="PartModules\PrintShop\SupportClasses\MaterialsList.cs" />
+    <Compile Include="PartModules\PrintShop\SupportClasses\RemotePrinterResources.cs" />
     <Compile Include="PartModules\PrintShop\WBIPrintShop.cs" />
+    <Compile Include="PartModules\PrintShop\WBIDeployedPrintShop.cs" />
     <Compile Include="PartModules\PrintShop\WBIModuleEVAPrintShop.cs" />
     <Compile Include="PartModules\PrintShop\WBIPrinterRequirements.cs" />
     <Compile Include="PartModules\EVAConstruction\WBIModuleEVAVariants.cs" />

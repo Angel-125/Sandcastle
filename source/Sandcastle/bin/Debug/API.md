@@ -38,6 +38,22 @@ Reports whether stock is showing its inventory-only Cargo panel.
 ### GetGroundRotation(Vessel,UnityEngine.Vector3)
 Aligns the dropped part with local up while retaining the kerbal's heading.
 
+### TryGetGroundPickedCargoMass(Part,System.Single@)
+Returns stock's inventory mass for cargo picked up through this Cargo-mode extension without changing the live preview part.
+
+### NormalizeGroundPickedCargoSnapshot(ProtoPartSnapshot)
+Replaces only the stored snapshot's flight-adjusted dry mass with the configured prefab mass. Resource amounts remain those captured from the ground part.
+
+# PartModules.GroundPickedCargoMassPatch
+            
+Keeps stock inventory capacity checks from using flight-adjusted mass for a cargo item picked up from the ground outside Construction mode.
+        
+
+# PartModules.GroundPickedCargoSnapshotMassPatch
+            
+Prevents a ground part's flight-adjusted dry mass from being persisted after stock accepts it into an inventory.
+        
+
 # PartModules.WBIModuleEVAVariants
             
 This helper part module makes it possible to change part variants during EVA Construction.
@@ -1123,6 +1139,8 @@ Flag to indicate whether or not to show the part spawn button.
 Localized title of the completed part awaiting finalization.
 ### showPartDecoupleButton
 Flag indicating whether to show the printed-part release button.
+### resourcesAreRemote
+Flag indicating that material resources can be supplied remotely. When set, resource requirements are displayed in orange instead of using local-vessel availability colors.
 ## Methods
 
 
@@ -1359,6 +1377,24 @@ Creates the default materials list.
 > #### Return value
 > A MaterialsList containing the default materials.
 
+# PrintShop.RemotePrinterResources
+            
+Provides the shared nearby-vessel resource behavior used by deployed and EVA printers. Nearby vessels are searched from nearest to farthest and the printer's own vessel supplies any remainder that the remote vessels cannot provide.
+        
+## Methods
+
+
+### GetResourceTotals(Part,System.Int32,System.Single,System.Double@,System.Double@)
+Gets the total amount and capacity available from nearby vessels and the printer vessel.
+
+### RequestResource(Part,System.Int32,System.Double,ResourceFlowMode,System.Single)
+Requests a resource from nearby vessels first and then from the printer vessel.
+> #### Return value
+> The amount of resource actually supplied.
+
+### ConsumePrinterResources(Part,ModuleResourceHandler,System.Single,System.String@)
+Consumes the resources required to operate a printer using nearby vessels and then the printer vessel. This mirrors ModuleResourceHandler's normal availability bookkeeping.
+
 # PrintShop.WBIPrintShop
             
 Represents a shop that is capable of printing items and placing them in an available inventory.
@@ -1404,6 +1440,20 @@ Verifies that the vessel has room to store the completed cargo part unless this 
 > #### Return value
 > True when the completed part can be handled by this printer.
 
+# PrintShop.WBIDeployedPrintShop
+            
+A print shop that can draw printing and operating resources from nearby loaded vessels. Remote vessels are used first; resources on the printer vessel provide the fallback.
+        
+## Fields
+
+### maxRemoteResourceRange
+Maximum distance in meters between the printer and a part on a supplying vessel. Set to zero or a negative value to disable remote resource access.
+## Methods
+
+
+### OnAwake
+Creates the print-shop UI and identifies its material resources as remotely supplied.
+
 # PrintShop.WBIModuleEVAPrintShop
             
 Provides a KerbalGear-activated print shop that consumes resources exposed on an EVA Kerbal and stores completed cargo parts in the Kerbal's inventory.
@@ -1416,6 +1466,8 @@ Localized label used by the event that opens the EVA print-shop window.
 Localized title used by the EVA print-shop window.
 ### maxPartDimensions
 Maximum printable-part dimensions expressed as Height (X), Width (Y), Length (Z). Leave empty to restrict printing by volume only.
+### maxRemoteResourceRange
+Maximum distance in meters between the EVA printer and a part on a supplying vessel. Set to zero or a negative value to disable remote resource access.
 ### printStateString
 Current state displayed in the EVA Kerbal's part action window.
 ## Methods
@@ -1501,6 +1553,15 @@ Verifies that the EVA inventory has room for the completed cargo part.
 Calculates the EVA Kerbal's specialist bonus without relying on part CrewCapacity.
 > #### Return value
 > The multiplier applied to the EVA printer's base speed.
+
+### consumePrinterResources
+Consumes printer operating resources from nearby vessels before using EVA-local resources.
+
+### getMaterialResourceTotals(System.Int32,System.Double@,System.Double@)
+Gets printable-material totals from nearby vessels and the EVA vessel.
+
+### requestMaterialResource(System.Int32,System.Double,ResourceFlowMode)
+Consumes printable material from nearby vessels before using EVA-local resources.
 
 ### onSupportPrintingRequest(Sandcastle.PrintShop.WBIShipwright,System.Collections.Generic.List{Sandcastle.PrintShop.BuildItem})
 Prevents a personal EVA printer from accepting distributed shipwright jobs.

@@ -31,6 +31,8 @@ Flag to indicate whether or not to show the part spawn button.
 Localized title of the completed part awaiting finalization.
 ### showPartDecoupleButton
 Flag indicating whether to show the printed-part release button.
+### resourcesAreRemote
+Flag indicating that material resources can be supplied remotely. When set, resource requirements are displayed in orange instead of using local-vessel availability colors.
 ## Methods
 
 

@@ -1583,6 +1583,12 @@
             Flag indicating whether to show the printed-part release button.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.PrintShopUI.resourcesAreRemote">
+            <summary>
+            Flag indicating that material resources can be supplied remotely. When set, resource
+            requirements are displayed in orange instead of using local-vessel availability colors.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.PrintShopUI.SetVisible(System.Boolean)">
             <summary>
             Toggles window visibility
@@ -2000,6 +2006,30 @@
             </summary>
             <returns>A MaterialsList containing the default materials.</returns>
         </member>
+        <member name="T:Sandcastle.PrintShop.RemotePrinterResources">
+            <summary>
+            Provides the shared nearby-vessel resource behavior used by deployed and EVA printers.
+            Nearby vessels are searched from nearest to farthest and the printer's own vessel supplies
+            any remainder that the remote vessels cannot provide.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.RemotePrinterResources.GetResourceTotals(Part,System.Int32,System.Single,System.Double@,System.Double@)">
+            <summary>
+            Gets the total amount and capacity available from nearby vessels and the printer vessel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.RemotePrinterResources.RequestResource(Part,System.Int32,System.Double,ResourceFlowMode,System.Single)">
+            <summary>
+            Requests a resource from nearby vessels first and then from the printer vessel.
+            </summary>
+            <returns>The amount of resource actually supplied.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.RemotePrinterResources.ConsumePrinterResources(Part,ModuleResourceHandler,System.Single,System.String@)">
+            <summary>
+            Consumes the resources required to operate a printer using nearby vessels and then the
+            printer vessel. This mirrors ModuleResourceHandler's normal availability bookkeeping.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PrintShop.WBIPrintShop">
             <summary>
             Represents a shop that is capable of printing items and placing them in an available inventory.
@@ -2072,6 +2102,23 @@
             <param name="buildItem">The print job whose output needs inventory space.</param>
             <returns>True when the completed part can be handled by this printer.</returns>
         </member>
+        <member name="T:Sandcastle.PrintShop.WBIDeployedPrintShop">
+            <summary>
+            A print shop that can draw printing and operating resources from nearby loaded vessels.
+            Remote vessels are used first; resources on the printer vessel provide the fallback.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIDeployedPrintShop.maxRemoteResourceRange">
+            <summary>
+            Maximum distance in meters between the printer and a part on a supplying vessel.
+            Set to zero or a negative value to disable remote resource access.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIDeployedPrintShop.OnAwake">
+            <summary>
+            Creates the print-shop UI and identifies its material resources as remotely supplied.
+            </summary>
+        </member>
         <member name="T:Sandcastle.PrintShop.WBIModuleEVAPrintShop">
             <summary>
             Provides a KerbalGear-activated print shop that consumes resources exposed on an EVA Kerbal
@@ -2092,6 +2139,12 @@
             <summary>
             Maximum printable-part dimensions expressed as Height (X), Width (Y), Length (Z).
             Leave empty to restrict printing by volume only.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIModuleEVAPrintShop.maxRemoteResourceRange">
+            <summary>
+            Maximum distance in meters between the EVA printer and a part on a supplying vessel.
+            Set to zero or a negative value to disable remote resource access.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.WBIModuleEVAPrintShop.printStateString">
@@ -2195,6 +2248,21 @@
             Calculates the EVA Kerbal's specialist bonus without relying on part CrewCapacity.
             </summary>
             <returns>The multiplier applied to the EVA printer's base speed.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.consumePrinterResources">
+            <summary>
+            Consumes printer operating resources from nearby vessels before using EVA-local resources.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.getMaterialResourceTotals(System.Int32,System.Double@,System.Double@)">
+            <summary>
+            Gets printable-material totals from nearby vessels and the EVA vessel.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.requestMaterialResource(System.Int32,System.Double,ResourceFlowMode)">
+            <summary>
+            Consumes printable material from nearby vessels before using EVA-local resources.
+            </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.onSupportPrintingRequest(Sandcastle.PrintShop.WBIShipwright,System.Collections.Generic.List{Sandcastle.PrintShop.BuildItem})">
             <summary>
@@ -2353,6 +2421,21 @@
             Where to spawn the printed part.
             </summary>
         </member>
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.animationName">
+            <summary>
+            Name of the animation to play during printing.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.progressAnimationName">
+            <summary>
+            Name of the animation to play when showing print job progress.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.enableUnfocusedUI">
+            <summary>
+            Flag indicating if the printer can be used by a kerbal on EVA.
+            </summary>
+        </member>
         <member name="F:Sandcastle.PrintShop.WBIBasePrinter.printQueue">
             <summary>
             Represents the list of build items to print.
@@ -2373,11 +2456,6 @@
             Current job being printed.
             </summary>
         </member>
-        <member name="F:Sandcastle.PrintShop.WBIBasePrinter.animationName">
-            <summary>
-            Name of the animation to play during printing.
-            </summary>
-        </member>
         <member name="P:Sandcastle.PrintShop.WBIBasePrinter.infinitePrintResourcesEnabled">
             <summary>
             Indicates whether KSP's Infinite Propellant cheat should make build-item
@@ -2391,6 +2469,12 @@
             Derived printers can override this when their operator is not stored as ordinary part crew.
             </summary>
             <returns>The multiplier to apply to the printer's base speed.</returns>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIBasePrinter.setProgressAnimation(System.Single)">
+            <summary>
+            Sets and immediately samples the progress animation at a normalized build position.
+            </summary>
+            <param name="normalizedProgress">Print progress from 0 (start) to 1 (finish).</param>
         </member>
         <member name="F:Sandcastle.SandcastleScenario.onSupportPrintingRequest">
             <summary>

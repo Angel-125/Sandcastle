@@ -38,6 +38,13 @@ namespace Sandcastle.PrintShop
         public string maxPartDimensions;
 
         /// <summary>
+        /// Maximum distance in meters between the EVA printer and a part on a supplying vessel.
+        /// Set to zero or a negative value to disable remote resource access.
+        /// </summary>
+        [KSPField]
+        public float maxRemoteResourceRange = 20f;
+
+        /// <summary>
         /// Current state displayed in the EVA Kerbal's part action window.
         /// </summary>
         [KSPField(guiName = "#LOC_SANDCASTLE_printState", guiActive = true,
@@ -326,6 +333,48 @@ namespace Sandcastle.PrintShop
         }
 
         /// <summary>
+        /// Consumes printer operating resources from nearby vessels before using EVA-local resources.
+        /// </summary>
+        protected override bool consumePrinterResources()
+        {
+            string error;
+            if (RemotePrinterResources.ConsumePrinterResources(part, resHandler,
+                maxRemoteResourceRange, out error))
+            {
+                return true;
+            }
+
+            lastUpdateTime = Planetarium.GetUniversalTime();
+            updateUIStatus(error);
+            if (debugMode)
+            {
+                Debug.Log("[Sandcastle] - Cannot print, out of resources to run printer");
+                Debug.Log("[Sandcastle] - Reported error: " + error);
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Gets printable-material totals from nearby vessels and the EVA vessel.
+        /// </summary>
+        protected override void getMaterialResourceTotals(int resourceID, out double amount,
+            out double maxAmount)
+        {
+            RemotePrinterResources.GetResourceTotals(part, resourceID,
+                maxRemoteResourceRange, out amount, out maxAmount);
+        }
+
+        /// <summary>
+        /// Consumes printable material from nearby vessels before using EVA-local resources.
+        /// </summary>
+        protected override void requestMaterialResource(int resourceID, double amount,
+            ResourceFlowMode flowMode)
+        {
+            RemotePrinterResources.RequestResource(part, resourceID, amount, flowMode,
+                maxRemoteResourceRange);
+        }
+
+        /// <summary>
         /// Prevents a personal EVA printer from accepting distributed shipwright jobs.
         /// </summary>
         /// <param name="sender">The shipwright requesting printer support.</param>
@@ -375,6 +424,7 @@ namespace Sandcastle.PrintShop
             shopUI.pressureRequrementsMet = pressureRequrementsMet;
             shopUI.showPartSpawnButton = false;
             shopUI.showPartDecoupleButton = false;
+            shopUI.resourcesAreRemote = true;
 
             if (Events != null && Events.Contains("OpenGUI"))
                 Events["OpenGUI"].guiName = Localizer.Format(printShopGUIName);

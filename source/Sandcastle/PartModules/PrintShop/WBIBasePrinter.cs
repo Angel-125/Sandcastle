@@ -99,6 +99,25 @@ namespace Sandcastle.PrintShop
         /// </summary>
         [KSPField]
         public string spawnTransformName;
+
+        /// <summary>
+        /// Name of the animation to play during printing.
+        /// </summary>
+        [KSPField]
+        public string animationName = string.Empty;
+
+        /// <summary>
+        /// Name of the animation to play when showing print job progress.
+        /// </summary>
+        [KSPField]
+        public string progressAnimationName = string.Empty;
+
+        /// <summary>
+        /// Flag indicating if the printer can be used by a kerbal on EVA.
+        /// </summary>
+        [KSPField]
+        public bool enableUnfocusedUI = false;
+
         #endregion
 
         #region Housekeeping
@@ -124,17 +143,15 @@ namespace Sandcastle.PrintShop
         [KSPField(isPersistant = true)]
         public string currentJob = string.Empty;
 
-        /// <summary>
-        /// Name of the animation to play during printing.
-        /// </summary>
-        [KSPField]
-        public string animationName = string.Empty;
-
         public Animation animation = null;
+        public Animation progressAnimation = null;
         protected double printResumeTime = 0;
         public bool missingRequirements = false;
         protected Dictionary<double, Part> unHighlightList = null;
         protected AnimationState animationState;
+        protected AnimationState progressAnimationState;
+        private BuildItem progressAnimationBuildItem;
+        private bool progressAnimationShowsCompletedJob;
         protected Transform spawnTransform = null;
         string partsBlacklisted = string.Empty;
         string partsWhitelisted = string.Empty;
@@ -178,6 +195,8 @@ namespace Sandcastle.PrintShop
                     animation[animationName].speed = 0f;
                     animation.Stop();
                 }
+                if (!progressAnimationShowsCompletedJob)
+                    setProgressAnimation(0f);
                 return;
             }
 
@@ -189,6 +208,11 @@ namespace Sandcastle.PrintShop
                 animation[animationName].time = 0f;
                 animation[animationName].speed = 1.0f;
             }
+
+            // Display a newly active job at zero before catch-up or ordinary printing can
+            // advance it. This also guarantees the reset survives until a rendered frame.
+            if (beginProgressAnimationJob())
+                return;
 
             // Handle catchup
             handleCatchup();
@@ -214,7 +238,7 @@ namespace Sandcastle.PrintShop
             SandcastleScenario.onSupportPrintingRequest.Add(onSupportPrintingRequest);
 
             // Setup animations
-            setupAnimation();
+            setupAnimations();
 
             // Setup spawn transform
             if (!string.IsNullOrEmpty(spawnTransformName))
@@ -386,35 +410,23 @@ namespace Sandcastle.PrintShop
                 printState = WBIPrintStates.Idle;
                 if (debugMode)
                     Debug.Log("[Sandcastle] - Nothing to print!");
+                if (!progressAnimationShowsCompletedJob)
+                    setProgressAnimation(0f);
                 return;
             }
 
+            // Give every newly active job a rendered frame at the beginning of its progress
+            // animation before consuming its first printing increment.
+            if (beginProgressAnimationJob())
+                return;
+
             // Continue with the printing
             printState = WBIPrintStates.Printing;
+            progressAnimationShowsCompletedJob = false;
 
             // Consume any resources that we require to operate.
-            if (resHandler.inputResources.Count > 0)
-            {
-                string error = string.Empty;
-                resHandler.UpdateModuleResourceInputs(ref error, 1.0f, 0.1f, true);
-                int count = resHandler.inputResources.Count;
-                for (int index = 0; index < count; index++)
-                {
-                    if (!resHandler.inputResources[index].available)
-                    {
-                        lastUpdateTime = Planetarium.GetUniversalTime();
-                        updateUIStatus(error);
-                        if (debugMode)
-                        {
-                            Debug.Log("[Sandcastle] - Cannot print, out of resources to run printer");
-                            Debug.Log("[Sandcastle] - Reported error: " + error);
-                        }
-                        return;
-                    }
-                }
-            }
-            if (resHandler.outputResources.Count > 0)
-                resHandler.UpdateModuleResourceOutputs();
+            if (consumePrinterResources() == false)
+                return;
 
             // Handle the current print job.
             handlePrintJob(TimeWarp.fixedDeltaTime);
@@ -443,6 +455,15 @@ namespace Sandcastle.PrintShop
 
                 // Handle print job
                 handlePrintJob(printTimeRemaining);
+
+                // Do not let catch-up advance a second job in the same rendered frame. The
+                // normal queue processor will first display that job at zero progress.
+                if (progressAnimation != null && printQueue.Count > 0 &&
+                    !ReferenceEquals(buildItem, printQueue[0]))
+                {
+                    elapsedTime = TimeWarp.fixedDeltaTime;
+                    break;
+                }
 
                 // Update elapsedTime
                 elapsedTime -= printTimeRemaining;
@@ -601,7 +622,7 @@ namespace Sandcastle.PrintShop
                         materialConsumption = Math.Min(materialConsumption, buildItem.totalUnitsRequired - buildItem.totalUnitsPrinted);
 
                         // Make sure that we have enough of the resource
-                        part.GetConnectedResourceTotals(material.resourceDef.id, out amount, out maxAmount);
+                        getMaterialResourceTotals(material.resourceDef.id, out amount, out maxAmount);
                         if (!infinitePrintResourcesEnabled && amount < materialConsumption)
                         {
                             requirementsStatus = Localizer.Format("#LOC_SANDCASTLE_needsResource", new string[1] { material.resourceDef.displayName });
@@ -622,7 +643,7 @@ namespace Sandcastle.PrintShop
 
                         // Consume the resource
                         if (!infinitePrintResourcesEnabled)
-                            part.RequestResource(material.resourceDef.id, materialConsumption, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
+                            requestMaterialResource(material.resourceDef.id, materialConsumption, ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE);
 
                         // Update units printed.
                         updateUnitsPrinted(buildItem, materialConsumption);
@@ -639,6 +660,10 @@ namespace Sandcastle.PrintShop
             double progress = (buildItem.totalUnitsPrinted / buildItem.totalUnitsRequired) * 100;
             requirementsStatus = Localizer.Format("#LOC_SANDCASTLE_progress", new string[1] { string.Format("{0:n1}", progress) });
             updateUIStatus(requirementsStatus);
+
+            // AnimationState.normalizedTime maps the build's 0..100 percent directly onto clips
+            // of any duration. Sample immediately because this animation is intentionally paused.
+            setProgressAnimation((float)(progress / 100.0));
             if (progress < 100)
             {
                 lastUpdateTime = Planetarium.GetUniversalTime();
@@ -691,6 +716,10 @@ namespace Sandcastle.PrintShop
                 // Signal build item completed.
                 buildItemCompleted(buildItem);
 
+                // Preserve the final animation frame until another job begins. Resetting here
+                // would prevent Unity from ever rendering the clip at 100 percent.
+                progressAnimationShowsCompletedJob = true;
+
                 // If queue is empty, kick out of timewarp and signal that we've completed our print jobs.
                 if (printQueue.Count <= 0)
                 {
@@ -698,6 +727,44 @@ namespace Sandcastle.PrintShop
                     printJobsCompleted();
                 }
             }
+        }
+
+        protected virtual bool consumePrinterResources()
+        {
+            if (resHandler.inputResources.Count > 0)
+            {
+                string error = string.Empty;
+                resHandler.UpdateModuleResourceInputs(ref error, 1.0f, 0.1f, true);
+                int count = resHandler.inputResources.Count;
+                for (int index = 0; index < count; index++)
+                {
+                    if (!resHandler.inputResources[index].available)
+                    {
+                        lastUpdateTime = Planetarium.GetUniversalTime();
+                        updateUIStatus(error);
+                        if (debugMode)
+                        {
+                            Debug.Log("[Sandcastle] - Cannot print, out of resources to run printer");
+                            Debug.Log("[Sandcastle] - Reported error: " + error);
+                        }
+                        return false;
+                    }
+                }
+            }
+            if (resHandler.outputResources.Count > 0)
+                resHandler.UpdateModuleResourceOutputs();
+
+            return true;
+        }
+
+        protected virtual void getMaterialResourceTotals(int resourceID, out double amount, out double maxAmount)
+        {
+            part.GetConnectedResourceTotals(resourceID, out amount, out maxAmount);
+        }
+
+        protected virtual void requestMaterialResource(int resourceID, double amount, ResourceFlowMode flowMode)
+        {
+            part.RequestResource(resourceID, amount, flowMode);
         }
 
         protected virtual void updateUnitsPrinted(BuildItem buildItem, double unitsPrinted)
@@ -752,9 +819,18 @@ namespace Sandcastle.PrintShop
                 Debug.Log("[Sandcastle] - printJobsCompleted");
         }
 
-        private void setupAnimation()
+        private void setupAnimations()
         {
-            Animation[] animations = this.part.FindModelAnimators(animationName);
+            setupPrintingAnimation();
+            setupProgressAnimation();
+        }
+
+        private void setupPrintingAnimation()
+        {
+            if (string.IsNullOrEmpty(animationName))
+                return;
+
+            Animation[] animations = part.FindModelAnimators(animationName);
             if (animations == null || animations.Length == 0)
                 return;
 
@@ -763,8 +839,87 @@ namespace Sandcastle.PrintShop
                 return;
 
             animationState = animation[animationName];
+            if (animationState == null)
+            {
+                animation = null;
+                return;
+            }
+
             animationState.wrapMode = WrapMode.Loop;
-            animation.Stop();
+            animation.Stop(animationName);
+        }
+
+        private void setupProgressAnimation()
+        {
+            if (string.IsNullOrEmpty(progressAnimationName))
+                return;
+
+            Animation[] animations = part.FindModelAnimators(progressAnimationName);
+            if (animations == null || animations.Length == 0)
+                return;
+
+            progressAnimation = animations[0];
+            if (progressAnimation == null)
+                return;
+
+            progressAnimationState = progressAnimation[progressAnimationName];
+            if (progressAnimationState == null)
+            {
+                progressAnimation = null;
+                return;
+            }
+
+            progressAnimationState.wrapMode = WrapMode.ClampForever;
+            progressAnimationState.speed = 0f;
+            progressAnimationState.layer = 1;
+            progressAnimationState.enabled = true;
+            progressAnimation.Play(progressAnimationName);
+            progressAnimationState.speed = 0f;
+
+            float normalizedProgress = 0f;
+            if (printQueue != null && printQueue.Count > 0 &&
+                printQueue[0].totalUnitsRequired > 0.0)
+            {
+                progressAnimationBuildItem = printQueue[0];
+                normalizedProgress = (float)(printQueue[0].totalUnitsPrinted /
+                    printQueue[0].totalUnitsRequired);
+            }
+            setProgressAnimation(normalizedProgress);
+        }
+
+        /// <summary>
+        /// Sets and immediately samples the progress animation at a normalized build position.
+        /// </summary>
+        /// <param name="normalizedProgress">Print progress from 0 (start) to 1 (finish).</param>
+        protected void setProgressAnimation(float normalizedProgress)
+        {
+            if (progressAnimation == null || progressAnimationState == null)
+                return;
+
+            // Match stock ModuleAnimationSetter: a scrubbed legacy animation must remain in the
+            // Animation component's playing-state set even though its playback speed is zero.
+            if (!progressAnimation.IsPlaying(progressAnimationName))
+                progressAnimation.Play(progressAnimationName);
+
+            progressAnimationState.enabled = true;
+            progressAnimationState.speed = 0f;
+            progressAnimationState.normalizedTime = Mathf.Clamp01(normalizedProgress);
+            progressAnimation.Sample();
+        }
+
+        private bool beginProgressAnimationJob()
+        {
+            if (progressAnimation == null || printQueue == null || printQueue.Count == 0 ||
+                ReferenceEquals(progressAnimationBuildItem, printQueue[0]))
+            {
+                return false;
+            }
+
+            progressAnimationBuildItem = printQueue[0];
+            progressAnimationShowsCompletedJob = false;
+            setProgressAnimation(0f);
+            lastUpdateTime = Planetarium.GetUniversalTime();
+            return true;
         }
 
         protected bool isBlacklistedPart(AvailablePart availablePart)

@@ -109,6 +109,12 @@ namespace Sandcastle.PrintShop
         /// </summary>
         public bool showPartDecoupleButton = false;
 
+        /// <summary>
+        /// Flag indicating that material resources can be supplied remotely. When set, resource
+        /// requirements are displayed in orange instead of using local-vessel availability colors.
+        /// </summary>
+        public bool resourcesAreRemote = false;
+
         #endregion
 
         #region Housekeeping
@@ -156,6 +162,7 @@ namespace Sandcastle.PrintShop
             PartCategories.Engine.ToString(),
             PartCategories.Control.ToString(),
             PartCategories.Structural.ToString(),
+            PartCategories.Aero.ToString(),
             PartCategories.Robotics.ToString(),
             PartCategories.Coupling.ToString(),
             PartCategories.Payload.ToString(),
@@ -633,7 +640,9 @@ namespace Sandcastle.PrintShop
                     {
                         resourceDef = definitions[item.materials[index].name];
                         part.GetConnectedResourceTotals(resourceDef.id, out amount, out maxAmount);
-                        if (amount < item.materials[index].amount)
+                        if (resourcesAreRemote)
+                            requirements.AppendLine(string.Format("<color=orange>{0:s}: {1:n3}u</color>", resourceDef.displayName, item.materials[index].amount));
+                        else if (amount < item.materials[index].amount)
                             requirements.AppendLine(string.Format("<color=red>{0:s}: {1:n3}u</color>", resourceDef.displayName, item.materials[index].amount));
                         else
                             requirements.AppendLine(string.Format("{0:s}: {1:n3}u", resourceDef.displayName, item.materials[index].amount));
