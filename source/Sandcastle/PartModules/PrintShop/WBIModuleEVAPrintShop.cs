@@ -333,7 +333,7 @@ namespace Sandcastle.PrintShop
         }
 
         /// <summary>
-        /// Consumes printer operating resources from nearby vessels before using EVA-local resources.
+        /// Consumes printer operating resources from the EVA vessel before using nearby vessels.
         /// </summary>
         protected override bool consumePrinterResources()
         {
@@ -365,7 +365,7 @@ namespace Sandcastle.PrintShop
         }
 
         /// <summary>
-        /// Consumes printable material from nearby vessels before using EVA-local resources.
+        /// Consumes printable material from the EVA vessel before using nearby vessels.
         /// </summary>
         protected override void requestMaterialResource(int resourceID, double amount,
             ResourceFlowMode flowMode)

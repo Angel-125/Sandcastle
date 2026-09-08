@@ -2,7 +2,7 @@ namespace Sandcastle.PrintShop
 {
     /// <summary>
     /// A print shop that can draw printing and operating resources from nearby loaded vessels.
-    /// Remote vessels are used first; resources on the printer vessel provide the fallback.
+    /// Resources on the printer vessel are used first; remote vessels provide the fallback.
     /// </summary>
     [KSPModule("#LOC_SANDCASTLE_printShopTitle")]
     public class WBIDeployedPrintShop : WBIPrintShop

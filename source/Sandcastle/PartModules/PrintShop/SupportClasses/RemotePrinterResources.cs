@@ -7,8 +7,8 @@ namespace Sandcastle.PrintShop
 {
     /// <summary>
     /// Provides the shared nearby-vessel resource behavior used by deployed and EVA printers.
-    /// Nearby vessels are searched from nearest to farthest and the printer's own vessel supplies
-    /// any remainder that the remote vessels cannot provide.
+    /// The printer's own vessel supplies resources first. Nearby vessels are then searched from
+    /// nearest to farthest for any remainder that the printer vessel cannot provide.
     /// </summary>
     internal static class RemotePrinterResources
     {
@@ -31,6 +31,12 @@ namespace Sandcastle.PrintShop
             if (printerPart == null)
                 return;
 
+            double localAmount;
+            double localMaxAmount;
+            printerPart.GetConnectedResourceTotals(resourceID, out localAmount, out localMaxAmount);
+            amount += localAmount;
+            maxAmount += localMaxAmount;
+
             List<NearbyVessel> nearbyVessels = GetNearbyVessels(printerPart, maxRemoteResourceRange);
             for (int index = 0; index < nearbyVessels.Count; index++)
             {
@@ -41,16 +47,10 @@ namespace Sandcastle.PrintShop
                 amount += remoteAmount;
                 maxAmount += remoteMaxAmount;
             }
-
-            double localAmount;
-            double localMaxAmount;
-            printerPart.GetConnectedResourceTotals(resourceID, out localAmount, out localMaxAmount);
-            amount += localAmount;
-            maxAmount += localMaxAmount;
         }
 
         /// <summary>
-        /// Requests a resource from nearby vessels first and then from the printer vessel.
+        /// Requests a resource from the printer vessel first and then from nearby vessels.
         /// </summary>
         /// <returns>The amount of resource actually supplied.</returns>
         internal static double RequestResource(Part printerPart, int resourceID, double amount,
@@ -69,6 +69,19 @@ namespace Sandcastle.PrintShop
 
             double supplied = 0.0;
             double remaining = amount;
+
+            double localAmount = flowMode == ResourceFlowMode.NULL
+                ? printerPart.RequestResource(resourceID, remaining)
+                : printerPart.RequestResource(resourceID, remaining, flowMode);
+            if (localAmount > 0.0)
+            {
+                supplied += localAmount;
+                remaining = Math.Max(0.0, amount - supplied);
+            }
+
+            if (remaining <= ResourceTolerance)
+                return supplied;
+
             List<NearbyVessel> nearbyVessels = GetNearbyVessels(printerPart, maxRemoteResourceRange);
             for (int index = 0; index < nearbyVessels.Count && remaining > ResourceTolerance; index++)
             {
@@ -85,21 +98,12 @@ namespace Sandcastle.PrintShop
                 remaining = Math.Max(0.0, amount - supplied);
             }
 
-            if (remaining <= ResourceTolerance)
-                return supplied;
-
-            double localAmount = flowMode == ResourceFlowMode.NULL
-                ? printerPart.RequestResource(resourceID, remaining)
-                : printerPart.RequestResource(resourceID, remaining, flowMode);
-            if (localAmount > 0.0)
-                supplied += localAmount;
-
             return supplied;
         }
 
         /// <summary>
-        /// Consumes the resources required to operate a printer using nearby vessels and then the
-        /// printer vessel. This mirrors ModuleResourceHandler's normal availability bookkeeping.
+        /// Consumes the resources required to operate a printer using the printer vessel and then
+        /// nearby vessels. This mirrors ModuleResourceHandler's normal availability bookkeeping.
         /// </summary>
         internal static bool ConsumePrinterResources(Part printerPart,
             ModuleResourceHandler resourceHandler, float maxRemoteResourceRange, out string error)
