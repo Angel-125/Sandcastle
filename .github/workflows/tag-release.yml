@@ -34,7 +34,7 @@ jobs:
 
           VERSION="${TAG#v}"
           ASSET_VERSION="${VERSION//./_}"
-          ASSET_NAME="${PRODUCT_NAME}_${ASSET_VERSION}_R1.zip"
+          ASSET_NAME="${PRODUCT_NAME}_${ASSET_VERSION}.zip"
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
