@@ -21,7 +21,7 @@ To fix this issue, follow the steps here: https://github.com/Angel-125/WildBlueC
 - Updated list of body locations that Kerbal Gear accepts
 - Minor bug fixes
 
---END CHANGES--
+---END CHANGES---
 
 ---ACKNOWLEDGEMENTS
 
