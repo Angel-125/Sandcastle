@@ -1582,6 +1582,35 @@
             Clears per-tick diagnostic values without modifying persistent kerbal thermal properties.
             </summary>
         </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIPropOffsetGUI.RefreshCarriedProps">
+            <summary>
+            Refreshes the prop selector after the EVA inventory changes. If the selected prop is no
+            longer carried, another carried prop is selected. The window closes when no wearable
+            items remain in the inventory.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIPropOffsetGUI.refreshCarriedProps">
+            <summary>
+            Rebuilds the selectable part list from wearable items in the live EVA inventory.
+            </summary>
+            <returns>True when at least one carried wearable prop is available.</returns>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIPropOffsetGUI.selectProp(WildBlueCore.KerbalGear.SWearableProp)">
+            <summary>
+            Selects a wearable prop and loads its configured offsets into the controls.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIPropOffsetGUI.disableIdleAnimations">
+            <summary>
+            Prevents stock KerbalEVA from starting alternate grounded idle animations while offsets
+            are being adjusted. If one is already playing, return to the neutral idle immediately.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIPropOffsetGUI.restoreIdleAnimations">
+            <summary>
+            Restores the alternate-idle setting that was active before the window opened.
+            </summary>
+        </member>
         <member name="T:WildBlueCore.KerbalGear.WBISuitAssignmentRepair">
             <summary>
             Repairs stale suit combo and EVA mesh assignments whenever a flight scene starts.
@@ -1630,6 +1659,57 @@
             Accumulates the strongest EVA overrides supplied by one carried cargo part.
             </summary>
             <param name="partName">The internal part name whose EVA_OVERRIDES node is inspected.</param>
+        </member>
+        <member name="T:WildBlueCore.KerbalGear.WBIModuleEVAExperienceEffects">
+            <summary>
+            Grants temporary stock experience effects while their contributing wearable cargo is
+            carried by an EVA kerbal. Add EXPERIENCE_EFFECT child nodes to the wearable part's
+            part-level EVA_OVERRIDES node; KerbalGear creates this module automatically when needed.
+            </summary>
+            <example>
+            <code>
+            EVA_OVERRIDES
+            {
+                EXPERIENCE_EFFECT
+                {
+                    name = RepairSkill
+                    tier = 2
+                }
+            }
+            </code>
+            </example>
+        </member>
+        <member name="T:WildBlueCore.KerbalGear.WBIModuleEVAExperienceEffects.EffectClaim">
+            <summary>
+            Describes one EXPERIENCE_EFFECT request read from one carried inventory provider.
+            Claims are short-lived value data collected before duplicate effect types and tiers
+            are consolidated, so this is a struct rather than persistent runtime state.
+            </summary>
+        </member>
+        <member name="T:WildBlueCore.KerbalGear.WBIModuleEVAExperienceEffects.DesiredEffect">
+            <summary>
+            Describes the single effect that should exist after every matching EffectClaim has
+            been consolidated. It holds the winning configuration, effective tier, and comparison
+            signature used to decide whether the currently active effect must be replaced.
+            </summary>
+        </member>
+        <member name="T:WildBlueCore.KerbalGear.WBIModuleEVAExperienceEffects.ActiveEffect">
+            <summary>
+            Tracks an instantiated ExperienceEffect and its live PartValues registration. This is
+            mutable runtime state and therefore remains a class: tierProvider captures this exact
+            instance, and its stable identity is needed to unregister the same delegate later.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleEVAExperienceEffects.OnKerbalGearProvidersChanged(ModuleInventoryPart,WildBlueCore.KerbalGear.KerbalGearModuleProvider[])">
+            <summary>
+            Rebuilds the temporary effects from all inventory providers assigned to this aggregate
+            module. Duplicate effect types result in one active effect with reference-counted claims.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleEVAExperienceEffects.PartHasExperienceEffects(AvailablePart)">
+            <summary>
+            Determines whether a cargo part declares at least one experience effect.
+            </summary>
         </member>
         <member name="T:WildBlueCore.KerbalGear.KerbalGearModuleMode">
             <summary>
@@ -1775,6 +1855,96 @@
             The right bicep of the kerbal.
             </summary>
         </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.head">
+            <summary>
+            The head of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.neck">
+            <summary>
+            The neck of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.chest">
+            <summary>
+            The chest of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.waist">
+            <summary>
+            The waist of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.leftShoulder">
+            <summary>
+            The left shoulder of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.rightShoulder">
+            <summary>
+            The right shoulder of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.leftForearm">
+            <summary>
+            The left forearm of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.rightForearm">
+            <summary>
+            The right forearm of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.leftHand">
+            <summary>
+            The left hand of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.rightHand">
+            <summary>
+            The right hand of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.leftPalm">
+            <summary>
+            The left palm of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.rightPalm">
+            <summary>
+            The right palm of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.leftThigh">
+            <summary>
+            The left thigh of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.rightThigh">
+            <summary>
+            The right thigh of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.leftCalf">
+            <summary>
+            The left calf of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.rightCalf">
+            <summary>
+            The right calf of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.leftToes">
+            <summary>
+            The left toes of the kerbal.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.BodyLocations.rightToes">
+            <summary>
+            The right toes of the kerbal.
+            </summary>
+        </member>
         <member name="T:WildBlueCore.KerbalGear.WBIModuleWearableItem">
             <summary>
             This module represents an equippable cargo item that appears as a 3D model on the kerbal. When equipping the item, this part module can also
@@ -1796,6 +1966,8 @@
                     positionOffsetJetpack = 0,0,0
                     rotationOffset = -70.0000, 0.0000, 0.0000
                     showChuteTransforms = false
+                    hideStockPacksWhenWorn = true
+                    hideTransformsWhenWorn = displayModel;groundBase
                     EVA_PART_MODULE
                     {
                         name = WBIModuleEVADiveComputer
@@ -1824,6 +1996,27 @@
             Name of the 3D model. This will be rotated and positioned relative to the anchorTransform.
             </summary>
         </member>
+        <member name="F:WildBlueCore.KerbalGear.WBIModuleWearableItem.hideMeshTransformWhenDropped">
+            <summary>
+            When true, hides meshTransform on the physical part while it is dropped in flight.
+            The wearable copy remains visible on the Kerbal. Defaults to false.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.WBIModuleWearableItem.hideTransformsWhenWorn">
+            <summary>
+            Semicolon-delimited names of model transforms to hide on the wearable copy while this
+            part is carried in a Kerbal's inventory. Transform names are case-sensitive. The source
+            part prefab is not changed, so these transforms remain visible when the part is dropped.
+            This field may be placed on a hide-only WBIModuleWearableItem that does not specify an
+            anchorTransform or meshTransform.
+            </summary>
+        </member>
+        <member name="F:WildBlueCore.KerbalGear.WBIModuleWearableItem.hideStockPacksWhenWorn">
+            <summary>
+            When true, hides the Kerbal's stock backpack, storage pack, jetpack/chute pack, and
+            chute models while this item is worn. Defaults to true.
+            </summary>
+        </member>
         <member name="F:WildBlueCore.KerbalGear.WBIModuleWearableItem.positionOffset">
             <summary>
             Position offsets (x,y,z).
@@ -1850,6 +2043,17 @@
             <summary>
             Legacy list of part modules to create on the kerbal when you equip the wearable item.
             Separate names with a semicolon. Prefer EVA_PART_MODULE child nodes for new configs.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearableItem.OnStart(PartModule.StartState)">
+            <summary>
+            Hides the configured wearable mesh on a physical part loaded in flight.
+            </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearableItem.OnPartCreatedFomInventory(ModuleInventoryPart)">
+            <summary>
+            Ensures the configured wearable mesh is hidden immediately when stock inventory creates
+            the physical dropped part.
             </summary>
         </member>
         <member name="M:WildBlueCore.KerbalGear.WBIModuleWearableItem.OnLoad(ConfigNode)">
@@ -2094,6 +2298,15 @@
             <param name="moduleProviders">Providers grouped by requested PartModule class.</param>
             <returns>The exact dynamic module instances required by the current inventory.</returns>
         </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.isProviderAware(WildBlueCore.KerbalGear.KerbalGearModuleDefinition)">
+            <summary>
+            Provider-aware aggregate modules receive all contributing configurations directly and
+            therefore use their registered defaults instead of inheriting the first provider's
+            EVA_PART_MODULE overrides. For example, WBIModuleEVAExperienceEffects receives every
+            carried item's provider descriptor and combines duplicate RepairSkill requests into one
+            active effect using the highest requested tier.
+            </summary>
+        </member>
         <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.addDesiredModule(System.Collections.Generic.Dictionary{System.String,WildBlueCore.KerbalGear.WBIModuleWearablesController.DesiredEVAModule},WildBlueCore.KerbalGear.KerbalGearModuleDefinition,System.String,WildBlueCore.KerbalGear.KerbalGearModuleProvider[],ConfigNode)">
             <summary>
             Adds one concrete module request to the desired instance map.
@@ -2155,6 +2368,15 @@
             <summary>
             Maps the live EVA vessel situation to the startup state expected by a new PartModule.
             </summary>
+        </member>
+        <member name="M:WildBlueCore.KerbalGear.WBIModuleWearablesController.hideTransforms(UnityEngine.GameObject,System.Collections.Generic.HashSet{System.String})">
+            <summary>
+            Hides each configured transform found within a wearable prop hierarchy.
+            A part can create multiple props, so names that do not occur in this particular clone
+            are intentionally ignored.
+            </summary>
+            <param name="prop">The instantiated wearable prop.</param>
+            <param name="hiddenTransformNames">Case-sensitive transform names to hide.</param>
         </member>
         <member name="T:WildBlueCore.WBIBasePartModule">
             <summary>

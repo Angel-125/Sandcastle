@@ -1,0 +1,9 @@
+// Adds a pose stabilizer to stock deployable ground parts so static-attached
+// placements can be restored to the same terrain-relative position after reload.
+@PART[*]:HAS[@MODULE[ModuleGroundPart],!MODULE[WBIGroundPartPositionStabilizer]]:FOR[Sandcastle]
+{
+	MODULE
+	{
+		name = WBIGroundPartPositionStabilizer
+	}
+}

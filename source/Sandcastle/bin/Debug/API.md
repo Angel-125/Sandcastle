@@ -469,6 +469,120 @@ Releases this part as the construction host if its part or vessel is destroyed.
 Draws three great-circle guides in world space.
         
 
+# PartModules.KerbalGear.EVARepairSkillRegistry
+            
+Loads the experience-effect names that are permitted to perform stock EVA repairs.
+        
+## Methods
+
+
+### ActiveKerbalHasRepairSkill
+Determines whether the active EVA kerbal carries any configured repair skill.
+
+# PartModules.KerbalGear.EVARepairSkillPatches
+            
+Temporarily exposes repair level 1 only while a stock repair method is executing. This lets configured marker skills pass every stock repair and repair-kit check without making RepairSkill visible to EVAConstructionModeController.
+        
+## Methods
+
+
+### RepairSkillScope.ProvideRepairSkill
+Supplies the temporary repair level. This must be an instance method because KSP's EventValueComparison assumes every registered delegate has a non-null Target.
+
+### TargetMethods
+Patches only the stock chute, deployable-part, and wheel repair entry points. EVAConstructionModeController is deliberately not included.
+
+# PartModules.KerbalGear.OmniToolRepairSkill
+            
+Marker experience effect granted by an equipped Omni-Tool. The effect itself does not modify RepairSkill, which prevents it from enabling stock EVA Construction. Sandcastle's repair Harmony patches recognize this marker through EVA_REPAIR_SKILLS instead.
+        
+## Methods
+
+
+### Constructor
+Creates the marker effect for a kerbal's experience trait.
+
+# PartModules.KerbalGear.WBIModuleEVAPartDestroyer
+            
+Provides an EVA Kerbal with a selectable part-destruction mode. While enabled, eligible parts within range will be highlighted and the part beneath the mouse cursor can be selected for destruction.
+            
+This initial implementation intentionally contains stubs for range discovery, cursor raycasting, highlighting, and destruction. It establishes the module lifecycle and input boundaries without performing destructive operations.  
+        
+## Fields
+
+### destructionRange
+Maximum distance in meters between the EVA Kerbal and a candidate part.
+### partDestroyerIsEnabled
+Indicates whether the player has enabled part-destruction mode.
+## Methods
+
+
+### OnStart(PartModule.StartState)
+Initializes the part destroyer and its action-window event.
+> #### Parameters
+> **state:** KSP's current part-module startup state.
+
+
+### OnActive
+Makes the toggle available when KerbalGear activates this EVA module.
+
+### OnInactive
+Disables destruction mode and clears its visual state when the enabling gear is removed.
+
+### FixedUpdate
+Updates the set of eligible, highlighted parts at the physics cadence.
+
+### Update
+Performs cursor raycasting and consumes the left mouse-down event at frame cadence.
+
+### LateUpdate
+Handles highlight restoration if needed
+
+### OnDestroy
+Clears transient highlighting if Unity destroys the dynamically injected module.
+
+### GetModuleDisplayName
+Returns the localized module title displayed in the EVA Kerbal's action window.
+> #### Return value
+> The localized part-destroyer title.
+
+### TogglePartDestroyer
+Enables or disables part-destruction mode.
+
+### updatePartsInRange
+Finds eligible parts within destructionRange, highlights newly eligible parts, and removes highlighting from parts that have left the range.
+
+### getPartUnderCursor
+Finds the eligible part beneath the mouse cursor.
+> #### Return value
+> The eligible part under the cursor, or null when there is no valid target.
+
+### handleLeftClick(Part)
+Handles a left click on an eligible part.
+> #### Parameters
+> **targetPart:** The eligible part selected by the player.
+
+
+### clearPartHighlights
+Restores normal highlighting on every part tracked by this module.
+
+### restorePartHighlight(Sandcastle.PartModules.KerbalGear.PartHighlight)
+Restores the highlight settings captured before this module highlighted a part.
+> #### Parameters
+> **savedHighlight:** The part and its previous highlight settings.
+
+
+### canOperate
+Reports whether the module should currently process highlighting and input.
+> #### Return value
+> True while an active EVA Kerbal has explicitly enabled destruction mode.
+
+### updateToggleEvent
+Updates availability and localized text for the action-window toggle.
+
+### refreshContextWindows
+Refreshes any open action window after toggle state changes.
+
 # Inventory.InventoryUtils
             
 An inventory helper class
@@ -1379,7 +1493,7 @@ Creates the default materials list.
 
 # PrintShop.RemotePrinterResources
             
-Provides the shared nearby-vessel resource behavior used by deployed and EVA printers. Nearby vessels are searched from nearest to farthest and the printer's own vessel supplies any remainder that the remote vessels cannot provide.
+Provides the shared nearby-vessel resource behavior used by deployed and EVA printers. The printer's own vessel supplies resources first. Nearby vessels are then searched from nearest to farthest for any remainder that the printer vessel cannot provide.
         
 ## Methods
 
@@ -1388,12 +1502,12 @@ Provides the shared nearby-vessel resource behavior used by deployed and EVA pri
 Gets the total amount and capacity available from nearby vessels and the printer vessel.
 
 ### RequestResource(Part,System.Int32,System.Double,ResourceFlowMode,System.Single)
-Requests a resource from nearby vessels first and then from the printer vessel.
+Requests a resource from the printer vessel first and then from nearby vessels.
 > #### Return value
 > The amount of resource actually supplied.
 
 ### ConsumePrinterResources(Part,ModuleResourceHandler,System.Single,System.String@)
-Consumes the resources required to operate a printer using nearby vessels and then the printer vessel. This mirrors ModuleResourceHandler's normal availability bookkeeping.
+Consumes the resources required to operate a printer using the printer vessel and then nearby vessels. This mirrors ModuleResourceHandler's normal availability bookkeeping.
 
 # PrintShop.WBIPrintShop
             
@@ -1442,7 +1556,7 @@ Verifies that the vessel has room to store the completed cargo part unless this 
 
 # PrintShop.WBIDeployedPrintShop
             
-A print shop that can draw printing and operating resources from nearby loaded vessels. Remote vessels are used first; resources on the printer vessel provide the fallback.
+A print shop that can draw printing and operating resources from nearby loaded vessels. Resources on the printer vessel are used first; remote vessels provide the fallback.
         
 ## Fields
 
@@ -1555,13 +1669,13 @@ Calculates the EVA Kerbal's specialist bonus without relying on part CrewCapacit
 > The multiplier applied to the EVA printer's base speed.
 
 ### consumePrinterResources
-Consumes printer operating resources from nearby vessels before using EVA-local resources.
+Consumes printer operating resources from the EVA vessel before using nearby vessels.
 
 ### getMaterialResourceTotals(System.Int32,System.Double@,System.Double@)
 Gets printable-material totals from nearby vessels and the EVA vessel.
 
 ### requestMaterialResource(System.Int32,System.Double,ResourceFlowMode)
-Consumes printable material from nearby vessels before using EVA-local resources.
+Consumes printable material from the EVA vessel before using nearby vessels.
 
 ### onSupportPrintingRequest(Sandcastle.PrintShop.WBIShipwright,System.Collections.Generic.List{Sandcastle.PrintShop.BuildItem})
 Prevents a personal EVA printer from accepting distributed shipwright jobs.

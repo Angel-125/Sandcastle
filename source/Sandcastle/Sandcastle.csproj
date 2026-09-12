@@ -139,7 +139,7 @@
     <Compile Include="PartModules\Inventory\ModulePartModuleFactory.cs" />
     <Compile Include="PartModules\Inventory\SupportClasses\InventoryUtils.cs" />
     <Compile Include="PartModules\Inventory\ModuleCargoCatcher.cs" />
-    <Compile Include="PartModules\Inventory\EVACargoGroundDropper.cs" />
+    <Compile Include="HarmonyPatches\EVACargoGroundDropper.cs" />
     <Compile Include="PartModules\Inventory\ModuleDefaultInventoryStack.cs" />
     <Compile Include="PartModules\Inventory\ModuleStorablePart.cs" />
     <Compile Include="PartModules\ModuleMassFixer.cs" />
@@ -163,8 +163,11 @@
     <Compile Include="PartModules\PrintShop\WBIPrinterRequirements.cs" />
     <Compile Include="PartModules\EVAConstruction\WBIModuleEVAVariants.cs" />
     <Compile Include="PartModules\EVAConstruction\WBIModuleEVAFlagSwitch.cs" />
-    <Compile Include="PartModules\EVAConstruction\EVAConstructionBridge.cs" />
+    <Compile Include="HarmonyPatches\EVAConstructionBridge.cs" />
     <Compile Include="PartModules\EVAConstruction\WBIEVAConstructionManipulator.cs" />
+    <Compile Include="HarmonyPatches\EVARepairSkillPatches.cs" />
+    <Compile Include="PartModules\KerbalGear\OmniToolRepairSkill.cs" />
+    <Compile Include="PartModules\EVAConstruction\WBIModuleEVAPartDestroyer.cs" />
     <Compile Include="PartModules\PrintShop\WBIShipwright.cs" />
     <Compile Include="PartModules\PrintShop\WBIBasePrinter.cs" />
     <Compile Include="Scenario\SandcastleScenario.cs" />

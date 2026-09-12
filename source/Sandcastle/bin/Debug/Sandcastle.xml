@@ -701,6 +701,161 @@
             Draws three great-circle guides in world space.
             </summary>
         </member>
+        <member name="T:Sandcastle.PartModules.KerbalGear.EVARepairSkillRegistry">
+            <summary>
+            Loads the experience-effect names that are permitted to perform stock EVA repairs.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.EVARepairSkillRegistry.ActiveKerbalHasRepairSkill">
+            <summary>
+            Determines whether the active EVA kerbal carries any configured repair skill.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.KerbalGear.EVARepairSkillPatches">
+            <summary>
+            Temporarily exposes repair level 1 only while a stock repair method is executing. This
+            lets configured marker skills pass every stock repair and repair-kit check without making
+            RepairSkill visible to EVAConstructionModeController.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.EVARepairSkillPatches.RepairSkillScope.ProvideRepairSkill">
+            <summary>
+            Supplies the temporary repair level. This must be an instance method because KSP's
+            EventValueComparison assumes every registered delegate has a non-null Target.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.EVARepairSkillPatches.TargetMethods">
+            <summary>
+            Patches only the stock chute, deployable-part, and wheel repair entry points.
+            EVAConstructionModeController is deliberately not included.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.KerbalGear.OmniToolRepairSkill">
+            <summary>
+            Marker experience effect granted by an equipped Omni-Tool. The effect itself does not
+            modify RepairSkill, which prevents it from enabling stock EVA Construction. Sandcastle's
+            repair Harmony patches recognize this marker through EVA_REPAIR_SKILLS instead.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.OmniToolRepairSkill.#ctor(Experience.ExperienceTrait)">
+            <summary>
+            Creates the marker effect for a kerbal's experience trait.
+            </summary>
+        </member>
+        <member name="T:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer">
+            <summary>
+            Provides an EVA Kerbal with a selectable part-destruction mode. While enabled, eligible
+            parts within range will be highlighted and the part beneath the mouse cursor can be
+            selected for destruction.
+            </summary>
+            <remarks>
+            This initial implementation intentionally contains stubs for range discovery, cursor
+            raycasting, highlighting, and destruction. It establishes the module lifecycle and input
+            boundaries without performing destructive operations.
+            </remarks>
+        </member>
+        <member name="F:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.destructionRange">
+            <summary>
+            Maximum distance in meters between the EVA Kerbal and a candidate part.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.partDestroyerIsEnabled">
+            <summary>
+            Indicates whether the player has enabled part-destruction mode.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.OnStart(PartModule.StartState)">
+            <summary>
+            Initializes the part destroyer and its action-window event.
+            </summary>
+            <param name="state">KSP's current part-module startup state.</param>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.OnActive">
+            <summary>
+            Makes the toggle available when KerbalGear activates this EVA module.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.OnInactive">
+            <summary>
+            Disables destruction mode and clears its visual state when the enabling gear is removed.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.FixedUpdate">
+            <summary>
+            Updates the set of eligible, highlighted parts at the physics cadence.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.Update">
+            <summary>
+            Performs cursor raycasting and consumes the left mouse-down event at frame cadence.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.LateUpdate">
+            <summary>
+            Handles highlight restoration if needed
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.OnDestroy">
+            <summary>
+            Clears transient highlighting if Unity destroys the dynamically injected module.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.GetModuleDisplayName">
+            <summary>
+            Returns the localized module title displayed in the EVA Kerbal's action window.
+            </summary>
+            <returns>The localized part-destroyer title.</returns>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.TogglePartDestroyer">
+            <summary>
+            Enables or disables part-destruction mode.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.updatePartsInRange">
+            <summary>
+            Finds eligible parts within destructionRange, highlights newly eligible parts, and
+            removes highlighting from parts that have left the range.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.getPartUnderCursor">
+            <summary>
+            Finds the eligible part beneath the mouse cursor.
+            </summary>
+            <returns>The eligible part under the cursor, or null when there is no valid target.</returns>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.handleLeftClick(Part)">
+            <summary>
+            Handles a left click on an eligible part.
+            </summary>
+            <param name="targetPart">The eligible part selected by the player.</param>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.clearPartHighlights">
+            <summary>
+            Restores normal highlighting on every part tracked by this module.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.restorePartHighlight(Sandcastle.PartModules.KerbalGear.PartHighlight)">
+            <summary>
+            Restores the highlight settings captured before this module highlighted a part.
+            </summary>
+            <param name="savedHighlight">The part and its previous highlight settings.</param>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.canOperate">
+            <summary>
+            Reports whether the module should currently process highlighting and input.
+            </summary>
+            <returns>True while an active EVA Kerbal has explicitly enabled destruction mode.</returns>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.updateToggleEvent">
+            <summary>
+            Updates availability and localized text for the action-window toggle.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PartModules.KerbalGear.WBIModuleEVAPartDestroyer.refreshContextWindows">
+            <summary>
+            Refreshes any open action window after toggle state changes.
+            </summary>
+        </member>
         <member name="T:Sandcastle.Inventory.InventoryUtils">
             <summary>
             An inventory helper class
@@ -2009,8 +2164,8 @@
         <member name="T:Sandcastle.PrintShop.RemotePrinterResources">
             <summary>
             Provides the shared nearby-vessel resource behavior used by deployed and EVA printers.
-            Nearby vessels are searched from nearest to farthest and the printer's own vessel supplies
-            any remainder that the remote vessels cannot provide.
+            The printer's own vessel supplies resources first. Nearby vessels are then searched from
+            nearest to farthest for any remainder that the printer vessel cannot provide.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.RemotePrinterResources.GetResourceTotals(Part,System.Int32,System.Single,System.Double@,System.Double@)">
@@ -2020,14 +2175,14 @@
         </member>
         <member name="M:Sandcastle.PrintShop.RemotePrinterResources.RequestResource(Part,System.Int32,System.Double,ResourceFlowMode,System.Single)">
             <summary>
-            Requests a resource from nearby vessels first and then from the printer vessel.
+            Requests a resource from the printer vessel first and then from nearby vessels.
             </summary>
             <returns>The amount of resource actually supplied.</returns>
         </member>
         <member name="M:Sandcastle.PrintShop.RemotePrinterResources.ConsumePrinterResources(Part,ModuleResourceHandler,System.Single,System.String@)">
             <summary>
-            Consumes the resources required to operate a printer using nearby vessels and then the
-            printer vessel. This mirrors ModuleResourceHandler's normal availability bookkeeping.
+            Consumes the resources required to operate a printer using the printer vessel and then
+            nearby vessels. This mirrors ModuleResourceHandler's normal availability bookkeeping.
             </summary>
         </member>
         <member name="T:Sandcastle.PrintShop.WBIPrintShop">
@@ -2105,7 +2260,7 @@
         <member name="T:Sandcastle.PrintShop.WBIDeployedPrintShop">
             <summary>
             A print shop that can draw printing and operating resources from nearby loaded vessels.
-            Remote vessels are used first; resources on the printer vessel provide the fallback.
+            Resources on the printer vessel are used first; remote vessels provide the fallback.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.WBIDeployedPrintShop.maxRemoteResourceRange">
@@ -2251,7 +2406,7 @@
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.consumePrinterResources">
             <summary>
-            Consumes printer operating resources from nearby vessels before using EVA-local resources.
+            Consumes printer operating resources from the EVA vessel before using nearby vessels.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.getMaterialResourceTotals(System.Int32,System.Double@,System.Double@)">
@@ -2261,7 +2416,7 @@
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.requestMaterialResource(System.Int32,System.Double,ResourceFlowMode)">
             <summary>
-            Consumes printable material from nearby vessels before using EVA-local resources.
+            Consumes printable material from the EVA vessel before using nearby vessels.
             </summary>
         </member>
         <member name="M:Sandcastle.PrintShop.WBIModuleEVAPrintShop.onSupportPrintingRequest(Sandcastle.PrintShop.WBIShipwright,System.Collections.Generic.List{Sandcastle.PrintShop.BuildItem})">

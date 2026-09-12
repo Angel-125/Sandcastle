@@ -1,4 +1,4 @@
-WildBLueCore
+WildBlueCore
 
 A Lightweight plugin used by several Wild Blue mods.
 
@@ -16,6 +16,13 @@ HOW TO FIX MISSING PART MODULES ERROR
 This update renames a number of Wild Blue Industries' part modules and may cause KSP to complain when you try to load your craft files.
 To fix this issue, follow the steps here: https://github.com/Angel-125/WildBlueCore/wiki/How-To-Fix-Missing-Part-Modules-Warning
 
+---CHANGES---
+
+- Updated list of body locations that Kerbal Gear accepts
+- Minor bug fixes
+
+--END CHANGES--
+
 ---ACKNOWLEDGEMENTS
 
 ---LICENSE---
@@ -27,7 +34,9 @@ Note that Wild Blue Industries is a ficticious entity
 created for entertainment purposes. It is in no way meant to represent a real entity.
 Any similarity to a real entity is purely coincidental.
 
-Source code copyright 2022 by Michael Billard (Angel-125)
+Portions of this code were done in collaboration with ChatGPT. Thanks for handling the drudgery!
+
+Source code copyright 2026 by Michael Billard (Angel-125)
 
     This source code is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
