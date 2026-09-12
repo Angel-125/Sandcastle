@@ -80,7 +80,7 @@ Changes
 - Fixed issue with mismatched suit textures and suit meshes.
 - Fixed missing localized strings issue in the KerbalGear prop editor window.
 
---END CHANGES--
+---END CHANGES---
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0
