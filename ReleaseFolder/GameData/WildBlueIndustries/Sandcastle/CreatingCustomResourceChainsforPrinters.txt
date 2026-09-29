@@ -1,0 +1,336 @@
+Creating Custom Resource Chains for Sandcastle Printers
+========================================================
+
+Overview
+--------
+
+Sandcastle uses MATERIALS_LIST configuration nodes to determine which resources
+are consumed when printing parts and vessels. By default, Sandcastle uses Ore,
+but the recipe can be replaced with resources supplied by Community Resource
+Pack or another installed mod.
+
+This guide describes how to create that customization with ModuleManager. It is
+based on the configuration documentation distributed with Sandcastle, especially
+MaterialsList.cfg. It does not require changing Sandcastle's plugin or knowing
+anything about its source code.
+
+
+1. Do Not Edit Sandcastle's Distributed Configuration
+------------------------------------------------------
+
+Although MaterialsList.cfg contains the default recipe, editing it directly is
+not recommended. A Sandcastle update could overwrite the changes.
+
+Instead, create a separate directory and patch file under GameData. For example:
+
+    GameData/MySandcastlePatches/SandcastleCustomResources.cfg
+
+ModuleManager must be installed for this patch to work.
+
+
+2. Choose the Resources
+-----------------------
+
+Every resource used in a recipe must have a RESOURCE_DEFINITION loaded by KSP.
+Use the resource's internal name, not its localized display name. For Community
+Resource Pack resources, consult its configuration files to confirm the exact
+names, densities, and volume-per-unit values.
+
+For example, a refined-material recipe might use:
+
+    MaterialKits
+    Metals
+    Polymers
+
+The selected resources must also have a practical storage and production chain.
+Defining a printing recipe does not automatically add tanks, drills, converters,
+or manufacturing processes for those resources.
+
+
+3. Replace the Default Ore Recipe
+---------------------------------
+
+The Default materials list is used for every part category that does not have a
+more specific MATERIALS_LIST. The following ModuleManager patch removes all of
+the resources from that list and supplies a new recipe:
+
+    @MATERIALS_LIST[Default]:NEEDS[Sandcastle,CommunityResourcePack]:AFTER[Sandcastle]
+    {
+        !RESOURCE,* {}
+
+        RESOURCE
+        {
+            name = MaterialKits
+            rate = 0.60
+        }
+
+        RESOURCE
+        {
+            name = Metals
+            rate = 0.25
+        }
+
+        RESOURCE
+        {
+            name = Polymers
+            rate = 0.15
+        }
+    }
+
+The rates in this example total 1.0. Sandcastle's configuration documentation
+warns that if the combined rate is less than 1, Sandcastle adds Ore to make up
+the difference. Therefore, the combined rate must be at least 1 if the goal is
+to eliminate Ore from the base printing recipe.
+
+A combined rate greater than 1 represents material lost or wasted during
+construction. For example, rates totaling 1.10 require 10 percent more material
+mass than the finished part contains.
+
+
+4. Use a Single Printing Resource, If Desired
+---------------------------------------------
+
+The recipe does not need to contain several resources. This version makes
+MaterialKits the only default printing material:
+
+    @MATERIALS_LIST[Default]:NEEDS[Sandcastle,CommunityResourcePack]:AFTER[Sandcastle]
+    {
+        !RESOURCE,* {}
+
+        RESOURCE
+        {
+            name = MaterialKits
+            rate = 1.0
+        }
+    }
+
+
+5. Understand How Resource Quantities Are Calculated
+----------------------------------------------------
+
+MaterialsList.cfg gives the following relationship:
+
+    amount required = (part mass / resource density) * rate
+
+Consequently, rate describes a mass proportion rather than a fixed number of
+resource units. Two resources with the same rate can require very different
+unit counts when their densities differ.
+
+For a one-tonne part using the example recipe, each required quantity is based
+on that resource's density:
+
+    MaterialKits units = (1 / MaterialKits density) * 0.60
+    Metals units       = (1 / Metals density)       * 0.25
+    Polymers units     = (1 / Polymers density)     * 0.15
+
+Check the resulting quantities in game before balancing tank capacities and
+production rates.
+
+
+6. Create Recipes for Individual Part Categories
+-------------------------------------------------
+
+A MATERIALS_LIST can be named after a KSP part category. Sandcastle recognizes
+the following category names:
+
+    Aero
+    Cargo
+    Communication
+    Control
+    Coupling
+    Electrical
+    Engine
+    FuelTank
+    Ground
+    none
+    Payload
+    Pods
+    Robotics
+    Science
+    Structural
+    Thermal
+    Utility
+
+The category named "none" is displayed as "Special" in Sandcastle's interface.
+
+For example, engines could use a more metal-heavy recipe:
+
+    MATERIALS_LIST:NEEDS[Sandcastle,CommunityResourcePack]
+    {
+        name = Engine
+
+        RESOURCE
+        {
+            name = Metals
+            rate = 0.70
+        }
+
+        RESOURCE
+        {
+            name = MaterialKits
+            rate = 0.20
+        }
+
+        RESOURCE
+        {
+            name = Polymers
+            rate = 0.10
+        }
+    }
+
+Parts in the Engine category use this list instead of Default. Other categories
+continue to use their own named list, if one exists, or fall back to Default.
+
+
+7. Add Requirements by Technology Node
+--------------------------------------
+
+TECH_NODE_MATERIALS adds resources or components to parts unlocked by a specific
+technology node. These requirements are additional to the applicable category
+materials list.
+
+Example:
+
+    TECH_NODE_MATERIALS:NEEDS[Sandcastle,CommunityResourcePack]
+    {
+        name = unifiedFieldTheory
+
+        RESOURCE
+        {
+            name = SpecializedParts
+            rate = 0.05
+        }
+    }
+
+Replace unifiedFieldTheory with the internal name of the desired technology
+node. Confirm that both the node and resource exist in the installed game.
+
+
+8. Add Requirements to Specific Parts
+-------------------------------------
+
+A PRINT_RESOURCE node added to a PART creates a specialized printing requirement
+for that part. It is added to the normal materials-list requirements; it does not
+replace them.
+
+Example:
+
+    @PART[somePartName]:NEEDS[Sandcastle,CommunityResourcePack]:AFTER[Sandcastle]
+    {
+        PRINT_RESOURCE
+        {
+            name = SpecializedParts
+            rate = 0.05
+        }
+    }
+
+Replace somePartName with the part's internal name, not the title shown in the
+editor.
+
+A part can also require inventory components:
+
+    @PART[somePartName]:NEEDS[Sandcastle]:AFTER[Sandcastle]
+    {
+        REQUIRED_COMPONENT
+        {
+            name = batteryPack
+            amount = 2
+        }
+    }
+
+The component name is also an internal part name. The required components must
+be available in vessel inventory.
+
+
+9. Do Not Confuse Materials with Printer Operating Inputs
+---------------------------------------------------------
+
+Sandcastle printer modules can contain RESOURCE or INPUT_RESOURCE nodes such as
+ElectricCharge. Those resources operate the printer itself. They are separate
+from the resources that become the printed part.
+
+In summary:
+
+    MATERIALS_LIST RESOURCE    Base construction material
+    TECH_NODE_MATERIALS        Additional tech-level requirement
+    PART PRINT_RESOURCE        Additional part-specific requirement
+    WBIPrintShop RESOURCE      Resource consumed to run the printer
+
+Changing the operating RESOURCE inside every printer is not how the global Ore
+construction recipe is replaced.
+
+
+10. Provide Storage and Production
+----------------------------------
+
+Some Sandcastle parts include built-in Ore tanks. Replacing the materials list
+does not automatically convert those tanks. They may remain unused while the new
+resources are stored elsewhere on the vessel.
+
+If the built-in tanks are patched, choose their new capacities deliberately.
+Simply renaming Ore to another resource can change both stored mass and occupied
+volume because resource definitions have different density and volume values.
+
+Example storage conversion for one printer:
+
+    @PART[Size2PrintShop]:NEEDS[Sandcastle,CommunityResourcePack]:AFTER[Sandcastle]
+    {
+        !RESOURCE[Ore] {}
+
+        RESOURCE
+        {
+            name = MaterialKits
+            amount = 0
+            maxAmount = 250
+        }
+    }
+
+The value 250 is only an example. Determine an appropriate capacity from the
+resource definition and the desired balance. If the recipe uses several
+resources, add storage for each one or use compatible tanks elsewhere.
+
+The Mini Ore Cartridge is also still an Ore container unless separately patched.
+Its name, description, capacity, and visual design are Ore-specific, so creating
+a separate custom cartridge part may be clearer than silently converting it.
+
+
+11. Test the Patch
+------------------
+
+After saving the patch:
+
+1. Start KSP and allow ModuleManager to rebuild its configuration cache.
+2. Open a Sandcastle printer and select several parts from different categories.
+3. Confirm that Ore no longer appears in the base resource requirements.
+4. Confirm that every intended resource appears with a reasonable quantity.
+5. Test a part with a tech-node or part-specific requirement, if those features
+   are used.
+6. Verify that the vessel can store and transfer the resources.
+7. Run a short print and confirm that the correct resources and ElectricCharge
+   are consumed.
+8. Test recycling separately if the resource chain is intended to be closed-loop.
+
+If Ore still appears, check the following:
+
+* The rates in the applicable MATERIALS_LIST total at least 1.
+* A category-specific MATERIALS_LIST is not overriding Default.
+* The selected part does not have its own PRINT_RESOURCE or assembled-resource
+  requirement for Ore.
+* The patch loaded successfully and uses exact internal resource and part names.
+* Community Resource Pack and ModuleManager are installed and loading normally.
+
+
+12. Recommended Organization
+----------------------------
+
+Keep all custom recipes in a separate directory, for example:
+
+    GameData/MySandcastlePatches/
+        SandcastleCustomResources.cfg
+        SandcastleCategoryRecipes.cfg
+        SandcastlePartRecipes.cfg
+        SandcastleStorage.cfg
+
+This keeps recipe design, specialized requirements, and tank changes easy to
+review while leaving the files distributed with Sandcastle unchanged.
+

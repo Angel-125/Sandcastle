@@ -18,8 +18,10 @@ To fix this issue, follow the steps here: https://github.com/Angel-125/WildBlueC
 
 ---CHANGES---
 
-- Updated list of body locations that Kerbal Gear accepts
-- Minor bug fixes
+New Part Modules
+
+- WBIModuleDockingNode: Provides the ability to name a docking port.
+- WBIModuleDockingNodeController: Provides ability to enable and disable WBIModuleDockingNode part modules. This ability improves performance in flight when an unused WBIModuleDockingNode is disabled.
 
 ---END CHANGES---
 

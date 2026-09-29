@@ -1,0 +1,7 @@
+// ModuleStorablePart replaces the stock cargo-module contract for Sandcastle.
+// KSP_PartVolume adds ModuleCargoPart during :FINAL without recognizing that
+// ModuleStorablePart derives from it, so remove the duplicate afterward.
+@PART[*]:HAS[@MODULE[ModuleStorablePart],@MODULE[ModuleCargoPart]]:NEEDS[KSP_PartVolume]:FINAL
+{
+	!MODULE[ModuleCargoPart] {}
+}

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Sandcastle.Inventory;
 using UnityEngine;
@@ -19,9 +20,14 @@ namespace Sandcastle.PrintShop
         const double kCatchupTime = 3600;
         const float kMsgDuration = 5;
         const float kInventoryRefreshDelay = 3;
+        const int kCaptureCollisionIgnoreFrames = 60;
+        const int kCaptureJointStabilizationFrames = 2;
         const string kRecycleState = "recycleState";
         const string kFlightID = "docketFlightID";
         const string kDockedRootPersistentId = "dockedVesselRootPersistentId";
+        static readonly FieldInfo ignoreCollisionsFramesField = typeof(Vessel).GetField(
+            "ignoreCollisionsFrames", BindingFlags.Instance | BindingFlags.NonPublic);
+        static bool ignoreCollisionsFramesWarningLogged;
         #endregion
 
         #region Fields
@@ -150,6 +156,7 @@ namespace Sandcastle.PrintShop
         List<WBIShipbreaker> supportShipbreakers = null;
         Transform recycleTransform = null;
         Collider[] recycleTriggerColliders = null;
+        int captureJointStabilizationFrames;
         #endregion
 
         #region FixedUpdate
@@ -162,11 +169,46 @@ namespace Sandcastle.PrintShop
             if (vesselToRecycle != null && dockedVesselInfo == null && tryToCoupleVessel)
             {
                 tryToCoupleVessel = false;
+                setIgnoreCollisionsFrames(vesselToRecycle, kCaptureCollisionIgnoreFrames);
+                setIgnoreCollisionsFrames(part.vessel, kCaptureCollisionIgnoreFrames);
                 if (debugMode)
                     Debug.Log(formatPartID() + " - Calling coupleVessel");
                 part.StartCoroutine(InventoryUtils.coupleVessel(vesselToRecycle, part, onVesselCoupled));
                 return;
             }
+
+            // Part.Couple creates a normal finite-strength PartJoint. Protect the
+            // long-distance capture joint before Unity advances physics, and wait
+            // for the new vessel hierarchy to remain stable before recycling.
+            if (captureJointStabilizationFrames > 0)
+            {
+                if (!protectCaptureJoint(true))
+                {
+                    captureJointStabilizationFrames = 0;
+                    recycleState = WBIPrintStates.Paused;
+                    recyclerUI.isRecycling = false;
+                    Debug.LogError(formatPartID() +
+                        " - Captured vessel joint failed during stabilization.");
+                    return;
+                }
+
+                captureJointStabilizationFrames -= 1;
+                lastUpdateTime = Planetarium.GetUniversalTime();
+                if (captureJointStabilizationFrames == 0)
+                {
+                    if (recycleQueue.Count <= 0)
+                        processVesselToRecycle();
+                    recycleState = autoStartRecycling
+                        ? WBIPrintStates.Recycling
+                        : WBIPrintStates.Paused;
+                }
+                return;
+            }
+
+            // Unpacking calls Part.ResetJoints, which restores finite strengths.
+            // Reapply capture protection before each subsequent physics step.
+            if (dockedVesselInfo != null)
+                protectCaptureJoint(false);
 
             // Handle unhighlight
             handleUnhighlightParts();
@@ -249,6 +291,7 @@ namespace Sandcastle.PrintShop
             if (dockedVesselInfo != null)
             {
                 migrateLegacyRecycleIds();
+                protectCaptureJoint(true);
                 recyclerUI.showDecoupleButton = true;
                 if (debugMode)
                 {
@@ -457,6 +500,63 @@ namespace Sandcastle.PrintShop
         private string formatPartID()
         {
             return "[Shipbreaker " + part.flightID + "]";
+        }
+
+        /// <summary>
+        /// Extends KSP's post-coupling collision grace period. PartJoint.OnJointBreak
+        /// ignores break notifications while this counter is greater than zero,
+        /// which also gives the newly combined vessel time to settle physically.
+        /// </summary>
+        private void setIgnoreCollisionsFrames(Vessel targetVessel, int frameCount)
+        {
+            if (targetVessel == null || frameCount <= 0)
+                return;
+
+            if (ignoreCollisionsFramesField == null)
+            {
+                if (!ignoreCollisionsFramesWarningLogged)
+                {
+                    ignoreCollisionsFramesWarningLogged = true;
+                    Debug.LogWarning("[Sandcastle] Cannot extend Vessel.ignoreCollisionsFrames; " +
+                        "the capture joint will still be made unbreakable.");
+                }
+                return;
+            }
+
+            try
+            {
+                int currentFrameCount = (int)ignoreCollisionsFramesField.GetValue(targetVessel);
+                if (currentFrameCount < frameCount)
+                    ignoreCollisionsFramesField.SetValue(targetVessel, frameCount);
+            }
+            catch (Exception exception)
+            {
+                if (!ignoreCollisionsFramesWarningLogged)
+                {
+                    ignoreCollisionsFramesWarningLogged = true;
+                    Debug.LogWarning("[Sandcastle] Cannot extend Vessel.ignoreCollisionsFrames: " +
+                        exception.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Makes the joint between this recycler and the captured vessel's root
+        /// part rigid and unbreakable. This is called repeatedly because KSP's
+        /// unpack path rebuilds joints and restores their ordinary break limits.
+        /// </summary>
+        private bool protectCaptureJoint(bool refreshCollisionWindow)
+        {
+            Part capturedRoot = findCapturedVesselRootPart();
+            if (capturedRoot == null || capturedRoot.parent != part ||
+                capturedRoot.vessel != part.vessel || capturedRoot.attachJoint == null)
+                return false;
+
+            if (refreshCollisionWindow)
+                setIgnoreCollisionsFrames(part.vessel, kCaptureCollisionIgnoreFrames);
+
+            capturedRoot.attachJoint.SetUnbreakable(true, true);
+            return true;
         }
 
         /// <summary>
@@ -948,16 +1048,25 @@ namespace Sandcastle.PrintShop
             dockedVesselInfo = dockedVessel;
             Debug.Log(formatPartID() + " - onVesselCoupled");
 
+            // Part.Couple has completed synchronously, so the new attachment
+            // joint is available here before the next physics simulation.
+            setIgnoreCollisionsFrames(part.vessel, kCaptureCollisionIgnoreFrames);
+            if (!protectCaptureJoint(true))
+            {
+                recycleState = WBIPrintStates.Paused;
+                recyclerUI.isRecycling = false;
+                Debug.LogError(formatPartID() +
+                    " - Unable to protect the newly created capture joint.");
+                return;
+            }
+            captureJointStabilizationFrames = kCaptureJointStabilizationFrames;
+            lastUpdateTime = Planetarium.GetUniversalTime();
+
             // Disable vessel capture.
             setVesselCaptureEnabled(false);
             recyclerUI.showDecoupleButton = true;
-
-            if (recycleQueue.Count <= 0)
-                processVesselToRecycle();
-
-            // Pause the recycler if auto-recycle is off
-            if (!autoStartRecycling)
-                recycleState = WBIPrintStates.Paused;
+            recycleState = WBIPrintStates.Paused;
+            recyclerUI.isRecycling = false;
         }
 
         protected virtual void processVesselToRecycle()
@@ -1746,6 +1855,7 @@ namespace Sandcastle.PrintShop
             recyclerUI.isRecycling = false;
             recyclerUI.showDecoupleButton = false;
             tryToCoupleVessel = false;
+            captureJointStabilizationFrames = 0;
 
             // Modules and inventories on the captured craft were disabled when
             // it entered the recycler. Restore the surviving subtree before it

@@ -1874,6 +1874,20 @@
             Flag to indicate whether or not to try to store parts before recyling them.
             </summary>
         </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.setIgnoreCollisionsFrames(Vessel,System.Int32)">
+            <summary>
+            Extends KSP's post-coupling collision grace period. PartJoint.OnJointBreak
+            ignores break notifications while this counter is greater than zero,
+            which also gives the newly combined vessel time to settle physically.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.protectCaptureJoint(System.Boolean)">
+            <summary>
+            Makes the joint between this recycler and the captured vessel's root
+            part rigid and unbreakable. This is called repeatedly because KSP's
+            unpack path rebuilds joints and restores their ordinary break limits.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.WBIShipbreaker.setupRecycleTarget">
             <summary>
             Locates and caches the model transform and trigger colliders used to
