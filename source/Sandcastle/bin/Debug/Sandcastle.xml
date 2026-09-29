@@ -1892,6 +1892,22 @@
             trigger volume synchronized with it.
             </summary>
         </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.migrateLegacyRecycleIds">
+            <summary>
+            Migrates Shipbreaker jobs saved before persistent IDs were added.
+            Legacy flight IDs are accepted only when they resolve inside the
+            captured vessel subtree. Unresolved part-backed jobs are discarded
+            instead of being allowed to recycle a part that is no longer there.
+            </summary>
+        </member>
+        <member name="M:Sandcastle.PrintShop.WBIShipbreaker.recoverCapturedVesselState">
+            <summary>
+            Recovers a captured craft whose physical subtree survived save/load but
+            whose Shipbreaker docking and queue metadata was lost. Coupling preserves
+            the captured craft's launch and mission IDs, so its root can be separated
+            from ordinary children that belong to the recycler's original craft.
+            </summary>
+        </member>
         <member name="M:Sandcastle.PrintShop.WBIShipbreaker.onReleaseVessel">
             <summary>
             Stops all work associated with the captured vessel and releases the
@@ -2066,6 +2082,13 @@
         <member name="F:Sandcastle.PrintShop.BuildItem.flightId">
             <summary>
             ID of the part.
+            </summary>
+        </member>
+        <member name="F:Sandcastle.PrintShop.BuildItem.persistentId">
+            <summary>
+            Persistent ID of the live part represented by this recycling job.
+            Shipbreaker uses this value because it survives save/load. flightId
+            remains for legacy-save migration and for non-Shipbreaker print jobs.
             </summary>
         </member>
         <member name="F:Sandcastle.PrintShop.BuildItem.waitForSupportCompletion">

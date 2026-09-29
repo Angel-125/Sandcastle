@@ -138,6 +138,13 @@ namespace Sandcastle.PrintShop
         public uint flightId;
 
         /// <summary>
+        /// Persistent ID of the live part represented by this recycling job.
+        /// Shipbreaker uses this value because it survives save/load. flightId
+        /// remains for legacy-save migration and for non-Shipbreaker print jobs.
+        /// </summary>
+        public uint persistentId;
+
+        /// <summary>
         /// Flag to wait for a support unit to complete the job.
         /// </summary>
         public bool waitForSupportCompletion;
@@ -184,13 +191,16 @@ namespace Sandcastle.PrintShop
                 float.TryParse(node.GetValue(kPackedVolume), out packedVolume);
 
             if (node.HasValue(kBlacklisted))
-                bool.TryParse(node.GetValue(kBlacklisted), out isBeingRecycled);
+                bool.TryParse(node.GetValue(kBlacklisted), out isBlacklisted);
 
             if (node.HasValue(kMass))
                 double.TryParse(node.GetValue(kMass), out mass);
 
             if (node.HasValue("flightId"))
                 uint.TryParse(node.GetValue("flightId"), out flightId);
+
+            if (node.HasValue("persistentId"))
+                uint.TryParse(node.GetValue("persistentId"), out persistentId);
 
             if (node.HasValue("waitForSupportCompletion"))
                 bool.TryParse(node.GetValue("waitForSupportCompletion"), out waitForSupportCompletion);
@@ -423,6 +433,7 @@ namespace Sandcastle.PrintShop
             unpackedVolume = copyFrom.unpackedVolume;
             isUnpacked = copyFrom.isUnpacked;
             flightId = copyFrom.flightId;
+            persistentId = copyFrom.persistentId;
             waitForSupportCompletion = copyFrom.waitForSupportCompletion;
             skipInventoryAdd = copyFrom.skipInventoryAdd;
 
@@ -465,6 +476,7 @@ namespace Sandcastle.PrintShop
                 node.AddValue(kPartName, partName);
             node.AddValue(kTotalUnitsRequired, totalUnitsRequired.ToString());
             node.AddValue(kTotalUnitsPrinted, totalUnitsPrinted.ToString());
+            node.AddValue(kIsBeingRecycled, isBeingRecycled);
             node.AddValue(kRemoveResources, removeResources);
             node.AddValue(kVariantIndex, variantIndex);
             node.AddValue(kBlacklisted, isBlacklisted);
@@ -472,6 +484,7 @@ namespace Sandcastle.PrintShop
             node.AddValue(kIsUnpacked, isUnpacked);
             node.AddValue(kUnpackedVolume, unpackedVolume);
             node.AddValue("flightId", flightId);
+            node.AddValue("persistentId", persistentId);
             node.AddValue("waitForSupportCompletion", waitForSupportCompletion);
             node.AddValue("skipInventoryAdd", skipInventoryAdd);
 

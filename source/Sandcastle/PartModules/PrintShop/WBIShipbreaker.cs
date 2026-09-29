@@ -21,6 +21,7 @@ namespace Sandcastle.PrintShop
         const float kInventoryRefreshDelay = 3;
         const string kRecycleState = "recycleState";
         const string kFlightID = "docketFlightID";
+        const string kDockedRootPersistentId = "dockedVesselRootPersistentId";
         #endregion
 
         #region Fields
@@ -143,6 +144,7 @@ namespace Sandcastle.PrintShop
         int totalPartsRecycled;
         Vessel vesselToRecycle = null;
         DockedVesselInfo dockedVesselInfo = null;
+        uint dockedVesselRootPersistentId;
         bool tryToCoupleVessel = false;
         List<BuildItem> partsNeedingRecycling = null;
         List<WBIShipbreaker> supportShipbreakers = null;
@@ -237,9 +239,16 @@ namespace Sandcastle.PrintShop
             setupRecycleTarget();
             setVesselCaptureEnabled(vesselCaptureEnabled);
 
+            // A failed load in older builds could preserve the physically coupled
+            // craft while losing its DockedVesselInfo and recycle job nodes. Recover
+            // that state from the foreign craft subtree directly coupled to us.
+            if (dockedVesselInfo == null)
+                recoverCapturedVesselState();
+
             // Make the sure the printer didn't get stuck with an unprocessed vessel.
             if (dockedVesselInfo != null)
             {
+                migrateLegacyRecycleIds();
                 recyclerUI.showDecoupleButton = true;
                 if (debugMode)
                 {
@@ -341,7 +350,7 @@ namespace Sandcastle.PrintShop
                 for (int index = 0; index < nodes.Length; index++)
                 {
                     buildItem = new BuildItem(nodes[index]);
-                    recycleQueue.Add(buildItem);
+                    partsNeedingRecycling.Add(buildItem);
                 }
             }
 
@@ -352,6 +361,9 @@ namespace Sandcastle.PrintShop
                 dockedVesselInfo = new DockedVesselInfo();
                 dockedVesselInfo.Load(dockedVesselNode);
             }
+
+            if (node.HasValue(kDockedRootPersistentId))
+                uint.TryParse(node.GetValue(kDockedRootPersistentId), out dockedVesselRootPersistentId);
         }
 
         public override void OnSave(ConfigNode node)
@@ -383,7 +395,7 @@ namespace Sandcastle.PrintShop
             count = partsNeedingRecycling.Count;
             for (int index = 0; index < count; index++)
             {
-                buildItemNode = recycleQueue[index].Save();
+                buildItemNode = partsNeedingRecycling[index].Save();
                 buildItemNode.name = "BUILDITEM_TODO";
                 node.AddNode(buildItemNode);
             }
@@ -395,6 +407,7 @@ namespace Sandcastle.PrintShop
                 dockedVesselInfo.Save(dockedVesselNode);
                 node.AddNode(dockedVesselNode);
             }
+            node.AddValue(kDockedRootPersistentId, dockedVesselRootPersistentId);
         }
 
         public override string GetInfo()
@@ -513,7 +526,7 @@ namespace Sandcastle.PrintShop
             int count = recycleQueue.Count;
             for (int index = 0; index < count; index++)
             {
-                if (recycleQueue[index].flightId == buildItem.flightId)
+                if (sameRecycleItem(recycleQueue[index], buildItem))
                     return true;
             }
 
@@ -585,10 +598,19 @@ namespace Sandcastle.PrintShop
                 Debug.Log(formatPartID() + " - Found vessel to recycle");
 
             shipName = vesselToRecycle.vesselName;
+            dockedVesselRootPersistentId = vesselToRecycle.rootPart != null
+                ? vesselToRecycle.rootPart.persistentId
+                : 0;
             tryToCoupleVessel = true;
 
+            // A newly captured (or recaptured) vessel always starts with a
+            // freshly constructed job set. Never carry jobs from the vessel
+            // that was previously released.
+            cancelSupportRecycleJobs();
+            recycleQueue.Clear();
             setupPartsToRecycle(vesselToRecycle.parts);
             sendInventoryToRecycling(vesselToRecycle);
+            updateRecyclerUIQueue();
             disableVesselStorageAndPrinters(vesselToRecycle);
 
             if (debugMode)
@@ -611,7 +633,8 @@ namespace Sandcastle.PrintShop
                 partToRecycle = vesselParts[index];
 
                 recycleItem = new BuildItem(partToRecycle.partInfo);
-                recycleItem.flightId = partToRecycle.flightID;
+                recycleItem.persistentId = partToRecycle.persistentId;
+                recycleItem.flightId = 0;
                 recycleItem.UpdateResourceRequirements(partToRecycle);
                 shipTotalUnitsToRecycle += recycleItem.totalUnitsRequired;
                 partsNeedingRecycling.Add(recycleItem);
@@ -634,6 +657,241 @@ namespace Sandcastle.PrintShop
                 Debug.Log(formatPartID() + " - " + partsNeedingRecycling.Count + " parts to recycle");
                 Debug.Log(formatPartID() + " - shipTotalUnitsToRecycle: " + shipTotalUnitsToRecycle);
             }
+        }
+
+        /// <summary>
+        /// Migrates Shipbreaker jobs saved before persistent IDs were added.
+        /// Legacy flight IDs are accepted only when they resolve inside the
+        /// captured vessel subtree. Unresolved part-backed jobs are discarded
+        /// instead of being allowed to recycle a part that is no longer there.
+        /// </summary>
+        private void migrateLegacyRecycleIds()
+        {
+            Part capturedRoot = findCapturedVesselRootPart();
+            if (capturedRoot == null)
+                return;
+
+            if (dockedVesselRootPersistentId == 0)
+                dockedVesselRootPersistentId = capturedRoot.persistentId;
+
+            migrateLegacyRecycleIds(recycleQueue, capturedRoot, true);
+            migrateLegacyRecycleIds(partsNeedingRecycling, capturedRoot, false);
+            updateRecyclerUIQueue();
+        }
+
+        /// <summary>
+        /// Recovers a captured craft whose physical subtree survived save/load but
+        /// whose Shipbreaker docking and queue metadata was lost. Coupling preserves
+        /// the captured craft's launch and mission IDs, so its root can be separated
+        /// from ordinary children that belong to the recycler's original craft.
+        /// </summary>
+        private bool recoverCapturedVesselState()
+        {
+            if (part == null || part.vessel == null || part.children == null ||
+                part.children.Count == 0 || string.IsNullOrEmpty(shipName))
+                return false;
+
+            int expectedRemainingParts = Math.Max(1,
+                totalPartsToRecycle - totalPartsRecycled);
+            Part capturedRoot = null;
+            int capturedPartCount = 0;
+            int bestDifference = int.MaxValue;
+
+            for (int index = 0; index < part.children.Count; index++)
+            {
+                Part candidate = part.children[index];
+                if (candidate == null)
+                    continue;
+
+                // Parts from the captured vessel retain the identity of their
+                // original craft after Part.Couple joins the two vessel trees.
+                if (candidate.launchID == part.launchID &&
+                    candidate.missionID == part.missionID)
+                    continue;
+
+                int candidatePartCount = countPartsInSubtree(candidate);
+                int difference = Math.Abs(candidatePartCount - expectedRemainingParts);
+                if (capturedRoot == null || difference < bestDifference ||
+                    (difference == bestDifference && candidatePartCount > capturedPartCount))
+                {
+                    capturedRoot = candidate;
+                    capturedPartCount = candidatePartCount;
+                    bestDifference = difference;
+                }
+            }
+
+            if (capturedRoot == null)
+                return false;
+
+            dockedVesselRootPersistentId = capturedRoot.persistentId;
+            dockedVesselInfo = new DockedVesselInfo
+            {
+                name = shipName,
+                vesselType = part.vessel.vesselType,
+                rootPartUId = capturedRoot.flightID
+            };
+
+            recycleQueue.Clear();
+            rebuildPartsToRecyleList();
+            recycleState = autoStartRecycling
+                ? WBIPrintStates.Recycling
+                : WBIPrintStates.Paused;
+            lastUpdateTime = Planetarium.GetUniversalTime();
+            updateRecyclerUIQueue();
+
+            Debug.Log(formatPartID() + " - Recovered captured vessel " + shipName +
+                " from coupled root " + capturedRoot.partInfo.name + " (persistentId " +
+                dockedVesselRootPersistentId + ", " + capturedPartCount + " parts).");
+            return true;
+        }
+
+        private int countPartsInSubtree(Part rootPart)
+        {
+            if (rootPart == null)
+                return 0;
+
+            int partCount = 1;
+            for (int index = 0; index < rootPart.children.Count; index++)
+                partCount += countPartsInSubtree(rootPart.children[index]);
+            return partCount;
+        }
+
+        private void migrateLegacyRecycleIds(List<BuildItem> jobs, Part capturedRoot,
+            bool allowDestroyedActiveJob)
+        {
+            if (jobs == null)
+                return;
+
+            List<BuildItem> staleJobs = new List<BuildItem>();
+            for (int index = 0; index < jobs.Count; index++)
+            {
+                BuildItem job = jobs[index];
+                if (job == null)
+                {
+                    staleJobs.Add(job);
+                    continue;
+                }
+
+                // Inventory-derived jobs intentionally have no live-part ID.
+                if (job.persistentId == 0 && job.flightId == 0)
+                    continue;
+
+                Part livePart = null;
+                if (job.persistentId != 0)
+                    livePart = findPartInCapturedSubtree(capturedRoot, job.persistentId);
+                else if (job.flightId != 0)
+                {
+                    Part legacyPart = part.vessel[job.flightId];
+                    if (isPartInSubtree(legacyPart, capturedRoot))
+                        livePart = legacyPart;
+                }
+
+                if (livePart != null)
+                {
+                    job.persistentId = livePart.persistentId;
+                    job.flightId = 0;
+                }
+                else if (!(allowDestroyedActiveJob && job.isBeingRecycled &&
+                    job.persistentId != 0))
+                {
+                    staleJobs.Add(job);
+                }
+            }
+
+            for (int index = 0; index < staleJobs.Count; index++)
+            {
+                BuildItem staleJob = staleJobs[index];
+                jobs.Remove(staleJob);
+                if (staleJob != null)
+                {
+                    shipTotalUnitsToRecycle = Math.Max(0,
+                        shipTotalUnitsToRecycle - staleJob.totalUnitsRequired);
+                    shipTotalUnitsRecycled = Math.Max(0,
+                        shipTotalUnitsRecycled - staleJob.totalUnitsPrinted);
+                    totalPartsToRecycle = Math.Max(totalPartsRecycled,
+                        totalPartsToRecycle - 1);
+                }
+            }
+        }
+
+        private Part findCapturedVesselRootPart()
+        {
+            if (dockedVesselInfo == null || part == null || part.vessel == null)
+                return null;
+
+            Part capturedRoot = null;
+            if (dockedVesselRootPersistentId != 0)
+            {
+                for (int index = 0; index < part.vessel.parts.Count; index++)
+                {
+                    Part candidate = part.vessel.parts[index];
+                    if (candidate != null && candidate.persistentId == dockedVesselRootPersistentId)
+                    {
+                        capturedRoot = candidate;
+                        break;
+                    }
+                }
+            }
+
+            // One-time migration path for saves made before the persistent root
+            // ID existed. DockedVesselInfo already contains the stock root flight ID.
+            if (capturedRoot == null && dockedVesselInfo.rootPartUId != 0)
+            {
+                Part legacyRoot = part.vessel[dockedVesselInfo.rootPartUId];
+                if (legacyRoot != null && legacyRoot.parent == part)
+                {
+                    capturedRoot = legacyRoot;
+                    dockedVesselRootPersistentId = legacyRoot.persistentId;
+                }
+            }
+
+            return capturedRoot;
+        }
+
+        private Part findPartForRecycleItem(BuildItem recycleItem)
+        {
+            if (recycleItem == null || recycleItem.persistentId == 0)
+                return null;
+
+            Part capturedRoot = findCapturedVesselRootPart();
+            return findPartInCapturedSubtree(capturedRoot, recycleItem.persistentId);
+        }
+
+        private Part findPartInCapturedSubtree(Part rootPart, uint persistentId)
+        {
+            if (rootPart == null || persistentId == 0)
+                return null;
+            if (rootPart.persistentId == persistentId)
+                return rootPart;
+
+            for (int index = 0; index < rootPart.children.Count; index++)
+            {
+                Part match = findPartInCapturedSubtree(rootPart.children[index], persistentId);
+                if (match != null)
+                    return match;
+            }
+
+            return null;
+        }
+
+        private bool isPartInSubtree(Part candidate, Part rootPart)
+        {
+            while (candidate != null)
+            {
+                if (candidate == rootPart)
+                    return true;
+                candidate = candidate.parent;
+            }
+            return false;
+        }
+
+        private bool sameRecycleItem(BuildItem first, BuildItem second)
+        {
+            if (first == null || second == null)
+                return false;
+            if (first.persistentId != 0 || second.persistentId != 0)
+                return first.persistentId != 0 && first.persistentId == second.persistentId;
+            return first.flightId != 0 && first.flightId == second.flightId;
         }
 
         void sendInventoryToRecycling(Vessel vesselToRecycle)
@@ -717,7 +975,7 @@ namespace Sandcastle.PrintShop
             for (int index = 0; index < count; index++)
             {
                 recycleItem = partsNeedingRecycling[index];
-                partToRecycle = part.vessel[recycleItem.flightId];
+                partToRecycle = findPartForRecycleItem(recycleItem);
                 if (partToRecycle == null)
                     continue;
 
@@ -836,7 +1094,9 @@ namespace Sandcastle.PrintShop
             if (debugMode)
                 Debug.Log(formatPartID() + " - Rebuilding list of parts to recycle.");
 
-            Part recycleVesselRootPart = vessel[dockedVesselInfo.rootPartUId];
+            Part recycleVesselRootPart = findCapturedVesselRootPart();
+            if (recycleVesselRootPart == null)
+                return;
             List<Part> vesselParts = new List<Part>();
 
             if (recycleVesselRootPart.children.Count > 0)
@@ -872,7 +1132,7 @@ namespace Sandcastle.PrintShop
             if (queueCount == 0 && partsToRecycleCount == 0)
             {
                 // See if we have a partially disassembled vessel to process
-                if (dockedVesselInfo != null && vessel[dockedVesselInfo.rootPartUId] != null)
+                if (dockedVesselInfo != null && findCapturedVesselRootPart() != null)
                 {
                     if (debugMode)
                         Debug.Log(formatPartID() + " - processRecycleQueue has no more parts to recycle but there is a partially deconstructed vessel to work on.");
@@ -930,21 +1190,48 @@ namespace Sandcastle.PrintShop
             BuildItem buildItem;
             double printTimeRemaining = 0;
             double elapsedTime = Planetarium.GetUniversalTime() - lastUpdateTime;
+            double effectiveRecycleRate = recycleSpeedUSec * calculateSpecialistBonus();
+            if (effectiveRecycleRate <= 0)
+            {
+                lastUpdateTime = Planetarium.GetUniversalTime();
+                return;
+            }
+
             while (elapsedTime > TimeWarp.fixedDeltaTime * 2 && recycleQueue.Count > 0)
             {
                 // We always work with the first item in the queue.
                 buildItem = recycleQueue[0];
+                double previousUnitsRecycled = buildItem.totalUnitsPrinted;
 
                 // Update recycle state
                 recycleState = WBIPrintStates.Recycling;
 
-                // Calculate print time remaining
-                printTimeRemaining = (buildItem.totalUnitsRequired - buildItem.totalUnitsPrinted) * recycleSpeedUSec;
+                // Materials are processed in parallel. The material with the
+                // largest positive remainder determines the required catch-up time.
+                printTimeRemaining = 0;
+                for (int materialIndex = 0; materialIndex < buildItem.materials.Count; materialIndex++)
+                {
+                    if (buildItem.materials[materialIndex].amount > 0)
+                    {
+                        printTimeRemaining = Math.Max(printTimeRemaining,
+                            buildItem.materials[materialIndex].amount / effectiveRecycleRate);
+                    }
+                }
                 if (printTimeRemaining > elapsedTime)
                     printTimeRemaining = elapsedTime;
 
                 // Handle recycle job
                 handleRecycleJob(printTimeRemaining);
+
+                // Resource draining, support waits, or a malformed legacy job
+                // can return without advancing progress. Do not spin through
+                // the same queue item for the entire unloaded time interval.
+                if (recycleQueue.Count > 0 && ReferenceEquals(buildItem, recycleQueue[0]) &&
+                    buildItem.totalUnitsPrinted <= previousUnitsRecycled)
+                {
+                    lastUpdateTime = Planetarium.GetUniversalTime();
+                    break;
+                }
 
                 // Update elapsedTime
                 elapsedTime -= printTimeRemaining;
@@ -996,7 +1283,7 @@ namespace Sandcastle.PrintShop
 
         private void scrapPart(BuildItem buildItem)
         {
-            Part partToRecycle = vessel[buildItem.flightId];
+            Part partToRecycle = findPartForRecycleItem(buildItem);
             if (!buildItem.isBeingRecycled && partToRecycle != null)
             {
                 if (debugMode)
@@ -1007,7 +1294,8 @@ namespace Sandcastle.PrintShop
                     partToRecycle.parent.removeChild(partToRecycle);
 
                 // If it is the root part then we need to undock it first.
-                if (dockedVesselInfo != null && partToRecycle.flightID == dockedVesselInfo.rootPartUId)
+                if (dockedVesselInfo != null &&
+                    partToRecycle.persistentId == dockedVesselRootPersistentId)
                 {
                     InventoryUtils.decoupleVessel(partToRecycle, dockedVesselInfo);
                     dockedVesselInfo = null;
@@ -1043,7 +1331,7 @@ namespace Sandcastle.PrintShop
             int count = recycleQueue.Count;
             for (int index = 0; index < count; index++)
             {
-                if (recycleQueue[index].flightId == buildItem.flightId)
+                if (sameRecycleItem(recycleQueue[index], buildItem))
                 {
                     doomed = recycleQueue[index];
                     break;
@@ -1063,7 +1351,7 @@ namespace Sandcastle.PrintShop
             if (recycleQueue.Count > 1)
             {
                 BuildItem recycleItem = recycleQueue[recycleQueue.Count - 1];
-                if (recycleItem.flightId != dockedVesselInfo.rootPartUId)
+                if (recycleItem.persistentId != dockedVesselRootPersistentId)
                 {
                     recycleQueue.Remove(recycleItem);
                     shipbreaker.recycleQueue.Add(recycleItem);
@@ -1098,7 +1386,7 @@ namespace Sandcastle.PrintShop
             if (buildItem.waitForSupportCompletion && dockedVesselInfo != null)
             {
                 // Failsafe: If no support recycler has this build item in its queue, then switch off the flag.
-                if (supportUnitStillProcessing(buildItem))
+                if (!supportUnitStillProcessing(buildItem))
                     buildItem.waitForSupportCompletion = false;
 
                 recycleStatusText = Localizer.Format("#LOC_SANDCASTLE_waitingForCompletion");
@@ -1107,7 +1395,7 @@ namespace Sandcastle.PrintShop
             }
 
             // Check for duplicate parts
-            Part partToRecycle = part.vessel[buildItem.flightId];
+            Part partToRecycle = findPartForRecycleItem(buildItem);
             if (!buildItem.isBeingRecycled && partToRecycle == null && dockedVesselInfo != null)
             {
                 recycleQueue.Remove(buildItem);
@@ -1240,7 +1528,7 @@ namespace Sandcastle.PrintShop
             if (buildItem.totalUnitsPrinted < buildItem.totalUnitsRequired)
             {
                 // Calculate recycleRate
-                float recycleRate = recycleSpeedUSec * calculateSpecialistBonus() * (float)elapsedTime;
+                double recycleRate = recycleSpeedUSec * calculateSpecialistBonus() * elapsedTime;
 
                 ModuleResource material;
                 for (int index = 0; index < count; index++)
@@ -1259,18 +1547,25 @@ namespace Sandcastle.PrintShop
 
                     if (material.amount > 0)
                     {
-                        // produce the resource
-                        part.RequestResource(resourceID, -recycleRate * recyclePercentage, flowMode);
+                        double materialRecycleAmount = Math.Min(recycleRate, material.amount);
+                        materialRecycleAmount = Math.Min(materialRecycleAmount,
+                            buildItem.totalUnitsRequired - buildItem.totalUnitsPrinted);
+                        if (materialRecycleAmount <= 0)
+                            continue;
 
-                        material.amount -= recycleRate;
+                        // produce the resource
+                        part.RequestResource(resourceID,
+                            -materialRecycleAmount * recyclePercentage, flowMode);
+
+                        material.amount -= materialRecycleAmount;
                         if (material.amount < 0)
                             material.amount = 0;
 
-                        buildItem.totalUnitsPrinted += recycleRate;
+                        buildItem.totalUnitsPrinted += materialRecycleAmount;
                         if (buildItem.totalUnitsPrinted > buildItem.totalUnitsRequired)
                             buildItem.totalUnitsPrinted = buildItem.totalUnitsRequired;
 
-                        shipTotalUnitsRecycled += recycleRate;
+                        shipTotalUnitsRecycled += materialRecycleAmount;
                         if (shipTotalUnitsRecycled > shipTotalUnitsToRecycle)
                             shipTotalUnitsRecycled = shipTotalUnitsToRecycle;
                     }
@@ -1280,10 +1575,26 @@ namespace Sandcastle.PrintShop
                             Debug.Log(formatPartID() + " - " + buildItem.availablePart.title + ": material " + material.name + " is 0.");
                     }
                 }
+
+                // Floating-point rounding and older saves can leave aggregate
+                // progress just below completion after every material is gone.
+                bool allMaterialsRecycled = true;
+                for (int index = 0; index < count; index++)
+                {
+                    if (buildItem.materials[index].amount > 0)
+                    {
+                        allMaterialsRecycled = false;
+                        break;
+                    }
+                }
+                if (allMaterialsRecycled)
+                    buildItem.totalUnitsPrinted = buildItem.totalUnitsRequired;
             }
 
             // Update progress
-            double progress = buildItem.totalUnitsPrinted / buildItem.totalUnitsRequired * 100;
+            double progress = buildItem.totalUnitsRequired > 0
+                ? buildItem.totalUnitsPrinted / buildItem.totalUnitsRequired * 100
+                : 100;
             recycleStatusText = Localizer.Format("#LOC_SANDCASTLE_progress", new string[1] { string.Format("{0:n1}", progress) });
             updateUIStatus();
             if (progress < 100)
@@ -1399,7 +1710,7 @@ namespace Sandcastle.PrintShop
             if (dockedVesselInfo == null)
                 return;
 
-            Part dockedVesselRootPart = part.vessel[dockedVesselInfo.rootPartUId];
+            Part dockedVesselRootPart = findCapturedVesselRootPart();
             if (dockedVesselRootPart == null)
             {
                 ScreenMessages.PostScreenMessage("dockedVesselRootPart == null", kMsgDuration, ScreenMessageStyle.UPPER_CENTER);
@@ -1446,6 +1757,7 @@ namespace Sandcastle.PrintShop
             part.StartCoroutine(InventoryUtils.decoupleVessel(dockedVesselRootPart, vesselInfo, false));
 
             dockedVesselInfo = null;
+            dockedVesselRootPersistentId = 0;
             vesselToRecycle = null;
         }
 
@@ -1458,19 +1770,19 @@ namespace Sandcastle.PrintShop
                 return;
 
             HashSet<BuildItem> canceledJobs = new HashSet<BuildItem>(recycleQueue);
-            HashSet<uint> canceledFlightIds = new HashSet<uint>();
+            HashSet<uint> canceledPersistentIds = new HashSet<uint>();
             for (int index = 0; index < recycleQueue.Count; index++)
             {
-                if (recycleQueue[index].flightId != 0)
-                    canceledFlightIds.Add(recycleQueue[index].flightId);
+                if (recycleQueue[index].persistentId != 0)
+                    canceledPersistentIds.Add(recycleQueue[index].persistentId);
             }
             if (partsNeedingRecycling != null)
             {
                 for (int index = 0; index < partsNeedingRecycling.Count; index++)
                 {
                     canceledJobs.Add(partsNeedingRecycling[index]);
-                    if (partsNeedingRecycling[index].flightId != 0)
-                        canceledFlightIds.Add(partsNeedingRecycling[index].flightId);
+                    if (partsNeedingRecycling[index].persistentId != 0)
+                        canceledPersistentIds.Add(partsNeedingRecycling[index].persistentId);
                 }
             }
 
@@ -1483,7 +1795,8 @@ namespace Sandcastle.PrintShop
                 supportShipbreaker.recycleQueue.RemoveAll(item =>
                     item != null &&
                     (canceledJobs.Contains(item) ||
-                    (item.flightId != 0 && canceledFlightIds.Contains(item.flightId))));
+                    (item.persistentId != 0 &&
+                    canceledPersistentIds.Contains(item.persistentId))));
                 if (supportShipbreaker.recycleQueue.Count == 0)
                 {
                     supportShipbreaker.recycleState = WBIPrintStates.Idle;
