@@ -28,7 +28,7 @@ Bug Fixes
 - Fixed an issue where WBIShipbreaker could become stuck in an endless catch-up loop and prevent a vessel's flight scene from loading after recycling continued while away from the vessel.
 - Fixed an issue where a vessel captured by WBIShipbreaker could become detached when its coupling joint broke during post-capture physics initialization or vessel unpacking.
 
---END CHANGES--
+---END CHANGES---
 
 ---LICENSE---
 Near Future Props by Nertea, licensed under CC-BY-NC-SA-4.0
