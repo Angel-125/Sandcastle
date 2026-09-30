@@ -23,6 +23,8 @@ And on CKAN.
 
 ---CHANGES---
 
+- Updated bundled WildBlueCore to version 1.7.0.
+
 Bug Fixes
 
 - Fixed an issue where WBIShipbreaker could become stuck in an endless catch-up loop and prevent a vessel's flight scene from loading after recycling continued while away from the vessel.
