@@ -25,8 +25,7 @@ And on CKAN.
 
 Bug Fixes
 
-- Fixed an issue where WBIShipbreaker could become stuck in an endless catch-up loop and prevent a vessel's flight scene from loading after recycling continued while away from the vessel.
-- Fixed an issue where a vessel captured by WBIShipbreaker could become detached when its coupling joint broke during post-capture physics initialization or vessel unpacking.
+- Fixed part-specific PRINT_RESOURCE requirements replacing matching category material rates instead of adding to them. Matching resource rates are now combined as documented.
 
 ---END CHANGES---
 

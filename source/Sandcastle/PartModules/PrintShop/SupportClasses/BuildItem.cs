@@ -316,7 +316,7 @@ namespace Sandcastle.PrintShop
                         if (!buildMaterials.ContainsKey(resource.name))
                             buildMaterials.Add(resource.name, resource);
                         else
-                            buildMaterials[resource.name].rate = resource.rate;
+                            buildMaterials[resource.name].rate += resource.rate;
                     }
                 }
             }
