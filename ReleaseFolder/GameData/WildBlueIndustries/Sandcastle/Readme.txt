@@ -23,6 +23,10 @@ And on CKAN.
 
 ---CHANGES---
 
+- Updated bundled WildBlueCore to version 1.7.1.
+
+- Updated bundled WildBlueCore to version 1.7.0.
+
 Bug Fixes
 
 - Fixed part-specific PRINT_RESOURCE requirements replacing matching category material rates instead of adding to them. Matching resource rates are now combined as documented.
