@@ -23,6 +23,8 @@ And on CKAN.
 
 ---CHANGES---
 
+- Updated bundled WildBlueCore to version 1.7.1.
+
 - Updated bundled WildBlueCore to version 1.7.0.
 
 Bug Fixes
