@@ -1,0 +1,80 @@
+//This config replaces ores with rocket parts on a 1 to 1 ratio with rocket costs from EPL or tries to get it close.
+//single crew pod costs the same amount of rocket parts here as it does in EPL.
+//Adds Printer and Recycle Modules to all EPL workshop parts that also make rocket parts just like how Extra/ExtraplanetaryLaunchpads.cfg adds EPL workshops n' converters.
+
+@MATERIALS_LIST[Default]:FINAL
+{
+    @RESOURCE[Ore]
+    {
+        @name = RocketParts
+        @rate = 1.0
+    }
+}
+@PART[wbiMiniOreCartridge]:FINAL
+{
+    @title = Mini Part Cartridge
+    @description = Small parts cartridges like this one are designed to hold a modest amount of parts for construction projects.
+}
+
+@PART[*]:HAS[@MODULE[ELConverter],@MODULE[ELWorkshop]]:FINAL
+{
+    #MODULE[ELConverter]/Rate = #$/elRate$
+    #$/elRate$ /= 0.15
+
+    MODULE:NEEDS[!WBIPrintShop]
+    {
+        name = WBIPrintShop
+        maxPrintVolume = 11000
+        UseSpecialistBonus = true
+        SpecialistBonus = 0.05
+        ExperienceEffect = ConverterSkill
+        printSpeedUSec = 1.0
+        @printSpeedUSec /= #$/elRate$
+
+        RESOURCE
+        {
+            name = ElectricCharge
+            rate = 5.0
+            @rate *= #$/elRate$
+        }
+    }
+
+    MODULE:NEEDS[!WBICargoRecycler]
+    {
+        name = WBICargoRecycler
+        recyclePercentage = 0.45
+        UseSpecialistBonus = true
+        SpecialistBonus = 0.05
+        ExperienceEffect = ConverterSkill
+        recycleSpeedUSec = 0.5
+        @recycleSpeedUSec /= #$/elRate$
+
+        RESOURCE
+        {
+            name = ElectricCharge
+            rate = 5.0
+            @rate *= #$/elRate$
+        }
+    }
+
+    !elRate = delete
+}
+
+// I have no idea why but for some reason recycler modules can only output what they are made off and not a different resource so this doesn't work as intended
+// Same reclaim ratio as you get with default ore config 
+@PART[*]:HAS[@MODULE[WBIResourceRecycler]]:FINAL
+{
+    @MODULE[WBIResourceRecycler]
+    {
+        @outputResource = ScrapMetal
+    }
+}
+
+
+@PART[*]:HAS[@MODULE[WBICargoRecycler]]:FINAL
+{
+    @MODULE[WBICargoRecycler]
+    {
+        @recycleResource = ScrapMetal
+    }
+}
